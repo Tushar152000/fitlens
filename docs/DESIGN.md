@@ -74,27 +74,50 @@ Load fonts with `next/font/google` (`Bricolage_Grotesque` weights 500–800, `Fi
 
 ## Screens
 
-| #   | Route                       | Purpose           | Key content                                                                                                                                                                                                                                                              |
-| --- | --------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | `/` (signed out) → `/login` | Welcome + sign-in | Hero plate with detection chips, headline "Snap your meal. Hit your goal.", Google + email link buttons, terms + "not medical advice".                                                                                                                                   |
-| 2   | `/onboarding` step 1        | Goal type         | ChoiceCards: Lose fat / Build muscle / Recomposition; target (weight or body fat %) + target date.                                                                                                                                                                       |
-| 3   | `/onboarding` step 2        | About you         | Sex segmented, DOB, height, weight, waist, neck (+ hip for female), measuring tip, activity ChoiceCards.                                                                                                                                                                 |
-| 4   | `/onboarding` step 3        | Diet and training | Diet chips (veg / non-veg / eggetarian / vegan), equipment, days per week, session length, injuries (optional).                                                                                                                                                          |
-| 5   | `/onboarding/plan`          | Your plan         | "Realistic goal" badge (or amber warning + suggested date if `feasible=false`), now → goal card with projection line, dark target card (kcal, macro split bar, P/C/F), BMI / BMR / workouts tiles, "Start my plan". Data: `POST /api/onboarding` response.               |
-| 6   | `/today`                    | Dashboard         | Date + greeting, streak pill, CalorieRing + 3 MacroBars, meal list, dashed "Add dinner" slot for the next unlogged meal, today's workout card, TabBar. Data: `GET /api/dashboard`.                                                                                       |
-| 7   | `/log`                      | Camera            | Dark screen; meal-type chips (default by time of day); viewfinder with corner guides and tip "Shoot from above · whole plate in frame"; gallery, shutter, "type instead". Compress to ≤1024 px client-side, then `POST /api/meals/upload-url` → PUT → `POST /api/meals`. |
-| 8   | `/log/[id]`                 | Confirm AI result | Photo header, "We found N items", MealItemEditor list, "Add a missed item", ghee/oil switch (+45 kcal, +5 g fat), sticky footer with live total + P/C/F and "Save to dinner". Data: `GET/PUT /api/meals/[id]`.                                                           |
-| 9   | `/workout`                  | Today's session   | Week strip (done / today / planned / rest), chips (duration, count, equipment), active exercise card with set table (kg, reps, done toggle) and progression hint, remaining exercises list.                                                                              |
-| 10  | `/progress`                 | Weekly check-in   | Weight + waist inputs, "Save check-in", InsightCard with the adjustment and reason, weight-trend chart (you vs dashed plan, 7-day average), tiles (avg intake, days logged, workouts).                                                                                   |
+All 19 screens are drawn in the canvas (numbers match the artboard titles). Each flow is clickable in Play.
 
-## States (not drawn — build them)
+### Onboarding
 
-- **Analysing:** skeleton item rows + "Reading your plate…"; poll `GET /api/meals/[id]` every 1 s while `PENDING|ANALYZING` (target ≤ 6 s).
-- **Not food / failed:** friendly copy + "Type it instead" button.
-- **Empty day:** illustration-free card "Log your first meal" with the camera CTA.
-- **Over target:** ring completes in ink, copy "212 kcal over — no stress, tomorrow resets". No red.
-- **AI limit reached (429):** sheet explaining the free limit, "Type it instead" and "Go Pro" actions.
-- **Offline:** banner "You're offline — we'll sync when you're back".
+| # | Route | Purpose | Key content |
+| --- | --- | --- | --- |
+| 1 | `/login` | Welcome + sign-in | Hero plate with detection chips, "Snap your meal. Hit your goal.", Google + email link, terms + "not medical advice". |
+| 2 | `/onboarding` step 1 | Your goal | ChoiceCards (Lose fat / Build muscle / Recomposition) with icon tile; "Aim for" segmented (Body fat % / Weight) + NumberField; "By when?" 3 tiles (12 / 16 / 24 weeks with end dates) + "Choose an exact date". |
+| 3 | `/onboarding` step 2 | About you | Sex segmented, height, weight, waist, neck (+ hip for female), measuring tip, activity ChoiceCards. |
+| 4 | `/onboarding` step 3 | Food and training | Diet chips, "Where I train" 3 tiles (Gym / Home / Anywhere), days-per-week 2–6, minutes segmented 30/45/60, injuries input, medical/pregnant/under-18 checkbox (sets `medicalFlag`). CTA "Build my plan". |
+| 5 | `/onboarding/plan` | Your plan (`feasible=true`) | "Realistic goal" badge, now → goal card with projection, dark target card, BMI / BMR / workouts tiles, "Start my plan". |
+| 5b | `/onboarding/plan` | Goal too fast (`feasible=false`) | Amber "Too fast to be safe" badge, headline with the unsafe rate, two option cards: **Keep the goal** (later date, recommended) / **Keep the date** (closer target); dark "daily target either way" card; CTA reflects the choice; "Change my goal". |
+
+### Daily loop
+
+| # | Route | Purpose | Key content |
+| --- | --- | --- | --- |
+| 6 | `/today` | Dashboard | Greeting, streak pill, CalorieRing + MacroBars, meal list, dashed "Add dinner" slot, workout card, TabBar. |
+| 6b | `/today` | Nothing logged yet | Empty ring "2,260 kcal to go", zero bars, dark "Start with breakfast" card (Snap / type), 2×2 dashed slots + rest-day tile. |
+| 6c | `/today` | Over target | Ring fully ink with a grey overflow arc, centre "212 kcal over"; over-target bars fill **ink**; neutral InsightCard "A little over. No stress." + a positive note. Never red. |
+| 7 | `/log` | Camera | Dark screen; meal-type chips; viewfinder; gallery / shutter / type. |
+| 7b | `/log/type` | Type a meal | Meal chips, large textarea, hint on amounts, "Your usuals" (one-tap relog, no AI scan used), "Get calories". |
+| 8 | `/log/[id]` (PENDING/ANALYZING) | Analysing | Photo with animated scan line (off under reduced motion), 3-step checklist (uploaded → finding foods → portions), skeleton rows, `aria-live`; when READY becomes "Found N items" + "Review N items"; "Taking too long? Type it instead". |
+| 9 | `/log/[id]` (READY) | Confirm AI result | MealItemEditor list, "Add a missed item", ghee/oil switch, sticky total footer, "Save to dinner". |
+| 9b | `/log/[id]` (FAILED) | Couldn't read photo | Two variants: **notFood** (tips card, "Retake photo", "doesn't count toward daily scans") and **error** ("Your photo is saved", "Try again"). Both offer "Type it instead". |
+| 9c | sheet on `/log` (HTTP 429) | Daily scans used up | Bottom sheet: 3/3 usage pips, "You've used today's 3 free photo scans", reset time, typing is free; dark Pro card ([PRICE] placeholder); "Upgrade to Pro" + "Type my meal instead". |
+
+### Train, progress and you
+
+| # | Route | Purpose | Key content |
+| --- | --- | --- | --- |
+| 10 | `/workout` | Today's session | Week strip, chips, active exercise set table with done toggles + progression hint, remaining list. |
+| 11 | `/progress` | Weekly check-in | Weight + waist inputs, InsightCard with adjustment + reason, weight trend (you vs dashed plan), 3 tiles. |
+| 12 | `/history` | Meal history | 7 / 30-day segmented, avg on full days + days logged, daily kcal bars (brand = within target, ink = over, grey stub = not logged, faded = today so far) with dashed target line, selected day's meals (tap to edit). |
+| 13 | `/profile` | Profile and settings | Avatar + plan + streak, dark current-goal card (Edit), Body and training rows, reminder switches (2 pm lunch / 9 pm dinner), plan card with scans left + "Go Pro", data: export CSV, sign out, delete account (danger text). |
+
+## States
+
+Drawn: 5b, 6b, 6c, 8, 9b, 9c. Build these from the description:
+
+- **Polling:** while a meal is `PENDING|ANALYZING`, poll `GET /api/meals/[id]` every 1 s (target ≤ 6 s), then swap screen 8 → 9, or → 9b on `FAILED`.
+- **Offline:** banner "You're offline — we'll sync when you're back"; queue typed meals locally.
+- **Loading (any data screen):** skeleton blocks in `sunken`, same shapes as the content; never a spinner alone.
+- **Form errors:** message under the field in ink with an amber icon, e.g. "Waist must be bigger than neck".
 
 ## Accessibility
 
@@ -102,6 +125,14 @@ Load fonts with `next/font/google` (`Bricolage_Grotesque` weights 500–800, `Fi
 - Real `<button>`, `<a>`, `<label>` + `<input>`; icon-only buttons get `aria-label`.
 - Macro colours differ in lightness as well as hue; bars always carry a text value.
 - Charts include an `aria-label` summarising the values.
+
+## Backend follow-ups implied by the design
+
+- A not-food result (9b) must not count toward the daily scan limit.
+- Free tier = 3 photo scans a day (`AI_DAILY_LIMIT` defaults to 30 today). Typed meals and "usuals" never count.
+- Unrealistic goals (5b): `suggestedTargetDate` must use the pace after the 25% deficit cap (≈0.6 kg/week for the 82 kg example), not the 1%/week rate, and return both options (later date, or closer target by the original date).
+- "Your usuals" (7b) needs a favourites/frequent-meals endpoint (PRD FR-13, P1).
+- History (12) needs `GET /api/history?days=7|30` returning daily totals and meals.
 
 ## Build order for Claude Code
 
