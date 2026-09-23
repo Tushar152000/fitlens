@@ -27,8 +27,9 @@ const schema = z.object({
 
   REDIS_URL: optional,
 
-  AI_PROVIDER: z.enum(["mock", "anthropic"]).default("mock"),
+  AI_PROVIDER: z.enum(["mock", "anthropic", "openai"]).default("mock"),
   ANTHROPIC_API_KEY: optional,
+  OPENAI_API_KEY: optional,
   AI_VISION_MODEL: optional,
   AI_TEXT_MODEL: optional,
   AI_DAILY_LIMIT: z.coerce.number().int().positive().default(30),
@@ -48,6 +49,9 @@ export function env(): Env {
   }
   if (parsed.data.AI_PROVIDER === "anthropic" && !parsed.data.ANTHROPIC_API_KEY) {
     throw new Error("AI_PROVIDER=anthropic requires ANTHROPIC_API_KEY");
+  }
+  if (parsed.data.AI_PROVIDER === "openai" && !parsed.data.OPENAI_API_KEY) {
+    throw new Error("AI_PROVIDER=openai requires OPENAI_API_KEY");
   }
   cached = parsed.data;
   return cached;

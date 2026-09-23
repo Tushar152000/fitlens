@@ -1,26 +1,92 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* "Warm Athletic" tokens — see docs/DESIGN.md. */
+@theme {
+  --color-ground: #f6f3ec; /* app background */
+  --color-surface: #ffffff; /* cards, inputs, tab bar */
+  --color-sunken: #f3efe7; /* steppers, set fields */
+  --color-track: #f0ebe1; /* empty ring/bar track */
+  --color-line: #e2ddd2; /* dividers */
+  --color-line-strong: #d9d3c7; /* input + secondary button border */
+  --color-ink: #17181c; /* text, strong buttons, dark cards */
+  --color-ink-2: #4a4d55; /* secondary text */
+  --color-ink-3: #6b6e76; /* meta text (still >= 4.5:1 on ground) */
+  --color-brand: #c2410c; /* primary action, calories ring */
+  --color-brand-hover: #9a3412;
+  --color-brand-glow: #e8772e; /* shutter, streak flame; never under text */
+  --color-protein: #2f6b4f; /* protein + success */
+  --color-protein-soft: #ddebe3;
+  --color-carbs: #e3a13b; /* bar fill only; carbs text = carbs-text */
+  --color-carbs-text: #9a6212;
+  --color-fat: #6d4fb0;
+  --color-caution: #e8a15c; /* low-confidence card border */
+  --color-caution-soft: #fdebd3; /* low-confidence tag bg */
+  --color-caution-text: #8a3c08;
+  --color-chip: #eae5da; /* idle chip, segmented track */
+  --color-dash: #c9c2b4;
+
+  --font-display: var(--font-bricolage), sans-serif;
+  --font-sans: var(--font-figtree), system-ui, sans-serif;
+
+  --radius-input: 14px;
+  --radius-button: 16px;
+  --radius-card: 20px;
+  --radius-sheet: 28px;
+
+  --shadow-fab: 0 6px 16px rgb(194 65 12 / 0.35);
+  --shadow-seg: 0 1px 2px rgb(23 24 28 / 0.12);
+
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  html {
+    background: var(--color-ground);
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    background: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.45;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes shimmer {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

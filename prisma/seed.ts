@@ -177,6 +177,25 @@ const foods: Seed[] = [
     veg: false,
     units: { plate: 300, katori: 150 },
   },
+  // Added fat: the confirm screen's "cooked with ghee or oil" switch adds 1 tsp (5 g ≈ 45 kcal).
+  {
+    name: "ghee",
+    aliases: ["desi ghee"],
+    kcal: 900,
+    p: 0,
+    c: 0,
+    f: 100,
+    units: { tsp: 5, tbsp: 14 },
+  },
+  {
+    name: "cooking oil",
+    aliases: ["oil", "sunflower oil", "mustard oil"],
+    kcal: 884,
+    p: 0,
+    c: 0,
+    f: 100,
+    units: { tsp: 5, tbsp: 14 },
+  },
 ];
 
 const exercises = [

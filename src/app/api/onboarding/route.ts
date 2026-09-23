@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { parseBody, requireUserId, route } from "@/lib/api";
 import { localDate, parseDateOnly } from "@/lib/dates";
 import { prisma } from "@/lib/db";
-import { bmi, bmiCategory, bodyFatNavy } from "@/lib/nutrition";
-import { recomputeTargets } from "@/lib/services/targets";
+import { bodyFatNavy } from "@/lib/nutrition";
+import { planSummary, recomputeTargets } from "@/lib/services/targets";
 import { OnboardingSchema } from "@/lib/validators";
 
 /** Save profile, first body metric and goal, then compute targets. Re-running replaces the active goal. */
@@ -80,23 +80,15 @@ export const POST = route(async (req) => {
   ]);
 
   const { target, plan } = await recomputeTargets(userId, "Initial targets from onboarding", today);
-  const bmiValue = bmi(input.weightKg, input.heightCm);
 
   return NextResponse.json(
-    {
-      bmi: { value: Math.round(bmiValue * 10) / 10, category: bmiCategory(bmiValue) },
-      bodyFatPct: bodyFatPct && Math.round(bodyFatPct * 10) / 10,
+    planSummary({
+      plan,
       target,
-      plan: {
-        bmr: Math.round(plan.bmr),
-        tdee: Math.round(plan.tdee),
-        targetWeightKg: Math.round(plan.targetWeightKg * 10) / 10,
-        weeklyChangeKg: Math.round(plan.weeklyChangeKg * 100) / 100,
-        feasible: plan.feasible,
-        suggestedTargetDate: plan.suggestedTargetDate?.toISOString().slice(0, 10),
-        warnings: plan.warnings,
-      },
-    },
+      weightKg: input.weightKg,
+      heightCm: input.heightCm,
+      bodyFatPct,
+    }),
     { status: 201 },
   );
 });

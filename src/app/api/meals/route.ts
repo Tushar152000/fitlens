@@ -6,7 +6,10 @@ import { getMealQueue, queueEnabled } from "@/lib/queue";
 import { analyzeMealLog, assertWithinDailyAiLimit } from "@/lib/services/meals";
 import { CreateMealSchema } from "@/lib/validators";
 
-/** Step 2: create a meal log from a photo key or text, then analyse it (queued, or inline without Redis). */
+/**
+ * Step 2: create a meal log from a photo key or text, then analyse it (queued, or inline without Redis).
+ * MANUAL creates an empty READY log with no AI call, for the user to fill in.
+ */
 export const POST = route(async (req) => {
   const userId = await requireUserId();
   const input = await parseBody(req, CreateMealSchema);
@@ -14,7 +17,7 @@ export const POST = route(async (req) => {
   if (input.source === "PHOTO" && !input.photoKey.startsWith(`meals/${userId}/`)) {
     throw new HttpError(403, "Photo does not belong to you");
   }
-  if (!(await assertWithinDailyAiLimit(userId))) {
+  if (input.source !== "MANUAL" && !(await assertWithinDailyAiLimit(userId))) {
     throw new HttpError(
       429,
       "Daily AI limit reached. Log by editing items manually or try tomorrow.",
@@ -26,6 +29,14 @@ export const POST = route(async (req) => {
     select: { timezone: true },
   });
   const date = input.date ? parseDateOnly(input.date) : localDate(profile?.timezone);
+
+  if (input.source === "MANUAL") {
+    const log = await prisma.mealLog.create({
+      data: { userId, date, mealType: input.mealType, source: "TEXT", status: "READY" },
+      include: { items: true },
+    });
+    return NextResponse.json(log, { status: 201 });
+  }
 
   const log = await prisma.mealLog.create({
     data: {

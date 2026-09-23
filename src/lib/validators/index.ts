@@ -65,6 +65,12 @@ export const CreateMealSchema = z.discriminatedUnion("source", [
     text: z.string().min(2).max(500),
     date: ymd.optional(),
   }),
+  // No AI: an empty meal the user fills from the food database (e.g. after the daily AI limit).
+  z.object({
+    source: z.literal("MANUAL"),
+    mealType: MealTypeSchema,
+    date: ymd.optional(),
+  }),
 ]);
 
 export const ConfirmMealSchema = z.object({
