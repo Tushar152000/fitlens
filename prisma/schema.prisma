@@ -1,0 +1,412 @@
+// FitLens data model. See PRD section 10.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Enums ----------
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  VERY_ACTIVE
+  ATHLETE
+}
+
+enum DietType {
+  VEG
+  NON_VEG
+  EGGETARIAN
+  VEGAN
+}
+
+enum Experience {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum Equipment {
+  FULL_GYM
+  DUMBBELLS
+  BODYWEIGHT
+}
+
+enum GoalType {
+  FAT_LOSS
+  MUSCLE_GAIN
+  RECOMPOSITION
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum MealSource {
+  PHOTO
+  TEXT
+}
+
+enum MealLogStatus {
+  PENDING
+  ANALYZING
+  READY
+  CONFIRMED
+  FAILED
+}
+
+enum FoodSource {
+  IFCT
+  INDB
+  USDA
+  CUSTOM
+  AI_ESTIMATE
+}
+
+enum AiCallType {
+  MEAL_PHOTO
+  MEAL_TEXT
+  WORKOUT_PLAN
+  COACH_CHAT
+}
+
+// ---------- Auth.js ----------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts     Account[]
+  sessions     Session[]
+  profile      Profile?
+  goals        Goal[]
+  dailyTargets DailyTarget[]
+  bodyMetrics  BodyMetric[]
+  mealLogs     MealLog[]
+  workoutPlans WorkoutPlan[]
+  workoutLogs  WorkoutLog[]
+  checkins     Checkin[]
+  aiCalls      AiCall[]
+
+  @@map("users")
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ---------- Profile & goals ----------
+
+model Profile {
+  userId              String        @id
+  sex                 Sex
+  birthDate           DateTime      @db.Date
+  heightCm            Float
+  activityLevel       ActivityLevel
+  dietType            DietType
+  experience          Experience
+  equipment           Equipment
+  trainingDaysPerWeek Int           @default(3)
+  sessionMinutes      Int           @default(45)
+  injuries            String[]      @default([])
+  // Pregnancy or a medical condition: no calorie deficit, show "consult a professional".
+  medicalFlag         Boolean       @default(false)
+  timezone            String        @default("Asia/Kolkata")
+  onboardedAt         DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Goal {
+  id               String     @id @default(cuid())
+  userId           String
+  type             GoalType
+  startWeightKg    Float
+  startBodyFatPct  Float?
+  targetWeightKg   Float?
+  targetBodyFatPct Float?
+  startDate        DateTime   @db.Date
+  targetDate       DateTime   @db.Date
+  status           GoalStatus @default(ACTIVE)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dailyTargets DailyTarget[]
+
+  @@index([userId, status])
+  @@map("goals")
+}
+
+// A new row each time targets change, so history and "why it changed" are kept.
+model DailyTarget {
+  id            String   @id @default(cuid())
+  userId        String
+  goalId        String?
+  effectiveFrom DateTime @db.Date
+  kcal          Int
+  proteinG      Int
+  carbsG        Int
+  fatG          Int
+  reason        String
+  createdAt     DateTime @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal Goal? @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
+  @@index([userId, effectiveFrom])
+  @@map("daily_targets")
+}
+
+model BodyMetric {
+  id         String   @id @default(cuid())
+  userId     String
+  date       DateTime @db.Date
+  weightKg   Float
+  waistCm    Float?
+  neckCm     Float?
+  hipCm      Float?
+  bodyFatPct Float?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("body_metrics")
+}
+
+// ---------- Food & meals ----------
+
+model Food {
+  id             String     @id @default(cuid())
+  name           String     @unique
+  aliases        String[]   @default([])
+  source         FoodSource
+  kcalPer100g    Float
+  proteinPer100g Float
+  carbsPer100g   Float
+  fatPer100g     Float
+  fiberPer100g   Float?
+  isVeg          Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+
+  units     FoodUnit[]
+  mealItems MealItem[]
+
+  @@map("foods")
+}
+
+// Household units → grams, e.g. roti/piece = 40 g, dal/katori = 150 g.
+model FoodUnit {
+  id     String @id @default(cuid())
+  foodId String
+  unit   String
+  grams  Float
+
+  food Food @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@unique([foodId, unit])
+  @@map("food_units")
+}
+
+// A meal log doubles as the AI job record: PENDING → ANALYZING → READY → CONFIRMED.
+model MealLog {
+  id           String        @id @default(cuid())
+  userId       String
+  date         DateTime      @db.Date
+  mealType     MealType
+  source       MealSource
+  photoKey     String?
+  inputText    String?
+  status       MealLogStatus @default(PENDING)
+  aiRaw        Json?
+  aiNotes      String?
+  error        String?
+  totalKcal    Float         @default(0)
+  totalProtein Float         @default(0)
+  totalCarbs   Float         @default(0)
+  totalFat     Float         @default(0)
+  confirmedAt  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items MealItem[]
+
+  @@index([userId, date])
+  @@map("meal_logs")
+}
+
+model MealItem {
+  id           String  @id @default(cuid())
+  mealLogId    String
+  foodId       String?
+  name         String
+  quantity     Float
+  unit         String
+  grams        Float
+  kcal         Float
+  proteinG     Float
+  carbsG       Float
+  fatG         Float
+  // What the AI originally said, kept to measure accuracy and learn from edits.
+  aiConfidence Float?
+  aiGrams      Float?
+  approximate  Boolean @default(false)
+  edited       Boolean @default(false)
+
+  mealLog MealLog @relation(fields: [mealLogId], references: [id], onDelete: Cascade)
+  food    Food?   @relation(fields: [foodId], references: [id], onDelete: SetNull)
+
+  @@index([mealLogId])
+  @@map("meal_items")
+}
+
+// ---------- Workouts & check-ins ----------
+
+model Exercise {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  muscleGroup String
+  equipment   Equipment
+  videoUrl    String?
+
+  @@map("exercises")
+}
+
+model WorkoutPlan {
+  id        String   @id @default(cuid())
+  userId    String
+  weekStart DateTime @db.Date
+  split     String
+  plan      Json
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs WorkoutLog[]
+
+  @@unique([userId, weekStart, version])
+  @@map("workout_plans")
+}
+
+model WorkoutLog {
+  id           String   @id @default(cuid())
+  userId       String
+  planId       String
+  date         DateTime @db.Date
+  exerciseSlug String
+  sets         Json
+  completed    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("workout_logs")
+}
+
+model Checkin {
+  id           String   @id @default(cuid())
+  userId       String
+  weekStart    DateTime @db.Date
+  avgWeightKg  Float
+  adherencePct Float?
+  adjustment   Json?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekStart])
+  @@map("checkins")
+}
+
+// ---------- Observability ----------
+
+model AiCall {
+  id        String     @id @default(cuid())
+  userId    String?
+  type      AiCallType
+  provider  String
+  model     String
+  tokensIn  Int?
+  tokensOut Int?
+  latencyMs Int
+  success   Boolean
+  error     String?
+  createdAt DateTime   @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@map("ai_calls")
+}

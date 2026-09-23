@@ -1,0 +1,39 @@
+# Local dev services: Postgres, Redis (queue) and MinIO (S3-compatible photo storage).
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: fitlens
+      POSTGRES_PASSWORD: fitlens
+      POSTGRES_DB: fitlens
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: fitlens
+      MINIO_ROOT_PASSWORD: fitlens-secret
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [miniodata:/data]
+
+  # Creates the photo bucket on first start.
+  minio-init:
+    image: minio/mc
+    depends_on: [minio]
+    entrypoint: >
+      /bin/sh -c "
+      sleep 3;
+      mc alias set local http://minio:9000 fitlens fitlens-secret;
+      mc mb --ignore-existing local/fitlens-meals;
+      exit 0;
+      "
+
+volumes:
+  pgdata:
+  miniodata:
