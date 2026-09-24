@@ -5,6 +5,9 @@ import { getMealQueue, queueEnabled } from "@/lib/queue";
 import { analyzeMealLog, assertCanScanPhoto, assertWithinTextCap } from "@/lib/services/meals";
 import { RecheckSchema } from "@/lib/validators";
 
+/** AI calls run inline when there's no Redis worker (e.g. on Vercel). */
+export const maxDuration = 60;
+
 type Ctx = RouteContext<"/api/meals/[id]/recheck">;
 
 /**

@@ -3,6 +3,9 @@ import { HttpError, parseBody, requireUserId, route } from "@/lib/api";
 import { assertWithinTextCap, parseExtraItems } from "@/lib/services/meals";
 import { ParseItemsSchema } from "@/lib/validators";
 
+/** AI calls run inline when there's no Redis worker (e.g. on Vercel). */
+export const maxDuration = 60;
+
 /** Describe something to add to a meal ("2 sachets sugar") and get priced items back. Nothing is saved. */
 export const POST = route(async (req) => {
   const userId = await requireUserId();

@@ -6,6 +6,9 @@ import { getMealQueue, queueEnabled } from "@/lib/queue";
 import { analyzeMealLog, assertCanScanPhoto, assertWithinTextCap } from "@/lib/services/meals";
 import { CreateMealSchema } from "@/lib/validators";
 
+/** AI calls run inline when there's no Redis worker (e.g. on Vercel). */
+export const maxDuration = 60;
+
 /**
  * Step 2: create a meal log from a photo key or text, then analyse it (queued, or inline without Redis).
  * MANUAL creates an empty READY log with no AI call, for the user to fill in.
