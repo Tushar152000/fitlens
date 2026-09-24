@@ -101,6 +101,17 @@ All 19 screens are drawn in the canvas (numbers match the artboard titles). Each
 | 9b | `/log/[id]` (FAILED) | Couldn't read photo | Two variants: **notFood** (tips card, "Retake photo", "doesn't count toward daily scans") and **error** ("Your photo is saved", "Try again"). Both offer "Type it instead". |
 | 9c | sheet on `/log` (HTTP 429) | Daily scans used up | Bottom sheet: 3/3 usage pips, "You've used today's 3 free photo scans", reset time, typing is free; dark Pro card ([PRICE] placeholder); "Upgrade to Pro" + "Type my meal instead". |
 
+### Packaged food: barcode
+
+| # | Route | Purpose | Key content |
+| --- | --- | --- | --- |
+| 7 | `/log` | Mode switch | Bottom pill tabs on the camera: **Type · Photo · Barcode** (current mode = white pill). |
+| 7c | `/log/barcode` | Scan barcode | Dark camera, wide rounded scan box with dimmed surround, pulsing laser line, status pill (`aria-live`) "Line up the barcode…" → "Barcode read" (box turns green) + result button; torch; "Type the number" and "Scan the label" buttons. |
+| 7d | `/log/barcode/[code]` | Product found | "Exact label values" badge, pack image, brand, name, serving definition; Servings / Grams segmented with stepper (0.5 servings or 5 g); nutrition table per 100 g vs "You"; Open Food Facts attribution + "Report it"; sticky footer kcal + "No AI scan used" + "Add to snack". |
+| 7e | `/log/barcode/[code]` (404) | Not found | "We don't know this product yet", label-photo tips (whole table, per 100 g column, no glare, uses 1 scan), optional product name, "Photograph the label" / "Type it instead". |
+| 7f | `/log/label` | Photograph label | Dark camera with a tall frame for the nutrition table; single shutter. |
+| 7g | `/log/label/[id]` | Check label values | Product name, per-100 g fields (energy, protein, carbs, fat) prefilled from the AI read and editable, "Numbers add up" check badge (or amber "Please check" when the kcal check fails), serving size, servings stepper, sticky total + "Save and add to snack". |
+
 ### Train, progress and you
 
 | # | Route | Purpose | Key content |
@@ -133,6 +144,16 @@ Drawn: 5b, 6b, 6c, 8, 9b, 9c. Build these from the description:
 - Unrealistic goals (5b): `suggestedTargetDate` must use the pace after the 25% deficit cap (≈0.6 kg/week for the 82 kg example), not the 1%/week rate, and return both options (later date, or closer target by the original date).
 - "Your usuals" (7b) needs a favourites/frequent-meals endpoint (PRD FR-13, P1).
 - History (12) needs `GET /api/history?days=7|30` returning daily totals and meals.
+
+## Barcode scanning (backend + client)
+
+- **Scanner:** use `window.BarcodeDetector` when present (experimental; missing in several major browsers), else lazy-load the MIT `barcode-detector` polyfill (ZXing-C++ WebAssembly). Formats: `ean_13`, `ean_8`, `upc_a`, `upc_e`. Needs HTTPS and camera permission; debounce so one code = one lookup.
+- **Schema (`Food`):** add `barcode String? @unique`, `brand String?`, `servingSizeG Float?`, `servingLabel String?` ("3 biscuits"), `imageUrl String?`, `verified Boolean @default(false)`, `submittedById String?`; add `OPEN_FOOD_FACTS` and `LABEL_SCAN` to `FoodSource`.
+- **`GET /api/foods/barcode/:code`:** validate the check digit → look up `foods` → else call Open Food Facts API v3 server-side (User-Agent `FitLens/0.1 (contact email)`; limit is 15 product reads/min/IP, so cache every hit and miss in Postgres, misses for 24 h) → map `nutriments` per 100 g → return product or 404.
+- **`POST /api/foods/label`:** body `{ photoKey, barcode, name? }` → vision model extracts per-100 g energy/protein/carbs/fat/sugar/sodium + serving size as JSON → run the kcal check (4P + 4C + 9F within 15% of energy) → return values for 7g. Counts as 1 photo scan.
+- **Save from 7g:** create `Food` with `source=LABEL_SCAN`, `verified=false`, linked to the barcode; visible to its submitter immediately and to everyone after review (admin flag for now).
+- **Quota:** barcode lookups never count toward the daily photo-scan limit.
+- **Attribution:** Open Food Facts data is ODbL (images CC BY-SA); show "Data: Open Food Facts" on 7d.
 
 ## Build order for Claude Code
 
