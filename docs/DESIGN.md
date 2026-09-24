@@ -3,6 +3,25 @@
 Source of truth for UI work. The visual mockups live in the "FitLens App Design" canvas on claude.ai
 (8 phone screens + a design-system board). This file is the build contract for code.
 
+## Brand: logo and app icon
+
+The mark is the **Progress lens**: an ink tile (#17181C, radius 116/512) with a 72%-full saffron arc (#E8772E, round caps, starting at 12 o'clock) on a #3A3C43 track, around a #F6F3EC focus dot. Wordmark "FitLens" in Bricolage Grotesque 700, −0.02em. See the "Logo and app icon" board on the canvas.
+
+| File | Use |
+| --- | --- |
+| `src/app/favicon.ico` | 16/32/48 px favicon (small-size variant: heavier ring, bigger dot) |
+| `src/app/icon.svg` | SVG favicon for modern browsers (small-size variant) |
+| `src/app/apple-icon.png` | 180 px iOS home-screen icon, full-bleed (iOS rounds it) |
+| `src/app/manifest.ts` | PWA manifest; theme #17181C, background #F6F3EC, start `/today` |
+| `public/icons/icon-192.png`, `icon-512.png` | PWA icons (rounded tile) |
+| `public/icons/icon-maskable-512.png` | Android maskable icon (glyph inside the 80% safe zone) |
+| `public/brand/mark.svg` | Master mark, 512 px |
+| `public/brand/logo-horizontal.svg` / `-on-dark.svg` (+ PNG @4x) | Mark + wordmark lockups; wordmark is outlined paths, no font needed |
+
+- In the UI, render the mark as an inline SVG `Logo` component (sizes 24–40 px) next to live Bricolage text, rather than an `<img>`.
+- On dark grounds, lift the tile to #2A2C33 so its edge shows.
+- Never recolour or animate the arc in the icon, add gradients or shadows, or stretch the tile. Minimum size: 16 px favicon, 24 px in UI.
+
 ## Principles
 
 1. **One job per screen.** One saffron primary action per screen, pinned to the bottom, full width.
