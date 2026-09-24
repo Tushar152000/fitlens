@@ -113,6 +113,8 @@ All 19 screens are drawn in the canvas (numbers match the artboard titles). Each
 | 6 | `/today` | Dashboard | Greeting, streak pill, CalorieRing + MacroBars, meal list, dashed "Add dinner" slot, workout card, TabBar. |
 | 6b | `/today` | Nothing logged yet | Empty ring "2,260 kcal to go", zero bars, dark "Start with breakfast" card (Snap / type), 2×2 dashed slots + rest-day tile. |
 | 6c | `/today` | Over target | Ring fully ink with a grey overflow arc, centre "212 kcal over"; over-target bars fill **ink**; neutral InsightCard "A little over. No stress." + a positive note. Never red. |
+| 6d | `/today/ideas?meal=DINNER` | What should I eat? | Dark "Left for dinner" card (kcal + protein with mini bars), scrollable filter chips (All, My usuals, Under 15 min, Veg, High protein), 3 ranked idea cards (tag "Best fit" with brand border on #1, meta line, kcal, protein in protein colour, "leaves N kcal"), protein top-up tip when the best idea leaves > 20 g uncovered, footer note on what it's based on. Entry: "Dinner ideas" pill beside the next unlogged meal slot on Today. |
+| 6e | `/today/ideas/[id]` | Adjust and log idea | Tag + name, one-line reason, item rows with steppers (katori 0.5, piece 1), whey/curd top-up switch, sticky footer (this meal kcal, protein of remaining, left after), "Log as dinner" (no photo scan), "Not today". |
 | 7 | `/log` | Camera | Dark screen; meal-type chips; viewfinder; gallery / shutter / type. |
 | 7b | `/log/type` | Type a meal | Meal chips, large textarea, hint on amounts, "Your usuals" (one-tap relog, no AI scan used), "Get calories". |
 | 8 | `/log/[id]` (PENDING/ANALYZING) | Analysing | Photo with animated scan line (off under reduced motion), 3-step checklist (uploaded → finding foods → portions), skeleton rows, `aria-live`; when READY becomes "Found N items" + "Review N items"; "Taking too long? Type it instead". |
@@ -173,6 +175,17 @@ Drawn: 5b, 6b, 6c, 8, 9b, 9c. Build these from the description:
 - **Save from 7g:** create `Food` with `source=LABEL_SCAN`, `verified=false`, linked to the barcode; visible to its submitter immediately and to everyone after review (admin flag for now).
 - **Quota:** barcode lookups never count toward the daily photo-scan limit.
 - **Attribution:** Open Food Facts data is ODbL (images CC BY-SA); show "Data: Open Food Facts" on 7d.
+
+## Meal ideas ("What should I eat?")
+
+- **Endpoint:** `GET /api/suggestions?meal=BREAKFAST|LUNCH|DINNER|SNACK&filter=all|usuals|quick|veg|protein` → `{ budget: {kcal, proteinG}, options: [{ id, name, items: [{foodId, quantity, unit, grams, kcal, proteinG, carbsG, fatG}], totals, reason, tags, score }], topUp? }`.
+- **Budget:** remaining kcal/protein today; if later meals are unlogged, reserve a share for them (lunch ≈ 55% of what's left when dinner is still to come).
+- **Candidates:** the user's `CONFIRMED` meal logs from the last 60 days, grouped by item set (their "usuals"), plus a seeded `meal_templates` table (~150 Indian meals: items, meal types, veg/egg/non-veg, prep minutes, which items scale). Hard filters: diet type, `Profile.avoidFoods` (new `String[]`), meal type.
+- **Portion fitting:** scale scalable items in 0.5 steps within per-item min/max so totals land within ±10% of the budget without exceeding remaining fat.
+- **Score:** 0.45 × kcal fit + 0.35 × protein coverage + 0.1 × familiarity + 0.1 × variety (penalise items eaten in the last 48 h); "Not today" feedback lowers that option's score for 14 days.
+- **Numbers never come from the LLM.** An LLM may only rephrase the `reason` line.
+- **Logging:** `POST /api/meals` with `source: SUGGESTION` and the item list → status `CONFIRMED` directly; never counts toward the photo-scan limit.
+- **Safety:** no ideas when over target (show light options only); never suggest pushing the day below the calorie floor.
 
 ## Build order for Claude Code
 
