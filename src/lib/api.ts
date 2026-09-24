@@ -2,15 +2,9 @@ import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
 import { auth } from "@/auth";
 
-export class HttpError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-    public details?: unknown,
-  ) {
-    super(message);
-  }
-}
+import { HttpError } from "./http-error";
+
+export { HttpError };
 
 export async function requireUserId(): Promise<string> {
   const session = await auth();

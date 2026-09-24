@@ -4,12 +4,16 @@ import { prisma } from "@/lib/db";
 
 /** Food search for adding a missed item: name or alias, with per-100 g nutrition and household units. */
 export const GET = route(async (req) => {
-  await requireUserId();
+  const userId = await requireUserId();
   const q = (new URL(req.url).searchParams.get("q") ?? "").trim().toLowerCase().slice(0, 60);
   const foods = await prisma.food.findMany({
-    where: q
-      ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { aliases: { has: q } }] }
-      : undefined,
+    where: {
+      AND: [
+        q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { aliases: { has: q } }] } : {},
+        // Unreviewed label scans are visible to their submitter only.
+        { OR: [{ verified: true }, { source: { not: "LABEL_SCAN" } }, { submittedById: userId }] },
+      ],
+    },
     include: { units: { select: { unit: true, grams: true } } },
     orderBy: { name: "asc" },
     take: 12,
@@ -25,6 +29,7 @@ export const GET = route(async (req) => {
         fat: f.fatPer100g,
       },
       units: f.units,
+      isLiquid: f.isLiquid,
     })),
   });
 });

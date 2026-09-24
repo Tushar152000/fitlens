@@ -30,8 +30,8 @@ export const PUT = route<Ctx>(async (req, ctx) => {
   if (log.status === "PENDING" || log.status === "ANALYZING") {
     throw new HttpError(409, "Still analysing — try again in a moment");
   }
-  const { items } = await parseBody(req, ConfirmMealSchema);
-  return NextResponse.json(await confirmMeal(log.id, items));
+  const { items, note } = await parseBody(req, ConfirmMealSchema);
+  return NextResponse.json(await confirmMeal(log.id, items, note));
 });
 
 export const DELETE = route<Ctx>(async (_req, ctx) => {

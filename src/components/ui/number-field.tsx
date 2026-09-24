@@ -2,6 +2,7 @@
 
 import { useId, type InputHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
+import { FieldError } from "./field-error";
 
 export interface NumberFieldProps extends Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -39,10 +40,11 @@ export function NumberField({
         className={cn(
           "flex h-[52px] items-center rounded-input border bg-surface px-4 transition-colors",
           "focus-within:border-ink",
-          error ? "border-brand" : "border-line-strong",
+          error ? "border-caution" : "border-line-strong",
         )}
       >
         <input
+          suppressHydrationWarning
           id={inputId}
           type="text"
           inputMode="decimal"
@@ -56,14 +58,13 @@ export function NumberField({
         />
         {unit && <span className="ml-2 shrink-0 text-[15px] font-medium text-ink-3">{unit}</span>}
       </div>
-      {(error || hint) && (
-        <p
-          id={hintId}
-          className={cn("text-[13px]", error ? "font-semibold text-brand" : "text-ink-3")}
-        >
-          {error ?? hint}
+      {error ? (
+        <FieldError id={hintId}>{error}</FieldError>
+      ) : hint ? (
+        <p id={hintId} className="text-[13px] text-ink-3">
+          {hint}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

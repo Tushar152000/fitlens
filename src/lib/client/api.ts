@@ -3,6 +3,8 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    /** Extra data the server sent, e.g. scan usage on a 429. */
+    public details?: unknown,
   ) {
     super(message);
   }
@@ -26,7 +28,7 @@ export async function api<T>(url: string, init?: RequestInit & { json?: unknown 
   }
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new ApiError(res.status, body?.error ?? `Request failed (${res.status})`);
+    throw new ApiError(res.status, body?.error ?? `Request failed (${res.status})`, body?.details);
   }
   return (res.status === 204 ? undefined : await res.json()) as T;
 }

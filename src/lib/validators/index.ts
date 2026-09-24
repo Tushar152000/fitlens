@@ -83,9 +83,25 @@ export const ConfirmMealSchema = z.object({
         quantity: z.number().positive(),
         unit: z.string().min(1),
         grams: z.number().positive().max(3000),
+        // Only used when the item isn't in the food list (an AI estimate).
+        per100g: z
+          .object({
+            kcal: z.number().nonnegative().max(900),
+            protein: z.number().nonnegative().max(100),
+            carbs: z.number().nonnegative().max(100),
+            fat: z.number().nonnegative().max(100),
+          })
+          .optional(),
+        isLiquid: z.boolean().optional(),
       }),
     )
     .min(1),
+  note: z.string().trim().max(500).nullable().optional(),
+});
+
+/** Re-run analysis; with a note ("small cup, 2 sachets sugar") or without (plain retry). */
+export const RecheckSchema = z.object({
+  note: z.string().trim().min(2).max(500).optional(),
 });
 
 export const CheckinSchema = z.object({
@@ -94,4 +110,54 @@ export const CheckinSchema = z.object({
   waistCm: z.number().min(40).max(200).optional(),
   neckCm: z.number().min(20).max(70).optional(),
   hipCm: z.number().min(50).max(200).optional(),
+});
+
+export const ParseItemsSchema = z.object({
+  text: z.string().trim().min(2).max(300),
+  mealType: MealTypeSchema,
+});
+
+export const RelogSchema = z.object({
+  mealId: z.string().min(1),
+  mealType: MealTypeSchema,
+});
+
+export const GoalOptionSchema = z.object({
+  choice: z.enum(["KEEP_GOAL", "KEEP_DATE"]),
+});
+
+export const RemindersSchema = z.object({
+  lunch: z.boolean().optional(),
+  dinner: z.boolean().optional(),
+});
+
+export const QuickAddSchema = z.object({
+  foodId: z.string().min(1),
+  mealType: MealTypeSchema,
+  quantity: z.number().positive().max(100),
+  unit: z.string().min(1).max(20),
+  grams: z.number().positive().max(5000),
+});
+
+export const LabelScanSchema = z.object({
+  photoKey: z.string().min(1),
+  barcode: z.string().max(20).optional(),
+  name: z.string().max(120).optional(),
+});
+
+export const LabelSaveSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  per100g: z.object({
+    kcal: z.number().nonnegative().max(900),
+    protein: z.number().nonnegative().max(100),
+    carbs: z.number().nonnegative().max(100),
+    fat: z.number().nonnegative().max(100),
+  }),
+  servingSizeG: z.number().positive().max(2000).optional(),
+  servingLabel: z.string().max(60).optional(),
+  quantity: z.number().positive().max(100),
+  unit: z.string().min(1).max(20),
+  grams: z.number().positive().max(5000),
+  mealType: MealTypeSchema,
+  isLiquid: z.boolean().default(false),
 });

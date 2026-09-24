@@ -102,11 +102,15 @@ export function validateStep(step: number, d: OnboardingDraft, today = new Date(
     range(e, "waistCm", d.waistCm, 40, 200, "waist", bf);
     range(e, "neckCm", d.neckCm, 20, 70, "neck", bf);
     if (d.sex === "FEMALE") range(e, "hipCm", d.hipCm, 50, 200, "hip", bf);
+    const waist = num(d.waistCm);
+    const neck = num(d.neckCm);
+    if (!e.waistCm && !e.neckCm && waist && neck && waist <= neck) {
+      e.waistCm = "Waist must be bigger than neck";
+    }
     if (!d.activityLevel) e.activityLevel = "Pick the closest match";
   }
   if (step === 3) {
     if (!d.dietType) e.dietType = "Pick your diet";
-    if (!d.experience) e.experience = "Pick your experience";
     if (!d.equipment) e.equipment = "Pick what you can use";
   }
   return e;
@@ -125,7 +129,8 @@ export function toPayload(d: OnboardingDraft, timezone: string): OnboardingInput
     hipCm: d.sex === "FEMALE" ? num(d.hipCm) : undefined,
     activityLevel: d.activityLevel!,
     dietType: d.dietType!,
-    experience: d.experience!,
+    // Not asked in onboarding (design 4); workouts start at beginner and progress from logs.
+    experience: d.experience ?? "BEGINNER",
     equipment: d.equipment!,
     trainingDaysPerWeek: d.trainingDaysPerWeek,
     sessionMinutes: d.sessionMinutes,

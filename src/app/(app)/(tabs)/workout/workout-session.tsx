@@ -250,6 +250,7 @@ function SetInput({
 }) {
   return (
     <input
+      suppressHydrationWarning
       aria-label={label}
       inputMode="decimal"
       value={value}

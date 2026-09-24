@@ -38,20 +38,32 @@ const PLURAL: Record<string, string> = {
   glass: "glasses",
   tbsp: "tbsp",
   tsp: "tsp",
+  sachet: "sachets",
+  cube: "cubes",
+  can: "cans",
+  bottle: "bottles",
+  scoop: "scoops",
+  mug: "mugs",
+  shot: "shots",
   g: "g",
 };
 
-/** "2 pieces · 80 g" */
-export function formatPortion(quantity: number, unit: string, grams: number): string {
+/** "2 pieces · 80 g", or "1 cup · 180 ml" for drinks (1 ml ≈ 1 g). */
+export function formatPortion(
+  quantity: number,
+  unit: string,
+  grams: number,
+  liquid = false,
+): string {
+  if (unit === "g" || unit === "ml") return `${formatQty(quantity)} ${unit}`;
   const u = quantity === 1 ? unit : (PLURAL[unit] ?? unit);
-  const portion = unit === "g" ? `${formatQty(quantity)} g` : `${formatQty(quantity)} ${u}`;
-  return unit === "g" ? portion : `${portion} · ${formatInt(grams)} g`;
+  return `${formatQty(quantity)} ${u} · ${formatInt(grams)} ${liquid ? "ml" : "g"}`;
 }
 
 /** Stepper increment per household unit. Pieces are whole; bowls and katori go by halves. */
 export function unitStep(unit: string): number {
   if (unit === "g") return 10;
-  if (["piece", "tsp", "tbsp"].includes(unit)) return 1;
+  if (["piece", "tsp", "tbsp", "sachet", "cube", "scoop", "shot", "can"].includes(unit)) return 1;
   return 0.5;
 }
 

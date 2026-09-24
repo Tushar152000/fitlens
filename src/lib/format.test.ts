@@ -24,6 +24,8 @@ describe("format", () => {
     expect(formatPortion(1, "katori", 150)).toBe("1 katori · 150 g");
     expect(formatPortion(0.5, "katori", 75)).toBe("0.5 katori · 75 g");
     expect(formatPortion(120, "g", 120)).toBe("120 g");
+    expect(formatPortion(1, "cup", 180, true)).toBe("1 cup · 180 ml");
+    expect(formatPortion(250, "ml", 250, true)).toBe("250 ml");
   });
 
   it("steps pieces by 1 and katori by 0.5", () => {

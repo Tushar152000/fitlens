@@ -1,6 +1,7 @@
 export { Button, buttonClass, type ButtonVariant } from "./button";
 export { CalorieRing } from "./calorie-ring";
 export { DateField } from "./date-field";
+export { FieldError } from "./field-error";
 export { Chip, ChipGroup } from "./chip";
 export { ChoiceCard, ChoiceCardGroup, type ChoiceOption } from "./choice-card";
 export { InsightCard } from "./insight-card";
@@ -12,4 +13,5 @@ export { ProgressSteps } from "./progress-steps";
 export { Segmented } from "./segmented";
 export { Stepper } from "./stepper";
 export { Switch } from "./switch";
+export { TileGroup, type TileOption } from "./tile-group";
 export { TabBar } from "./tab-bar";

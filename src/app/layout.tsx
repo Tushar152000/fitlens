@@ -27,8 +27,14 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // suppressHydrationWarning here and on forms/inputs: Chrome for iOS injects __gcr* attributes
+  // (autofill ids) before React hydrates. It only silences attribute mismatches on that element.
   return (
-    <html lang="en" className={`${bricolage.variable} ${figtree.variable}`}>
+    <html
+      suppressHydrationWarning
+      lang="en"
+      className={`${bricolage.variable} ${figtree.variable}`}
+    >
       <body className="antialiased">{children}</body>
     </html>
   );

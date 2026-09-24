@@ -100,8 +100,11 @@ export function planSummary<
       tdee: Math.round(plan.tdee),
       targetWeightKg: round1(plan.targetWeightKg),
       weeklyChangeKg: Math.round(plan.weeklyChangeKg * 100) / 100,
+      neededWeeklyChangeKg: Math.round(plan.neededWeeklyChangeKg * 100) / 100,
       feasible: plan.feasible,
       suggestedTargetDate: plan.suggestedTargetDate?.toISOString().slice(0, 10),
+      closerTargetWeightKg:
+        plan.closerTargetWeightKg != null ? round1(plan.closerTargetWeightKg) : undefined,
       warnings: plan.warnings,
     },
   };

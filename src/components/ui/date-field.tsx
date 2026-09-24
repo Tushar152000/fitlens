@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import { cn } from "@/lib/cn";
+import { FieldError } from "./field-error";
 
 /** Native date input styled like NumberField (label above, 52 px box). Value is YYYY-MM-DD. */
 export function DateField({
@@ -30,6 +31,7 @@ export function DateField({
         {label}
       </label>
       <input
+        suppressHydrationWarning
         id={id}
         type="date"
         value={value}
@@ -40,17 +42,16 @@ export function DateField({
         aria-describedby={error || hint ? `${id}-hint` : undefined}
         className={cn(
           "h-[52px] w-full rounded-input border bg-surface px-4 text-lg font-semibold tabular-nums outline-none focus:border-ink",
-          error ? "border-brand" : "border-line-strong",
+          error ? "border-caution" : "border-line-strong",
         )}
       />
-      {(error || hint) && (
-        <p
-          id={`${id}-hint`}
-          className={cn("text-[13px]", error ? "font-semibold text-brand" : "text-ink-3")}
-        >
-          {error ?? hint}
+      {error ? (
+        <FieldError id={`${id}-hint`}>{error}</FieldError>
+      ) : hint ? (
+        <p id={`${id}-hint`} className="text-[13px] text-ink-3">
+          {hint}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -43,7 +43,8 @@ export function MacroBar({
         <div
           className={cn(
             "h-full rounded-full transition-[width] duration-200 ease-out",
-            FILL[macro],
+            // Over target fills ink, never red (design 6c).
+            eaten > target && target > 0 ? "bg-ink" : FILL[macro],
           )}
           style={{ width: `${pct}%` }}
         />

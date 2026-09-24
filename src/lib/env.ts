@@ -32,7 +32,7 @@ const schema = z.object({
   OPENAI_API_KEY: optional,
   AI_VISION_MODEL: optional,
   AI_TEXT_MODEL: optional,
-  AI_DAILY_LIMIT: z.coerce.number().int().positive().default(30),
+  AI_DAILY_LIMIT: z.coerce.number().int().positive().default(3), // free photo scans per local day
 });
 
 export type Env = z.infer<typeof schema>;

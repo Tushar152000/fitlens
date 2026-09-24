@@ -81,6 +81,8 @@ enum FoodSource {
   USDA
   CUSTOM
   AI_ESTIMATE
+  OPEN_FOOD_FACTS
+  LABEL_SCAN
 }
 
 enum AiCallType {
@@ -88,6 +90,7 @@ enum AiCallType {
   MEAL_TEXT
   WORKOUT_PLAN
   COACH_CHAT
+  LABEL_SCAN
 }
 
 // ---------- Auth.js ----------
@@ -112,6 +115,7 @@ model User {
   workoutLogs  WorkoutLog[]
   checkins     Checkin[]
   aiCalls      AiCall[]
+  labelScans   LabelScan[]
 
   @@map("users")
 }
@@ -175,6 +179,9 @@ model Profile {
   // Pregnancy or a medical condition: no calorie deficit, show "consult a professional".
   medicalFlag         Boolean       @default(false)
   timezone            String        @default("Asia/Kolkata")
+  /// Design 13 reminder switches (2 pm lunch, 9 pm dinner). Stored now; sending needs web push.
+  remindLunch         Boolean       @default(false)
+  remindDinner        Boolean       @default(false)
   onboardedAt         DateTime?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
@@ -245,22 +252,59 @@ model BodyMetric {
 // ---------- Food & meals ----------
 
 model Food {
-  id             String     @id @default(cuid())
-  name           String     @unique
-  aliases        String[]   @default([])
-  source         FoodSource
-  kcalPer100g    Float
-  proteinPer100g Float
-  carbsPer100g   Float
-  fatPer100g     Float
-  fiberPer100g   Float?
-  isVeg          Boolean    @default(true)
-  createdAt      DateTime   @default(now())
+  id              String     @id @default(cuid())
+  name            String     @unique
+  aliases         String[]   @default([])
+  source          FoodSource
+  kcalPer100g     Float
+  proteinPer100g  Float
+  carbsPer100g    Float
+  fatPer100g      Float
+  fiberPer100g    Float?
+  isVeg           Boolean    @default(true)
+  isLiquid        Boolean    @default(false) // drinks: portions shown in ml (1 ml ≈ 1 g)
+  // Packaged foods (design: barcode scanning)
+  barcode         String?    @unique
+  brand           String?
+  servingSizeG    Float?
+  servingLabel    String? // "3 biscuits"
+  imageUrl        String?
+  sugarPer100g    Float?
+  sodiumMgPer100g Float?
+  /// Label scans start unverified: visible to their submitter only until reviewed.
+  verified        Boolean    @default(false)
+  submittedById   String?
+  createdAt       DateTime   @default(now())
 
   units     FoodUnit[]
   mealItems MealItem[]
 
   @@map("foods")
+}
+
+/// Barcodes Open Food Facts didn't know, cached for 24 h so we stay under its rate limit.
+model BarcodeMiss {
+  code      String   @id
+  checkedAt DateTime @default(now())
+
+  @@map("barcode_misses")
+}
+
+/// A nutrition-label photo read by the AI (design 7f → 7g), before the user saves it as a Food.
+model LabelScan {
+  id        String   @id @default(cuid())
+  userId    String
+  photoKey  String
+  barcode   String?
+  name      String?
+  extracted Json
+  foodId    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("label_scans")
 }
 
 // Household units → grams, e.g. roti/piece = 40 g, dal/katori = 150 g.
@@ -288,6 +332,7 @@ model MealLog {
   status       MealLogStatus @default(PENDING)
   aiRaw        Json?
   aiNotes      String?
+  note         String? // the user's own details ("small cup, 2 sachets sugar"), also sent to the AI on re-check
   error        String?
   totalKcal    Float         @default(0)
   totalProtein Float         @default(0)
@@ -321,6 +366,7 @@ model MealItem {
   aiGrams      Float?
   approximate  Boolean @default(false)
   edited       Boolean @default(false)
+  isLiquid     Boolean @default(false)
 
   mealLog MealLog @relation(fields: [mealLogId], references: [id], onDelete: Cascade)
   food    Food?   @relation(fields: [foodId], references: [id], onDelete: SetNull)
@@ -393,17 +439,19 @@ model Checkin {
 // ---------- Observability ----------
 
 model AiCall {
-  id        String     @id @default(cuid())
-  userId    String?
-  type      AiCallType
-  provider  String
-  model     String
-  tokensIn  Int?
-  tokensOut Int?
-  latencyMs Int
-  success   Boolean
-  error     String?
-  createdAt DateTime   @default(now())
+  id           String     @id @default(cuid())
+  userId       String?
+  type         AiCallType
+  provider     String
+  model        String
+  tokensIn     Int?
+  tokensOut    Int?
+  latencyMs    Int
+  success      Boolean
+  error        String?
+  /// Counts against the daily photo-scan limit. False for typed meals, not-food results and our own failures.
+  countsAsScan Boolean    @default(false)
+  createdAt    DateTime   @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 

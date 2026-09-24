@@ -56,6 +56,12 @@ describe("onboarding draft", () => {
     expect(validateStep(2, { ...complete, waistCm: "", neckCm: "" }, today)).toEqual({});
   });
 
+  it("checks waist is bigger than neck", () => {
+    expect(validateStep(2, { ...complete, waistCm: "45", neckCm: "50" }, today).waistCm).toBe(
+      "Waist must be bigger than neck",
+    );
+  });
+
   it("flags out-of-range numbers", () => {
     expect(validateStep(2, { ...complete, heightCm: "17.5" }, today)).toHaveProperty("heightCm");
     expect(validateStep(2, { ...complete, weightKg: "abc" }, today)).toHaveProperty("weightKg");

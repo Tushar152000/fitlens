@@ -1,12 +1,15 @@
-import { ChevronRight, LogOut } from "lucide-react";
+import { ChevronRight, Download, Flame, LogOut, Pencil } from "lucide-react";
 import Link from "next/link";
 import { signOut } from "@/auth";
 import { Button } from "@/components/ui";
 import { localDate } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { formatInt } from "@/lib/format";
+import { loggingStreak } from "@/lib/services/dashboard";
+import { scanUsage } from "@/lib/services/meals";
 import { currentTarget } from "@/lib/services/targets";
 import { requireOnboardedViewer } from "@/lib/viewer";
+import { DangerZone, PlanCard, Reminders } from "./profile-controls";
 
 export const metadata = { title: "Profile — FitLens" };
 
@@ -21,80 +24,151 @@ const DIET_LABEL = {
   EGGETARIAN: "Eggetarian",
   VEGAN: "Vegan",
 } as const;
+const WHERE_LABEL = { FULL_GYM: "Gym", DUMBBELLS: "Home", BODYWEIGHT: "Anywhere" } as const;
+const ACTIVITY_LABEL = {
+  SEDENTARY: "Mostly sitting",
+  LIGHT: "Lightly active",
+  MODERATE: "Moderately active",
+  VERY_ACTIVE: "Very active",
+  ATHLETE: "Athlete",
+} as const;
 
+const date = (d: Date) =>
+  new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(d);
+
+/** Design 13: profile and settings. */
 export default async function ProfilePage() {
   const { userId, name, email, image, profile, timezone } = await requireOnboardedViewer();
-  const [goal, target] = await Promise.all([
+  const today = localDate(timezone);
+  const [goal, target, metric, streak, usage] = await Promise.all([
     prisma.goal.findFirst({ where: { userId, status: "ACTIVE" }, orderBy: { createdAt: "desc" } }),
-    currentTarget(userId, localDate(timezone)),
+    currentTarget(userId, today),
+    prisma.bodyMetric.findFirst({ where: { userId }, orderBy: { date: "desc" } }),
+    loggingStreak(userId, today),
+    scanUsage(userId),
   ]);
-  const byDate =
-    goal &&
-    new Intl.DateTimeFormat("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      timeZone: "UTC",
-    }).format(goal.targetDate);
-  const goalDetail = goal
+  const goalLine = goal
     ? goal.targetBodyFatPct != null
-      ? `${goal.targetBodyFatPct}% body fat by ${byDate}`
+      ? `${goal.targetBodyFatPct}% body fat by ${date(goal.targetDate)}`
       : goal.targetWeightKg != null
-        ? `${goal.targetWeightKg} kg by ${byDate}`
-        : `by ${byDate}`
+        ? `${goal.targetWeightKg} kg by ${date(goal.targetDate)}`
+        : `Hold weight, improve shape by ${date(goal.targetDate)}`
     : "No active goal";
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <header className="flex items-center gap-4">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element -- remote avatar from the OAuth provider
           <img
             src={image}
             alt=""
-            className="size-14 rounded-full bg-sunken"
+            className="size-16 rounded-full bg-sunken"
             referrerPolicy="no-referrer"
           />
         ) : (
-          <span className="grid size-14 place-items-center rounded-full bg-ink display text-[22px] text-white">
+          <span className="grid size-16 place-items-center rounded-full bg-ink display text-[24px] text-white">
             {(name ?? email ?? "?").charAt(0).toUpperCase()}
           </span>
         )}
         <div className="min-w-0">
           <h1 className="truncate display text-[26px] leading-tight">{name ?? "Your profile"}</h1>
-          {email && <p className="truncate text-[13px] text-ink-3">{email}</p>}
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-[13px] font-semibold text-ink-3">
+            <span className="rounded-full bg-chip px-2.5 py-0.5 text-ink-2">Free plan</span>
+            {streak > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <Flame className="size-4 fill-brand-glow text-brand-glow" aria-hidden />
+                {streak}-day streak
+              </span>
+            )}
+          </p>
         </div>
       </header>
 
-      <dl className="flex flex-col divide-y divide-line rounded-card bg-surface">
-        <Row label="Goal" value={goal ? GOAL_LABEL[goal.type] : "—"} sub={goalDetail} />
-        <Row
-          label="Daily target"
-          value={target ? `${formatInt(target.kcal)} kcal` : "—"}
-          sub={
-            target
-              ? `P ${target.proteinG} g · C ${target.carbsG} g · F ${target.fatG} g`
-              : undefined
-          }
-        />
-        <Row label="Diet" value={DIET_LABEL[profile.dietType]} />
-        <Row
-          label="Training"
-          value={`${profile.trainingDaysPerWeek} days a week`}
-          sub={`${profile.sessionMinutes} min sessions`}
-        />
-      </dl>
-
-      <Link
-        href="/onboarding"
-        className="flex min-h-14 items-center justify-between rounded-card bg-surface px-4 font-semibold"
+      <section
+        className="flex flex-col gap-3 rounded-card bg-ink p-5 text-white"
+        aria-label="Current goal"
       >
-        Change goal or details
-        <ChevronRight className="size-5 text-ink-3" aria-hidden />
-      </Link>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[13px] font-semibold text-white/70">Current goal</p>
+            <p className="display text-[24px] leading-tight">
+              {goal ? GOAL_LABEL[goal.type] : "—"}
+            </p>
+            <p className="text-[13px] text-white/75">{goalLine}</p>
+          </div>
+          <Link
+            href="/onboarding"
+            className="flex min-h-11 items-center gap-1.5 rounded-full bg-white/10 px-3 text-[13px] font-semibold hover:bg-white/15"
+          >
+            <Pencil className="size-4" aria-hidden />
+            Edit
+          </Link>
+        </div>
+        {target && (
+          <p className="border-t border-white/15 pt-3 text-[13px] text-white/75 tabular-nums">
+            <span className="font-bold text-white">{formatInt(target.kcal)} kcal</span> a day · P{" "}
+            {target.proteinG} g · C {target.carbsG} g · F {target.fatG} g
+          </p>
+        )}
+      </section>
+
+      <Group title="Body">
+        <Row label="Height" value={`${profile.heightCm} cm`} />
+        <Row
+          label="Weight"
+          value={metric ? `${metric.weightKg} kg` : "—"}
+          sub={metric ? `on ${date(metric.date)}` : undefined}
+        />
+        <Row
+          label="Body fat"
+          value={metric?.bodyFatPct != null ? `${Math.round(metric.bodyFatPct * 10) / 10}%` : "—"}
+        />
+        <Row label="Activity" value={ACTIVITY_LABEL[profile.activityLevel]} />
+      </Group>
+
+      <Group title="Food and training">
+        <Row label="Diet" value={DIET_LABEL[profile.dietType]} />
+        <Row label="Where I train" value={WHERE_LABEL[profile.equipment]} />
+        <Row
+          label="Sessions"
+          value={`${profile.trainingDaysPerWeek} a week · ${profile.sessionMinutes} min`}
+        />
+        <Link
+          href="/onboarding"
+          className="flex min-h-12 items-center justify-between px-4 font-semibold"
+        >
+          Edit body and training
+          <ChevronRight className="size-5 text-ink-3" aria-hidden />
+        </Link>
+      </Group>
+
+      <Group title="Reminders">
+        <Reminders lunch={profile.remindLunch} dinner={profile.remindDinner} />
+      </Group>
+
+      <PlanCard usage={usage} />
+
+      <Group title="Your data">
+        <a
+          href="/api/export"
+          className="flex min-h-12 items-center justify-between px-4 font-semibold"
+        >
+          <span className="flex items-center gap-2">
+            <Download className="size-5 text-ink-2" aria-hidden />
+            Export as CSV
+          </span>
+          <ChevronRight className="size-5 text-ink-3" aria-hidden />
+        </a>
+      </Group>
 
       <form
-        className="mt-auto"
+        suppressHydrationWarning
         action={async () => {
           "use server";
           await signOut({ redirectTo: "/login" });
@@ -105,21 +179,33 @@ export default async function ProfilePage() {
           Sign out
         </Button>
       </form>
+
+      <DangerZone />
+
       <p className="text-center text-[12px] text-ink-3">
-        FitLens gives general fitness guidance, not medical advice.
+        {email} · FitLens gives general fitness guidance, not medical advice.
       </p>
     </div>
   );
 }
 
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2" aria-label={title}>
+      <h2 className="display text-[19px]">{title}</h2>
+      <div className="flex flex-col divide-y divide-line rounded-card bg-surface">{children}</div>
+    </section>
+  );
+}
+
 function Row({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 px-4 py-3.5">
-      <dt className="text-[13px] font-semibold text-ink-3">{label}</dt>
-      <dd className="text-right">
-        <span className="font-semibold">{value}</span>
-        {sub && <span className="block text-[13px] text-ink-3">{sub}</span>}
-      </dd>
+    <div className="flex min-h-12 items-center justify-between gap-4 px-4 py-2.5">
+      <span className="text-[15px] text-ink-2">{label}</span>
+      <span className="text-right">
+        <span className="font-semibold tabular-nums">{value}</span>
+        {sub && <span className="block text-[12px] text-ink-3">{sub}</span>}
+      </span>
     </div>
   );
 }

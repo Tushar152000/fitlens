@@ -20,11 +20,16 @@ export interface GoalPlan extends Macros {
   tdee: number;
   targetWeightKg: number;
   weeks: number;
-  weeklyChangeKg: number; // negative = losing
+  weeklyChangeKg: number; // the plan's actual pace after every cap; negative = losing
+  /** The pace the user's own date would need (design 5b headline). */
+  neededWeeklyChangeKg: number;
   weeklyRatePct: number; // absolute % of body weight per week
   dailyAdjustmentKcal: number; // negative = deficit
   feasible: boolean;
+  /** 5b "Keep the goal": when the target is reached at the safe pace. */
   suggestedTargetDate?: Date;
+  /** 5b "Keep the date": where the safe pace gets you by the original date. */
+  closerTargetWeightKg?: number;
   warnings: string[];
 }
 
@@ -56,6 +61,7 @@ export function planGoal(
   const totalChangeKg = targetWeightKg - stats.weightKg;
 
   let weeklyChangeKg = totalChangeKg / weeks;
+  const neededWeeklyChangeKg = weeklyChangeKg;
   let feasible = true;
   let suggestedTargetDate: Date | undefined;
   let adjustment = 0;
@@ -114,6 +120,23 @@ export function planGoal(
   }
   adjustment = kcal - tdee;
 
+  // The pace the final calories actually deliver, after the rate cap, the 25% deficit cap and the
+  // calorie floor. A goal is only feasible if this pace reaches it by the date (design 5b).
+  const directional = goal.type === "FAT_LOSS" || goal.type === "MUSCLE_GAIN";
+  if (directional && weeklyChangeKg !== 0 && Math.abs(totalChangeKg) > 0.05) {
+    const effective = (adjustment * 7) / KCAL_PER_KG_FAT;
+    const sameDirection = Math.sign(effective) === Math.sign(totalChangeKg);
+    if (sameDirection && Math.abs(effective) > 1e-6) {
+      weeklyChangeKg = effective;
+      if (Math.abs(neededWeeklyChangeKg) > Math.abs(effective) * 1.02) {
+        feasible = false;
+        const neededWeeks = Math.ceil(Math.abs(totalChangeKg / effective));
+        suggestedTargetDate = new Date(goal.startDate.getTime() + neededWeeks * MS_PER_WEEK);
+      }
+    }
+  }
+  const closerTargetWeightKg = feasible ? undefined : stats.weightKg + weeklyChangeKg * weeks;
+
   const macros = macrosFor(Math.round(kcal), stats.weightKg, goal.type);
 
   return {
@@ -123,10 +146,12 @@ export function planGoal(
     targetWeightKg,
     weeks,
     weeklyChangeKg,
+    neededWeeklyChangeKg,
     weeklyRatePct: Math.abs((weeklyChangeKg / stats.weightKg) * 100),
     dailyAdjustmentKcal: adjustment,
     feasible,
     suggestedTargetDate,
+    closerTargetWeightKg,
     warnings,
   };
 }

@@ -1,7 +1,9 @@
 "use client";
 
 import { WifiOff } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useSyncExternalStore } from "react";
+import { flushQueue } from "@/lib/client/offline-queue";
 
 function subscribe(onChange: () => void) {
   window.addEventListener("online", onChange);
@@ -20,8 +22,16 @@ export function useOnline() {
   );
 }
 
+/** Offline banner; when the connection returns, sends typed meals queued while offline. */
 export function OfflineBanner() {
   const online = useOnline();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!online) return;
+    flushQueue().then((sent) => sent > 0 && router.refresh());
+  }, [online, router]);
+
   if (online) return null;
   return (
     <div

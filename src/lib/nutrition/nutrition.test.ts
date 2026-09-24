@@ -59,9 +59,30 @@ describe("planGoal", () => {
       targetDate: weeksLater(6),
     });
     expect(plan.feasible).toBe(false);
-    expect(plan.weeklyRatePct).toBeCloseTo(1.0, 5);
+    // Never faster than 1 %/week; here the 25 % deficit cap binds first, so the pace is lower.
+    expect(plan.weeklyRatePct).toBeLessThanOrEqual(1.0 + 1e-9);
     expect(plan.suggestedTargetDate!.getTime()).toBeGreaterThan(weeksLater(6).getTime());
     expect(plan.dailyAdjustmentKcal).toBeGreaterThanOrEqual(-plan.tdee * 0.25 - 1e-6);
+  });
+
+  it("suggests the date and closer target from the pace after the 25% deficit cap (design 5b)", () => {
+    const person = { ...rahul, weightKg: 82, bodyFatPct: undefined };
+    const plan = planGoal(person, {
+      type: "FAT_LOSS",
+      targetWeightKg: 72,
+      startDate: start,
+      targetDate: weeksLater(8),
+    });
+    expect(plan.feasible).toBe(false);
+    expect(plan.neededWeeklyChangeKg).toBeCloseTo(-1.25, 2);
+    // Real pace = capped deficit, not the 1 %/week rate (0.82 kg).
+    const pace = (plan.dailyAdjustmentKcal * 7) / 7700;
+    expect(plan.weeklyChangeKg).toBeCloseTo(pace, 5);
+    expect(Math.abs(plan.weeklyChangeKg)).toBeLessThan(0.82);
+    const weeksNeeded = Math.ceil(10 / Math.abs(pace));
+    expect(plan.suggestedTargetDate!.getTime()).toBe(weeksLater(weeksNeeded).getTime());
+    expect(plan.closerTargetWeightKg!).toBeCloseTo(82 + pace * 8, 5);
+    expect(plan.closerTargetWeightKg!).toBeGreaterThan(72);
   });
 
   it("never goes below the calorie floor or BMR", () => {

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { ConfirmMealSchema } from "@/lib/validators";
-import { fromItems, rowFromFood, scaleRow, toConfirmPayload, totals, type ItemDto } from "./rows";
+import {
+  fromItems,
+  rowFromFood,
+  scaleRow,
+  setRowGrams,
+  toConfirmPayload,
+  totals,
+  type ItemDto,
+} from "./rows";
 
 const item = (over: Partial<ItemDto>): ItemDto => ({
   id: "i1",
@@ -15,6 +23,7 @@ const item = (over: Partial<ItemDto>): ItemDto => ({
   fatG: 4,
   aiConfidence: 0.9,
   approximate: false,
+  isLiquid: false,
   ...over,
 });
 
@@ -65,5 +74,43 @@ describe("confirm rows", () => {
     expect(payload.items.at(-1)).toMatchObject({ name: "ghee", unit: "tsp", grams: 5 });
     expect(payload.items[0].grams).toBe(1);
     expect(ConfirmMealSchema.safeParse(payload).success).toBe(true);
+  });
+
+  it("sets an exact amount, keeping the count and scaling macros", () => {
+    const [row] = fromItems([
+      item({ name: "cappuccino", unit: "cup", quantity: 1, grams: 180, kcal: 81, isLiquid: true }),
+    ]).rows;
+    const small = setRowGrams(row, 120);
+    expect(small.quantity).toBe(1);
+    expect(small.grams).toBe(120);
+    expect(small.kcal).toBeCloseTo(54);
+  });
+
+  it("sends its own nutrition for estimated items so saving can't zero them", () => {
+    const { rows } = fromItems([
+      item({
+        id: "p",
+        foodId: null,
+        name: "protein shake",
+        unit: "bottle",
+        quantity: 1,
+        grams: 500,
+        kcal: 300,
+        proteinG: 50,
+        carbsG: 10,
+        fatG: 5,
+        approximate: true,
+      }),
+    ]);
+    const payload = toConfirmPayload(rows, false, "  one scoop whey  ");
+    expect(payload.items[0].per100g).toEqual({ kcal: 60, protein: 10, carbs: 2, fat: 1 });
+    expect(payload.note).toBe("one scoop whey");
+    expect(ConfirmMealSchema.safeParse(payload).success).toBe(true);
+  });
+
+  it("does not send nutrition for food-list items", () => {
+    const payload = toConfirmPayload(fromItems([item({})]).rows, false);
+    expect(payload.items[0].per100g).toBeUndefined();
+    expect(payload.note).toBeNull();
   });
 });

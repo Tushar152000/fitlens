@@ -1,9 +1,10 @@
 export const MAX_SIDE = 1024;
 
-/** Downscale so the longest side is ≤ 1024 px and re-encode as JPEG. Accepts a file or a live <video>. */
+/** Downscale so the longest side is ≤ `maxSide` (1024 px for plates; labels need more) and re-encode as JPEG. */
 export async function compressImage(
   source: Blob | HTMLVideoElement,
   quality = 0.82,
+  maxSide = MAX_SIDE,
 ): Promise<Blob> {
   let drawable: CanvasImageSource;
   let width: number;
@@ -22,7 +23,7 @@ export async function compressImage(
   }
   if (!width || !height) throw new Error("Couldn't read that image");
 
-  const scale = Math.min(1, MAX_SIDE / Math.max(width, height));
+  const scale = Math.min(1, maxSide / Math.max(width, height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(width * scale);
   canvas.height = Math.round(height * scale);

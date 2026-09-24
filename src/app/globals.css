@@ -75,6 +75,15 @@
   }
 }
 
+@keyframes scan {
+  from {
+    top: 4%;
+  }
+  to {
+    top: 94%;
+  }
+}
+
 @keyframes shimmer {
   50% {
     opacity: 0.55;

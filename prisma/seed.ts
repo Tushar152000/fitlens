@@ -19,6 +19,7 @@ type Seed = {
   c: number;
   f: number;
   veg?: boolean;
+  liquid?: boolean;
   units: Record<string, number>;
 };
 
@@ -130,6 +131,7 @@ const foods: Seed[] = [
   },
   {
     name: "toned milk",
+    liquid: true,
     aliases: ["milk"],
     kcal: 58,
     p: 3.1,
@@ -196,6 +198,76 @@ const foods: Seed[] = [
     f: 100,
     units: { tsp: 5, tbsp: 14 },
   },
+  // Sweeteners and drinks, so "2 sachets sugar" or a coffee can be picked from the list.
+  {
+    name: "sugar",
+    aliases: ["cheeni", "shakkar", "white sugar"],
+    kcal: 387,
+    p: 0,
+    c: 100,
+    f: 0,
+    units: { sachet: 5, tsp: 4, cube: 4, tbsp: 12 },
+  },
+  {
+    name: "masala chai",
+    liquid: true,
+    aliases: ["chai", "tea", "milk tea", "cutting chai"],
+    kcal: 60,
+    p: 1.8,
+    c: 8,
+    f: 2.2,
+    units: { cup: 150, glass: 200 },
+  },
+  {
+    name: "cappuccino",
+    liquid: true,
+    aliases: ["coffee", "milk coffee"],
+    kcal: 45,
+    p: 2.4,
+    c: 3.6,
+    f: 2.3,
+    units: { cup: 180, mug: 300 },
+  },
+  {
+    name: "latte",
+    liquid: true,
+    aliases: ["cafe latte"],
+    kcal: 50,
+    p: 2.8,
+    c: 4.2,
+    f: 2.4,
+    units: { cup: 240, mug: 350 },
+  },
+  {
+    name: "filter coffee",
+    liquid: true,
+    aliases: ["south indian filter coffee", "kaapi"],
+    kcal: 55,
+    p: 2.2,
+    c: 6,
+    f: 2.4,
+    units: { cup: 150, tumbler: 120 },
+  },
+  {
+    name: "black coffee",
+    liquid: true,
+    aliases: ["americano", "espresso"],
+    kcal: 2,
+    p: 0.1,
+    c: 0,
+    f: 0,
+    units: { cup: 200, shot: 30 },
+  },
+  {
+    name: "cold coffee",
+    liquid: true,
+    aliases: ["iced coffee"],
+    kcal: 75,
+    p: 2.8,
+    c: 11,
+    f: 2.2,
+    units: { glass: 300 },
+  },
 ];
 
 const exercises = [
@@ -257,6 +329,7 @@ async function main() {
       carbsPer100g: f.c,
       fatPer100g: f.f,
       isVeg: f.veg ?? true,
+      isLiquid: f.liquid ?? false,
     };
     const food = await prisma.food.upsert({
       where: { name: f.name },

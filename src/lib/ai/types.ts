@@ -1,4 +1,4 @@
-import type { MealAnalysis } from "./schemas";
+import type { LabelRead, MealAnalysis } from "./schemas";
 import type { MealContext } from "./prompts";
 
 export interface AiUsage {
@@ -22,4 +22,5 @@ export interface AiProvider {
     context: MealContext;
   }): Promise<AiResult<MealAnalysis>>;
   parseMealText(input: { text: string; context: MealContext }): Promise<AiResult<MealAnalysis>>;
+  readNutritionLabel(input: { imageUrl: string }): Promise<AiResult<LabelRead>>;
 }

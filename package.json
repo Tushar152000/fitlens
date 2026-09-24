@@ -27,6 +27,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1138.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "barcode-detector": "^3.2.2",
     "bullmq": "^6.3.8",
     "ioredis": "^6.0.0",
     "lucide-react": "^1.47.0",

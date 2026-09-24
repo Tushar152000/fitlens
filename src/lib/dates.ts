@@ -20,3 +20,32 @@ export function weekStart(date: Date): Date {
   d.setUTCDate(d.getUTCDate() - day);
   return d;
 }
+
+/** The UTC instant of local midnight at the start of `at`'s day in `timezone` (DST-safe to the minute). */
+export function startOfLocalDay(timezone = "Asia/Kolkata", at = new Date()): Date {
+  const ymd = localDate(timezone, at);
+  const guess = ymd.getTime(); // local midnight read as if it were UTC
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })
+      .formatToParts(new Date(guess))
+      .map((p) => [p.type, p.value]),
+  );
+  const shown = Date.UTC(
+    +parts.year,
+    +parts.month - 1,
+    +parts.day,
+    +parts.hour,
+    +parts.minute,
+    +parts.second,
+  );
+  return new Date(guess - (shown - guess));
+}

@@ -3,9 +3,11 @@
 import {
   Armchair,
   Bike,
+  CalendarDays,
   ChevronLeft,
   Dumbbell,
   Footprints,
+  House,
   Info,
   Medal,
   Scale,
@@ -20,10 +22,11 @@ import {
   ChipGroup,
   ChoiceCardGroup,
   DateField,
+  FieldError,
   NumberField,
   ProgressSteps,
   Segmented,
-  Switch,
+  TileGroup,
 } from "@/components/ui";
 import {
   emptyDraft,
@@ -40,7 +43,7 @@ export type { OnboardingDraft };
 
 const ic = "size-5";
 
-const STEP_TITLES = ["What's your goal?", "About you", "Diet and training"];
+const STEP_TITLES = ["Your goal", "About you", "Food and training"];
 
 export function OnboardingForm({
   initial,
@@ -139,7 +142,7 @@ export function OnboardingForm({
           </p>
         )}
         <Button variant="primary" onClick={next} disabled={submitting}>
-          {step < 3 ? "Continue" : submitting ? "Building your plan…" : "See my plan"}
+          {step < 3 ? "Continue" : submitting ? "Building your plan…" : "Build my plan"}
         </Button>
       </StickyFooter>
     </main>
@@ -157,13 +160,12 @@ function Field({ label, error, children }: { label: string; error?: string; chil
     <fieldset className="flex flex-col gap-2.5" data-error={error ? "" : undefined}>
       <legend className="mb-2.5 text-[13px] font-semibold text-ink-2">{label}</legend>
       {children}
-      {error && <p className="text-[13px] font-semibold text-brand">{error}</p>}
+      {error && <FieldError>{error}</FieldError>}
     </fieldset>
   );
 }
 
 function GoalStep({ draft, set, errors }: StepProps) {
-  const today = new Date();
   return (
     <>
       <Field label="Pick one" error={errors.goalType}>
@@ -196,13 +198,14 @@ function GoalStep({ draft, set, errors }: StepProps) {
 
       {needsTarget(draft) && (
         <div className="flex flex-col gap-3">
+          <p className="text-[13px] font-semibold text-ink-2">Aim for</p>
           <Segmented
-            label="Target type"
+            label="Aim for"
             value={draft.targetMode}
             onChange={(v) => set("targetMode", v)}
             options={[
-              { value: "WEIGHT", label: "Target weight" },
-              { value: "BODY_FAT", label: "Target body fat" },
+              { value: "BODY_FAT", label: "Body fat %" },
+              { value: "WEIGHT", label: "Weight" },
             ]}
           />
           {draft.targetMode === "WEIGHT" ? (
@@ -228,14 +231,7 @@ function GoalStep({ draft, set, errors }: StepProps) {
         </div>
       )}
 
-      <DateField
-        label="Target date"
-        value={draft.targetDate}
-        min={ymd(new Date(today.getTime() + 14 * 86_400_000))}
-        onValueChange={(v) => set("targetDate", v)}
-        error={errors.targetDate}
-        hint="We'll tell you if it's too fast and suggest a safer date."
-      />
+      <ByWhen draft={draft} set={set} error={errors.targetDate} />
     </>
   );
 }
@@ -360,6 +356,65 @@ function AboutStep({ draft, set, errors }: StepProps) {
   );
 }
 
+const WEEK_OPTIONS = [12, 16, 24];
+
+/** Design 2: "By when?" — three quick tiles with end dates, or an exact date. */
+function ByWhen({
+  draft,
+  set,
+  error,
+}: {
+  draft: OnboardingDraft;
+  set: StepProps["set"];
+  error?: string;
+}) {
+  const today = new Date();
+  const dateIn = (weeks: number) => ymd(new Date(today.getTime() + weeks * 7 * 86_400_000));
+  const short = (d: string) =>
+    new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "UTC" }).format(
+      new Date(d),
+    );
+  const tileWeeks = WEEK_OPTIONS.find((w) => dateIn(w) === draft.targetDate);
+  const [exact, setExact] = useState(tileWeeks === undefined);
+
+  return (
+    <Field label="By when?" error={exact ? undefined : error}>
+      <TileGroup
+        label="By when?"
+        value={exact ? undefined : tileWeeks}
+        onChange={(w) => {
+          setExact(false);
+          set("targetDate", dateIn(w));
+        }}
+        options={WEEK_OPTIONS.map((w) => ({
+          value: w,
+          label: `${w} weeks`,
+          sub: short(dateIn(w)),
+        }))}
+      />
+      {exact ? (
+        <DateField
+          label="Exact date"
+          value={draft.targetDate}
+          min={dateIn(2)}
+          onValueChange={(v) => set("targetDate", v)}
+          error={error}
+          hint="We'll tell you if it's too fast and suggest a safer date."
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setExact(true)}
+          className="flex min-h-11 w-fit items-center gap-1.5 text-[15px] font-semibold text-brand"
+        >
+          <CalendarDays className="size-5" aria-hidden />
+          Choose an exact date
+        </button>
+      )}
+    </Field>
+  );
+}
+
 function TrainingStep({ draft, set, errors }: StepProps) {
   return (
     <>
@@ -377,28 +432,30 @@ function TrainingStep({ draft, set, errors }: StepProps) {
         />
       </Field>
 
-      <Field label="Training experience" error={errors.experience}>
-        <ChipGroup
-          label="Training experience"
-          value={draft.experience}
-          onChange={(v) => set("experience", v)}
-          options={[
-            { value: "BEGINNER", label: "New to it" },
-            { value: "INTERMEDIATE", label: "1–3 years" },
-            { value: "ADVANCED", label: "3+ years" },
-          ]}
-        />
-      </Field>
-
-      <Field label="Equipment" error={errors.equipment}>
-        <ChipGroup
-          label="Equipment"
+      <Field label="Where I train" error={errors.equipment}>
+        <TileGroup
+          label="Where I train"
           value={draft.equipment}
           onChange={(v) => set("equipment", v)}
           options={[
-            { value: "FULL_GYM", label: "Full gym" },
-            { value: "DUMBBELLS", label: "Dumbbells at home" },
-            { value: "BODYWEIGHT", label: "No equipment" },
+            {
+              value: "FULL_GYM",
+              label: "Gym",
+              sub: "Machines, barbells",
+              icon: <Dumbbell className={ic} />,
+            },
+            {
+              value: "DUMBBELLS",
+              label: "Home",
+              sub: "A few dumbbells",
+              icon: <House className={ic} />,
+            },
+            {
+              value: "BODYWEIGHT",
+              label: "Anywhere",
+              sub: "No equipment",
+              icon: <Footprints className={ic} />,
+            },
           ]}
         />
       </Field>
@@ -412,12 +469,12 @@ function TrainingStep({ draft, set, errors }: StepProps) {
         />
       </Field>
 
-      <Field label="Session length">
-        <ChipGroup
-          label="Session length"
-          value={draft.sessionMinutes}
-          onChange={(v) => set("sessionMinutes", v)}
-          options={[30, 45, 60, 75, 90].map((n) => ({ value: n, label: `${n} min` }))}
+      <Field label="Minutes per session">
+        <Segmented
+          label="Minutes per session"
+          value={String(Math.min(60, Math.max(30, Math.round(draft.sessionMinutes / 15) * 15)))}
+          onChange={(v) => set("sessionMinutes", Number(v))}
+          options={["30", "45", "60"].map((n) => ({ value: n, label: `${n} min` }))}
         />
       </Field>
 
@@ -426,6 +483,7 @@ function TrainingStep({ draft, set, errors }: StepProps) {
           Injuries or pain (optional)
         </label>
         <input
+          suppressHydrationWarning
           id="injuries"
           value={draft.injuries}
           onChange={(e) => set("injuries", e.target.value)}
@@ -435,21 +493,23 @@ function TrainingStep({ draft, set, errors }: StepProps) {
         <p className="text-[13px] text-ink-3">We&apos;ll avoid exercises that load these.</p>
       </div>
 
-      <div className="flex items-center justify-between gap-4 rounded-card bg-surface p-4">
-        <div className="flex flex-col">
-          <span id="medical-label" className="font-semibold">
-            Medical condition or pregnancy
+      <label className="flex cursor-pointer items-start gap-3 rounded-card bg-surface p-4">
+        <input
+          suppressHydrationWarning
+          type="checkbox"
+          checked={draft.medicalFlag}
+          onChange={(e) => set("medicalFlag", e.target.checked)}
+          className="mt-0.5 size-6 shrink-0 cursor-pointer accent-brand"
+        />
+        <span className="flex flex-col">
+          <span className="font-semibold">
+            I have a medical condition, am pregnant, or am under 18
           </span>
           <span className="text-[13px] text-ink-3">
-            We&apos;ll keep calories at maintenance. Check with your doctor.
+            We&apos;ll keep calories at maintenance instead of a deficit. Check with your doctor.
           </span>
-        </div>
-        <Switch
-          checked={draft.medicalFlag}
-          onChange={(v) => set("medicalFlag", v)}
-          labelledBy="medical-label"
-        />
-      </div>
+        </span>
+      </label>
     </>
   );
 }

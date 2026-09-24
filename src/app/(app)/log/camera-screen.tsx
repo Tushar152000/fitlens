@@ -3,25 +3,21 @@
 import { Camera, Images, Keyboard, LoaderCircle, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { AiLimitSheet } from "@/components/ai-limit-sheet";
+import { useRef, useState } from "react";
+import { AiLimitSheet, type ScanUsage } from "@/components/ai-limit-sheet";
 import { useOnline } from "@/components/offline-banner";
-import { Sheet } from "@/components/sheet";
-import { Button, Chip } from "@/components/ui";
+import { Chip } from "@/components/ui";
 import { api, ApiError } from "@/lib/client/api";
 import { compressImage } from "@/lib/client/image";
+import { uploadPhoto } from "@/lib/client/upload";
+import { useCamera } from "@/lib/client/use-camera";
 import { MEAL_LABEL, MEAL_TYPES, type MealType } from "@/lib/format";
+import { ModeTabs } from "./mode-tabs";
 
-type CameraState = "starting" | "live" | "unavailable";
 type Phase = "idle" | "uploading" | "analysing";
 
-export function CameraScreen({
-  initialMealType,
-  startInTextMode,
-}: {
-  initialMealType: MealType;
-  startInTextMode: boolean;
-}) {
+/** Design 7: photo mode of the log screen. */
+export function CameraScreen({ initialMealType }: { initialMealType: MealType }) {
   const router = useRouter();
   const online = useOnline();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -29,43 +25,18 @@ export function CameraScreen({
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [mealType, setMealType] = useState<MealType>(initialMealType);
-  const [camera, setCamera] = useState<CameraState>("starting");
+  const { state: camera } = useCamera(videoRef);
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [textOpen, setTextOpen] = useState(startInTextMode);
-  const [text, setText] = useState("");
+  const [limit, setLimit] = useState<ScanUsage | null>(null);
   const [limitOpen, setLimitOpen] = useState(false);
-
-  useEffect(() => {
-    let stream: MediaStream | undefined;
-    let cancelled = false;
-    async function start() {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error("No camera API");
-      const s = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 } },
-        audio: false,
-      });
-      if (cancelled) return s.getTracks().forEach((t) => t.stop());
-      stream = s;
-      const video = videoRef.current;
-      if (!video) return;
-      video.srcObject = s;
-      await video.play().catch(() => undefined);
-      setCamera("live");
-    }
-    start().catch(() => !cancelled && setCamera("unavailable"));
-    return () => {
-      cancelled = true;
-      stream?.getTracks().forEach((t) => t.stop());
-    };
-  }, []);
 
   const busy = phase !== "idle";
 
   function fail(e: unknown) {
     setPhase("idle");
     if (e instanceof ApiError && e.status === 429) {
-      setTextOpen(false);
+      setLimit((e.details as ScanUsage | undefined) ?? null);
       setLimitOpen(true);
       return;
     }
@@ -77,16 +48,7 @@ export function CameraScreen({
     if (!online) return setError("You're offline. Connect and try again.");
     setPhase("uploading");
     try {
-      const { key, uploadUrl } = await api<{ key: string; uploadUrl: string }>(
-        "/api/meals/upload-url",
-        { method: "POST", json: { contentType: "image/jpeg", sizeBytes: blob.size } },
-      );
-      const put = await fetch(uploadUrl, {
-        method: "PUT",
-        body: blob,
-        headers: { "Content-Type": "image/jpeg" },
-      }).catch(() => null);
-      if (!put?.ok) throw new Error("Upload failed. Check your connection and try again.");
+      const key = await uploadPhoto(blob);
       setPhase("analysing");
       const log = await api<{ id: string }>("/api/meals", {
         method: "POST",
@@ -118,22 +80,6 @@ export function CameraScreen({
       fail(
         err instanceof ApiError ? err : new Error("Couldn't read that photo. Try a JPEG or PNG."),
       );
-    }
-  }
-
-  async function submitText(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    if (text.trim().length < 2) return setError("Describe what you ate, e.g. 2 roti, 1 katori dal");
-    setPhase("analysing");
-    try {
-      const log = await api<{ id: string }>("/api/meals", {
-        method: "POST",
-        json: { source: "TEXT", mealType, text: text.trim() },
-      });
-      router.push(`/log/${log.id}`);
-    } catch (err) {
-      fail(err);
     }
   }
 
@@ -200,7 +146,7 @@ export function CameraScreen({
         </p>
       )}
 
-      <div className="mt-auto grid grid-cols-3 items-center px-5 pt-6 pb-[max(28px,env(safe-area-inset-bottom))]">
+      <div className="mt-auto grid grid-cols-3 items-center px-5 pt-6">
         <button
           type="button"
           onClick={() => galleryInputRef.current?.click()}
@@ -221,20 +167,23 @@ export function CameraScreen({
         >
           <span className="size-[62px] rounded-full bg-brand-glow transition-transform duration-150 active:scale-95" />
         </button>
-        <button
-          type="button"
-          onClick={() => setTextOpen(true)}
-          disabled={busy}
+        <Link
+          href={`/log/type?meal=${mealType}`}
           className="flex flex-col items-center gap-1 justify-self-end text-[12px] font-semibold text-white/85"
         >
           <span className="grid size-12 place-items-center rounded-2xl bg-white/12">
             <Keyboard className="size-6" aria-hidden />
           </span>
-          Type instead
-        </button>
+          Type
+        </Link>
+      </div>
+
+      <div className="px-5 pt-5 pb-[max(20px,env(safe-area-inset-bottom))]">
+        <ModeTabs current="photo" mealType={mealType} />
       </div>
 
       <input
+        suppressHydrationWarning
         ref={cameraInputRef}
         type="file"
         accept="image/*"
@@ -242,38 +191,21 @@ export function CameraScreen({
         hidden
         onChange={onFile}
       />
-      <input ref={galleryInputRef} type="file" accept="image/*" hidden onChange={onFile} />
+      <input
+        suppressHydrationWarning
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={onFile}
+      />
 
-      <Sheet
-        open={textOpen}
-        onClose={() => setTextOpen(false)}
-        title={`Type your ${MEAL_LABEL[mealType].toLowerCase()}`}
-      >
-        <form onSubmit={submitText} className="flex flex-col gap-4">
-          <label htmlFor="meal-text" className="sr-only">
-            What did you eat?
-          </label>
-          <textarea
-            id="meal-text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={3}
-            maxLength={500}
-            placeholder="2 roti, 1 katori dal, half katori sabzi"
-            className="rounded-input border border-line-strong bg-surface p-4 text-base outline-none focus:border-ink"
-          />
-          {error && textOpen && (
-            <p role="alert" className="text-[13px] font-semibold text-brand">
-              {error}
-            </p>
-          )}
-          <Button type="submit" disabled={busy}>
-            {busy ? "Reading…" : "Find foods"}
-          </Button>
-        </form>
-      </Sheet>
-
-      <AiLimitSheet open={limitOpen} onClose={() => setLimitOpen(false)} mealType={mealType} />
+      <AiLimitSheet
+        open={limitOpen}
+        onClose={() => setLimitOpen(false)}
+        mealType={mealType}
+        usage={limit}
+      />
     </div>
   );
 }

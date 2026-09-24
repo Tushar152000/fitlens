@@ -1,4 +1,4 @@
-import type { MealAnalysis } from "./schemas";
+import type { LabelRead, MealAnalysis } from "./schemas";
 import type { AiProvider, AiResult } from "./types";
 
 const SAMPLE: MealAnalysis = {
@@ -6,10 +6,42 @@ const SAMPLE: MealAnalysis = {
   hiddenFatLikely: true,
   notes: "Mock result: set AI_PROVIDER=anthropic for real detection.",
   items: [
-    { name: "roti", quantity: 2, unit: "piece", grams: 80, confidence: 0.93 },
-    { name: "dal tadka", quantity: 1, unit: "katori", grams: 150, confidence: 0.84 },
-    { name: "jeera rice", quantity: 1, unit: "katori", grams: 150, confidence: 0.71 },
-    { name: "mixed veg sabzi", quantity: 0.5, unit: "katori", grams: 75, confidence: 0.55 },
+    {
+      name: "roti",
+      quantity: 2,
+      unit: "piece",
+      grams: 80,
+      confidence: 0.93,
+      isDrink: false,
+      per100g: { kcal: 264, protein: 8.9, carbs: 46, fat: 5 },
+    },
+    {
+      name: "dal tadka",
+      quantity: 1,
+      unit: "katori",
+      grams: 150,
+      confidence: 0.84,
+      isDrink: false,
+      per100g: { kcal: 120, protein: 6, carbs: 15, fat: 4 },
+    },
+    {
+      name: "jeera rice",
+      quantity: 1,
+      unit: "katori",
+      grams: 150,
+      confidence: 0.71,
+      isDrink: false,
+      per100g: { kcal: 150, protein: 2.8, carbs: 28, fat: 3 },
+    },
+    {
+      name: "mixed veg sabzi",
+      quantity: 0.5,
+      unit: "katori",
+      grams: 75,
+      confidence: 0.55,
+      isDrink: false,
+      per100g: { kcal: 90, protein: 2.5, carbs: 10, fat: 4.5 },
+    },
   ],
 };
 
@@ -36,9 +68,26 @@ export class MockProvider implements AiProvider {
         const name = (m?.[3] ?? part).toLowerCase();
         const grams =
           unit === "g" ? quantity : quantity * (unit === "katori" || unit === "bowl" ? 150 : 50);
-        return { name, quantity, unit, grams, confidence: 0.6 };
+        // Rough generic home-food estimate; the food database replaces it when the name matches.
+        const per100g = { kcal: 150, protein: 5, carbs: 20, fat: 5 };
+        const isDrink = ["glass", "cup", "ml"].includes(unit);
+        return { name, quantity, unit, grams, confidence: 0.6, isDrink, per100g };
       });
     return this.result({ isFood: items.length > 0, hiddenFatLikely: false, items });
+  }
+
+  async readNutritionLabel(): Promise<AiResult<LabelRead>> {
+    return {
+      data: {
+        isLabel: true,
+        productName: "Mock biscuits",
+        per100g: { kcal: 480, protein: 7, carbs: 70, fat: 19, sugar: 25, sodiumMg: 300 },
+        servingSizeG: 25,
+        servingLabel: "3 biscuits (25 g)",
+        confidence: 0.9,
+      },
+      usage: { provider: this.name, model: "mock", latencyMs: 5 },
+    };
   }
 
   private async result(data: MealAnalysis): Promise<AiResult<MealAnalysis>> {

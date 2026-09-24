@@ -2,6 +2,7 @@ import { Mail } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth, signIn } from "@/auth";
 import { Button } from "@/components/ui";
+import { Logo } from "@/components/logo";
 import { HeroPlate } from "./hero-plate";
 
 export const metadata = { title: "Sign in — FitLens" };
@@ -13,7 +14,7 @@ export default async function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col px-6 pt-10 pb-8">
-      <p className="display text-[19px]">FitLens</p>
+      <Logo size={30} />
 
       <HeroPlate className="my-8" />
 
@@ -25,6 +26,7 @@ export default async function LoginPage() {
 
       <div className="mt-auto flex flex-col gap-3 pt-8">
         <form
+          suppressHydrationWarning
           action={async () => {
             "use server";
             await signIn("google", { redirectTo: "/today" });
@@ -38,6 +40,7 @@ export default async function LoginPage() {
 
         {emailEnabled && (
           <form
+            suppressHydrationWarning
             className="flex flex-col gap-3"
             action={async (formData) => {
               "use server";
@@ -48,6 +51,7 @@ export default async function LoginPage() {
               Email
             </label>
             <input
+              suppressHydrationWarning
               id="email"
               name="email"
               type="email"

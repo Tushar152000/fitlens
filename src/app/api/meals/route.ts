@@ -3,7 +3,7 @@ import { HttpError, parseBody, requireUserId, route } from "@/lib/api";
 import { localDate, parseDateOnly } from "@/lib/dates";
 import { prisma } from "@/lib/db";
 import { getMealQueue, queueEnabled } from "@/lib/queue";
-import { analyzeMealLog, assertWithinDailyAiLimit } from "@/lib/services/meals";
+import { analyzeMealLog, assertCanScanPhoto, assertWithinTextCap } from "@/lib/services/meals";
 import { CreateMealSchema } from "@/lib/validators";
 
 /**
@@ -17,12 +17,9 @@ export const POST = route(async (req) => {
   if (input.source === "PHOTO" && !input.photoKey.startsWith(`meals/${userId}/`)) {
     throw new HttpError(403, "Photo does not belong to you");
   }
-  if (input.source !== "MANUAL" && !(await assertWithinDailyAiLimit(userId))) {
-    throw new HttpError(
-      429,
-      "Daily AI limit reached. Log by editing items manually or try tomorrow.",
-    );
-  }
+  // Photos use a daily scan; typed meals are free (design 9c).
+  if (input.source === "PHOTO") await assertCanScanPhoto(userId);
+  if (input.source === "TEXT") await assertWithinTextCap(userId);
 
   const profile = await prisma.profile.findUnique({
     where: { userId },

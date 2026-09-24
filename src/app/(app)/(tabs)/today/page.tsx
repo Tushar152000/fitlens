@@ -1,8 +1,15 @@
-import { Camera, ChevronRight, Dumbbell, Flame, Plus } from "lucide-react";
+import { Camera, ChevronRight, Dumbbell, Flame, Keyboard, Plus } from "lucide-react";
 import Link from "next/link";
-import { Button, CalorieRing, MacroBar, MealRow } from "@/components/ui";
+import { Button, CalorieRing, InsightCard, MacroBar, MealRow } from "@/components/ui";
 import { localDate } from "@/lib/dates";
-import { formatInt, formatTime, MEAL_LABEL, mealTitle, nextMealType } from "@/lib/format";
+import {
+  formatInt,
+  formatTime,
+  MEAL_LABEL,
+  MEAL_TYPES,
+  mealTitle,
+  nextMealType,
+} from "@/lib/format";
 import { mockWeek } from "@/lib/mock/workout";
 import { getDay, loggingStreak } from "@/lib/services/dashboard";
 import { presignRead } from "@/lib/storage/s3";
@@ -52,6 +59,12 @@ export default async function TodayPage() {
 
   const target = day.target;
   const over = target ? day.eaten.kcal - target.kcal : 0;
+  const positiveNote =
+    target && day.eaten.proteinG >= target.proteinG
+      ? `You still hit your protein (${Math.round(day.eaten.proteinG)} g) — that's what matters most. Tomorrow resets.`
+      : streak > 1
+        ? `You've logged ${streak} days in a row. One day over doesn't undo that. Tomorrow resets.`
+        : "Logging it honestly is the hard part, and you did it. Tomorrow resets.";
   const workout = mockWeek({
     today,
     equipment: profile.equipment,
@@ -91,16 +104,7 @@ export default async function TodayPage() {
             </div>
           </div>
           <p className="border-t border-line pt-3 text-[13px] text-ink-2 tabular-nums">
-            {over > 0 ? (
-              <>
-                <span className="font-semibold text-ink">{formatInt(over)} kcal over</span> — no
-                stress, tomorrow resets.
-              </>
-            ) : (
-              <>
-                {formatInt(day.eaten.kcal)} eaten of {formatInt(target.kcal)} kcal target
-              </>
-            )}
+            {formatInt(day.eaten.kcal)} eaten of {formatInt(target.kcal)} kcal target
           </p>
         </section>
       ) : (
@@ -112,25 +116,65 @@ export default async function TodayPage() {
         </section>
       )}
 
+      {target && over > 0 && (
+        // Design 6c: neutral, never shaming.
+        <InsightCard headline="A little over. No stress." reason={positiveNote} />
+      )}
+
       <section className="flex flex-col gap-2.5" aria-labelledby="meals-heading">
-        <h2 id="meals-heading" className="display text-[19px]">
-          Meals
-        </h2>
+        <div className="flex items-baseline justify-between">
+          <h2 id="meals-heading" className="display text-[19px]">
+            Meals
+          </h2>
+          <Link
+            href="/history"
+            className="-mr-2 flex min-h-11 items-center px-2 text-[13px] font-semibold text-brand"
+          >
+            History
+          </Link>
+        </div>
         {meals.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 rounded-card bg-surface p-5">
-            <div>
-              <p className="text-base font-bold">Log your first meal</p>
-              <p className="text-[13px] text-ink-3">
-                Snap your plate — we&apos;ll find the foods and portions for you to confirm.
-              </p>
+          // Design 6b: nothing logged yet.
+          <>
+            <div className="flex flex-col gap-3 rounded-card bg-ink p-5 text-white">
+              <div>
+                <p className="display text-[22px] leading-tight">
+                  Start with {MEAL_LABEL[nextMeal].toLowerCase()}
+                </p>
+                <p className="mt-1 text-[13px] text-white/75">
+                  Snap your plate and we&apos;ll find the foods, or type it in a line.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button asChild>
+                  <Link href={`/log?meal=${nextMeal}`}>
+                    <Camera className="size-5" aria-hidden />
+                    Snap
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="secondary"
+                  className="border-white/20 bg-white/10 text-white hover:bg-white/15"
+                >
+                  <Link href={`/log/type?meal=${nextMeal}`}>
+                    <Keyboard className="size-5" aria-hidden />
+                    Type
+                  </Link>
+                </Button>
+              </div>
             </div>
-            <Button asChild>
-              <Link href={`/log?meal=${nextMeal}`}>
-                <Camera className="size-5" aria-hidden />
-                Snap {MEAL_LABEL[nextMeal].toLowerCase()}
-              </Link>
-            </Button>
-          </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {MEAL_TYPES.map((t) => (
+                <Button key={t} asChild variant="dashed" className="h-14">
+                  <Link href={`/log?meal=${t}`}>
+                    <Plus className="size-5" aria-hidden />
+                    {MEAL_LABEL[t]}
+                  </Link>
+                </Button>
+              ))}
+            </div>
+          </>
         ) : (
           <>
             {meals.map((m) => (

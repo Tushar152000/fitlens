@@ -46,7 +46,12 @@ export function CheckinForm({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3 rounded-card bg-surface p-4" noValidate>
+    <form
+      suppressHydrationWarning
+      onSubmit={submit}
+      className="flex flex-col gap-3 rounded-card bg-surface p-4"
+      noValidate
+    >
       <div className="grid grid-cols-2 gap-3">
         <NumberField
           label="Weight"

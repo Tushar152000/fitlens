@@ -1,4 +1,4 @@
-import { CircleAlert, CircleCheck } from "lucide-react";
+import { CircleCheck } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StickyFooter } from "@/components/sticky-footer";
@@ -8,6 +8,7 @@ import { localDate } from "@/lib/dates";
 import { formatInt } from "@/lib/format";
 import { computePlan, currentTarget, planSummary } from "@/lib/services/targets";
 import { requireViewer } from "@/lib/viewer";
+import { TooFastPlan } from "./too-fast";
 
 export const metadata = { title: "Your plan — FitLens" };
 
@@ -44,6 +45,49 @@ export default async function PlanPage() {
   const recomp = goal.type === "RECOMPOSITION";
   const weekly = summary.plan.weeklyChangeKg;
 
+  const targetCard = (
+    <section className="rounded-card bg-ink p-5 text-white" aria-label="Daily target">
+      <p className="text-[13px] font-semibold text-white/70">Daily target</p>
+      <p className="display text-[40px] leading-none tabular-nums">
+        {formatInt(kcal)} <span className="text-[15px] font-semibold text-white/70">kcal</span>
+      </p>
+      <p className="mt-1.5 text-[13px] text-white/70 tabular-nums">
+        Maintenance {formatInt(summary.plan.tdee)} kcal
+        {Math.abs(adjustment) >= 10 &&
+          ` ${adjustment < 0 ? "−" : "+"} ${formatInt(Math.abs(adjustment))} kcal ${adjustment < 0 ? "deficit" : "surplus"}`}
+      </p>
+      <div
+        className="mt-4 flex h-2.5 gap-0.5 overflow-hidden rounded-full"
+        role="img"
+        aria-label={`Split: protein ${Math.round((macroKcal.p / macroTotal) * 100)}%, carbs ${Math.round((macroKcal.c / macroTotal) * 100)}%, fat ${Math.round((macroKcal.f / macroTotal) * 100)}% of calories`}
+      >
+        <span className="bg-[#5fae88]" style={{ width: `${(macroKcal.p / macroTotal) * 100}%` }} />
+        <span className="bg-carbs" style={{ width: `${(macroKcal.c / macroTotal) * 100}%` }} />
+        <span className="bg-[#9d84d6]" style={{ width: `${(macroKcal.f / macroTotal) * 100}%` }} />
+      </div>
+      <dl className="mt-3 grid grid-cols-3 gap-2 text-[13px]">
+        <Macro label="Protein" grams={proteinG} dot="bg-[#5fae88]" />
+        <Macro label="Carbs" grams={carbsG} dot="bg-carbs" />
+        <Macro label="Fat" grams={fatG} dot="bg-[#9d84d6]" />
+      </dl>
+    </section>
+  );
+
+  if (!summary.plan.feasible && !recomp) {
+    return (
+      <TooFastPlan
+        losing={goal.type === "FAT_LOSS"}
+        neededWeeklyKg={summary.plan.neededWeeklyChangeKg}
+        safeWeeklyKg={summary.plan.weeklyChangeKg}
+        targetWeightKg={summary.plan.targetWeightKg}
+        targetDate={goal.targetDate.toISOString().slice(0, 10)}
+        suggestedDate={summary.plan.suggestedTargetDate ?? null}
+        closerTargetKg={summary.plan.closerTargetWeightKg ?? null}
+        targetCard={targetCard}
+      />
+    );
+  }
+
   return (
     <main className="flex flex-1 flex-col px-6 pt-4">
       <div className="flex h-11 items-center">
@@ -51,28 +95,10 @@ export default async function PlanPage() {
       </div>
       <h1 className="mt-6 display text-[28px] leading-tight">Your plan</h1>
 
-      {summary.plan.feasible ? (
-        <p className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-protein-soft px-3 py-1 text-[13px] font-semibold text-protein">
-          <CircleCheck className="size-4" aria-hidden />
-          Realistic goal
-        </p>
-      ) : (
-        <div className="mt-3 flex gap-2.5 rounded-card bg-caution-soft p-4 text-caution-text">
-          <CircleAlert className="mt-0.5 size-5 shrink-0" aria-hidden />
-          <div className="text-[13px]">
-            <p className="font-bold">That pace is faster than we recommend.</p>
-            <p>
-              We&apos;ve set a safe rate instead
-              {summary.plan.suggestedTargetDate &&
-                `, which gets you there by ${dateLabel(summary.plan.suggestedTargetDate)}`}
-              .{" "}
-              <Link href="/onboarding" className="font-semibold underline underline-offset-2">
-                Change date
-              </Link>
-            </p>
-          </div>
-        </div>
-      )}
+      <p className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-protein-soft px-3 py-1 text-[13px] font-semibold text-protein">
+        <CircleCheck className="size-4" aria-hidden />
+        Realistic goal
+      </p>
 
       <section className="mt-5 rounded-card bg-surface p-4" aria-label="Now and goal">
         <div className="flex items-end justify-between">
@@ -112,37 +138,7 @@ export default async function PlanPage() {
         </p>
       </section>
 
-      <section className="mt-3 rounded-card bg-ink p-5 text-white" aria-label="Daily target">
-        <p className="text-[13px] font-semibold text-white/70">Daily target</p>
-        <p className="display text-[40px] leading-none tabular-nums">
-          {formatInt(kcal)} <span className="text-[15px] font-semibold text-white/70">kcal</span>
-        </p>
-        <p className="mt-1.5 text-[13px] text-white/70 tabular-nums">
-          Maintenance {formatInt(summary.plan.tdee)} kcal
-          {Math.abs(adjustment) >= 10 &&
-            ` ${adjustment < 0 ? "−" : "+"} ${formatInt(Math.abs(adjustment))} kcal ${adjustment < 0 ? "deficit" : "surplus"}`}
-        </p>
-        <div
-          className="mt-4 flex h-2.5 gap-0.5 overflow-hidden rounded-full"
-          role="img"
-          aria-label={`Split: protein ${Math.round((macroKcal.p / macroTotal) * 100)}%, carbs ${Math.round((macroKcal.c / macroTotal) * 100)}%, fat ${Math.round((macroKcal.f / macroTotal) * 100)}% of calories`}
-        >
-          <span
-            className="bg-[#5fae88]"
-            style={{ width: `${(macroKcal.p / macroTotal) * 100}%` }}
-          />
-          <span className="bg-carbs" style={{ width: `${(macroKcal.c / macroTotal) * 100}%` }} />
-          <span
-            className="bg-[#9d84d6]"
-            style={{ width: `${(macroKcal.f / macroTotal) * 100}%` }}
-          />
-        </div>
-        <dl className="mt-3 grid grid-cols-3 gap-2 text-[13px]">
-          <Macro label="Protein" grams={proteinG} dot="bg-[#5fae88]" />
-          <Macro label="Carbs" grams={carbsG} dot="bg-carbs" />
-          <Macro label="Fat" grams={fatG} dot="bg-[#9d84d6]" />
-        </dl>
-      </section>
+      <div className="mt-3">{targetCard}</div>
 
       <section className="mt-3 grid grid-cols-3 gap-2" aria-label="Your numbers">
         <Tile

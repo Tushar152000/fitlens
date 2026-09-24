@@ -1,64 +1,86 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { Crown, Keyboard } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { Sheet } from "@/components/sheet";
 import { Button } from "@/components/ui";
-import { api } from "@/lib/client/api";
+import { cn } from "@/lib/cn";
 import type { MealType } from "@/lib/format";
 
-/** Shown on 429 from POST /api/meals. "Type it instead" makes an empty meal with no AI call. */
+export interface ScanUsage {
+  used: number;
+  limit: number;
+  left: number;
+  resetsAt: string;
+}
+
+/** Design 9c: shown on HTTP 429 from a photo scan. Typing a meal is always free. */
 export function AiLimitSheet({
   open,
   onClose,
   mealType,
+  usage,
 }: {
   open: boolean;
   onClose: () => void;
   mealType: MealType;
+  usage: ScanUsage | null;
 }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [proNote, setProNote] = useState(false);
-
-  async function typeInstead() {
-    setBusy(true);
-    setError(null);
-    try {
-      const log = await api<{ id: string }>("/api/meals", {
-        method: "POST",
-        json: { source: "MANUAL", mealType },
-      });
-      router.push(`/log/${log.id}`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
-      setBusy(false);
-    }
-  }
+  const limit = usage?.limit ?? 3;
+  const used = Math.min(usage?.used ?? limit, limit);
+  const pips = Math.min(limit, 10); // one pip per scan; scaled past 10 so they stay readable
+  const usedPips = Math.min(pips, Math.round((used / limit) * pips));
+  const resets = usage
+    ? new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit" }).format(
+        new Date(usage.resetsAt),
+      )
+    : "midnight";
 
   return (
-    <Sheet open={open} onClose={onClose} title="You've used today's free scans">
+    <Sheet open={open} onClose={onClose} title={`You've used today's ${limit} free photo scans`}>
+      <div
+        className="flex gap-1.5"
+        role="img"
+        aria-label={`${used} of ${limit} photo scans used today`}
+      >
+        {Array.from({ length: pips }, (_, i) => (
+          <span
+            key={i}
+            className={cn("h-2 flex-1 rounded-full", i < usedPips ? "bg-brand" : "bg-track")}
+          />
+        ))}
+      </div>
       <p className="text-ink-2">
-        The free plan includes a set number of AI scans a day. You can still log this meal by
-        picking foods yourself — it takes about a minute. Scans reset tomorrow.
+        Scans reset at {resets}. Typing a meal is free and doesn&apos;t use a scan.
       </p>
-      {error && (
-        <p role="alert" className="text-[13px] font-semibold text-brand">
-          {error}
+
+      <div className="flex flex-col gap-2 rounded-card bg-ink p-4 text-white">
+        <p className="flex items-center gap-2 font-bold">
+          <Crown className="size-5 text-brand-glow" aria-hidden />
+          FitLens Pro
         </p>
-      )}
-      <Button onClick={typeInstead} disabled={busy}>
-        {busy ? "Opening…" : "Type it instead"}
-      </Button>
-      <Button variant="secondary" onClick={() => setProNote(true)}>
-        Go Pro
-      </Button>
+        <p className="text-[13px] text-white/75">
+          Unlimited photo scans, label reading and weekly coaching.
+        </p>
+        <p className="display text-[22px] tabular-nums">
+          [PRICE] <span className="text-[13px] font-semibold text-white/70">/ month</span>
+        </p>
+      </div>
+
+      <Button onClick={() => setProNote(true)}>Upgrade to Pro</Button>
       {proNote && (
-        <p role="status" className="text-center text-[13px] text-ink-3">
-          Pro with unlimited scans is coming soon.
+        <p role="status" className="-mt-2 text-center text-[13px] text-ink-3">
+          Pro isn&apos;t available yet. Typing your meal works now.
         </p>
       )}
+      <Button asChild variant="secondary">
+        <Link href={`/log/type?meal=${mealType}`}>
+          <Keyboard className="size-5" aria-hidden />
+          Type my meal instead
+        </Link>
+      </Button>
     </Sheet>
   );
 }
