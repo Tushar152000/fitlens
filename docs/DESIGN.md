@@ -137,6 +137,7 @@ All 19 screens are drawn in the canvas (numbers match the artboard titles). Each
 
 | # | Route | Purpose | Key content |
 | --- | --- | --- | --- |
+| 10a | `/workout/brief` | Coach briefing | Header "Upper body A · 45 min", fuel card (green "Fuelled" / amber "Running low" with kcal so far), pre-workout snack card when low (with "Log it"), energy check Great / OK / Tired, dark "What your coach set today" card (2–3 rules with the reason), today's exercise list with prescriptions (trimmed sets shown in green when adjusted), "Start workout". Today's workout card links here. |
 | 10 | `/workout` | Today's session | Week strip, chips, active exercise set table with done toggles + progression hint, remaining list. |
 | 11 | `/progress` | Weekly check-in | Weight + waist inputs, InsightCard with adjustment + reason, weight trend (you vs dashed plan), 3 tiles. |
 | 12 | `/history` | Meal history | 7 / 30-day segmented, avg on full days + days logged, daily kcal bars (brand = within target, ink = over, grey stub = not logged, faded = today so far) with dashed target line, selected day's meals (tap to edit). |
@@ -186,6 +187,95 @@ Drawn: 5b, 6b, 6c, 8, 9b, 9c. Build these from the description:
 - **Numbers never come from the LLM.** An LLM may only rephrase the `reason` line.
 - **Logging:** `POST /api/meals` with `source: SUGGESTION` and the item list → status `CONFIRMED` directly; never counts toward the photo-scan limit.
 - **Safety:** no ideas when over target (show light options only); never suggest pushing the day below the calorie floor.
+
+## Workout coach engine (calorie-aware)
+
+The plan is built by deterministic rules in `src/lib/training/` (unit-tested like `src/lib/nutrition`). An LLM may only vary exercise choice inside a slot and write the one-line coach notes; it never sets sets, reps or loads.
+
+### 1. Inputs
+
+Profile (experience, equipment, days/week, session minutes, injuries, `medicalFlag`), active goal, current `DailyTarget`, TDEE, last 14 days of meal logs, last 4 weeks of `WorkoutLog`, and today's energy check.
+
+### 2. Calorie phase → weekly dose
+
+`phase = deficit` if target < TDEE × 0.95, `surplus` if > TDEE × 1.03, else `maintenance`. Recompute at every weekly check-in.
+
+| Phase | Hard sets / muscle / week | Main lifts | Accessories | Effort (reps in reserve) | Cardio | Deload |
+| --- | --- | --- | --- | --- | --- | --- |
+| Deficit | 10–12 (10 if deficit > 20% of TDEE) | 3 × 5–8 | 2 × 8–15 | 1–3 | Zone 2 2–3 × 20–25 min + steps goal; no extra HIIT | every 6th week |
+| Maintenance | 12–16 | 3–4 × 6–10 | 2–3 × 8–15 | 1–2 | 2 × 20 min | every 8th week |
+| Surplus | 14–20 | 3–4 × 6–10 | 3 × 10–15 | 0–2 on accessories | 2 × 20 min | every 8th week |
+| Beginner (any phase) | low end of range | 3 × 8–10 | 2 × 10–12 | 2–3, technique first | as phase | every 6th week |
+
+Deload week: same exercises, half the sets, loads −10%.
+
+### 3. Split and slots
+
+| Days | Split | Day slots (in order) |
+| --- | --- | --- |
+| 2–3 | Full body A/B | squat, horizontal push, horizontal pull, hinge, vertical push, core |
+| 4 | Upper / lower ×2 | Upper: horizontal push (main), horizontal pull, vertical push, vertical pull, lateral delt, arms. Lower: squat (main), hinge, single-leg, hamstring curl, calves, core |
+| 5–6 | Push / pull / legs | Push: horizontal push (main), incline push, vertical push, lateral delt, triceps. Pull: vertical pull (main), horizontal pull, rear delt, biceps ×2. Legs: squat (main), hinge, single-leg, leg curl, calves, core |
+
+Exercises per session by length: 30 min → 4 (drop the last slots), 45 min → 6, 60 min → 7–8. Rest: main lifts 2–3 min, accessories 60–90 s.
+
+### 4. Exercise library (`exercises` table, ~60 rows)
+
+Add columns `slot String`, `isMain Boolean`, `equipment Equipment[]`, `avoidIf String[]` (e.g. `lower back`, `knee`, `shoulder`), `loadStepKg Float` (2.5 upper, 5 lower, 2 for dumbbells). Every slot needs at least one option per equipment level:
+
+| Slot | Gym | Dumbbells | Bodyweight |
+| --- | --- | --- | --- |
+| Horizontal push | Barbell bench press | Dumbbell bench / floor press | Push-up (incline → decline) |
+| Horizontal pull | Chest-supported row | One-arm dumbbell row | Towel/table row |
+| Squat | Back squat / leg press | Goblet squat | Split squat, tempo squat |
+| Hinge | Romanian deadlift | Dumbbell RDL | Single-leg hip hinge, glute bridge |
+| Vertical push | Seated dumbbell press | Dumbbell shoulder press | Pike push-up |
+| Vertical pull | Lat pulldown / pull-up | Dumbbell pullover | Doorframe pull, band pulldown |
+
+Injury filter removes any exercise whose `avoidIf` matches the user's injuries and picks the next option in the slot.
+
+### 5. Example: the 82 kg fat-loss user (4 days, gym, 45 min, deficit 19%)
+
+| Day | Exercises (sets × reps, RIR) |
+| --- | --- |
+| Mon · Upper A | Bench press 3×6–8 (2) · Chest-supported row 3×8–10 (2) · DB shoulder press 2×8–12 · Lat pulldown 2×10–12 · Cable lateral raise 2×12–15 · Curl + pushdown superset 2×10–15 |
+| Tue · Lower A | Back squat 3×5–8 (2) · Romanian deadlift 3×8–10 (2) · Leg press 2×10–12 · Leg curl 2×10–15 · Calf raise 2×12–15 · Plank 3×40 s |
+| Thu · Upper B | Incline DB press 3×8–10 · Pull-up / assisted 3×6–10 · Seated cable row 2×10–12 · Machine fly 2×12–15 · Rear-delt fly 2×12–15 · Hammer curl 2×10–12 |
+| Fri · Lower B | Trap-bar deadlift 3×4–6 (2) · Bulgarian split squat 2×8–10 / leg · Hip thrust 3×8–12 · Leg extension 2×12–15 · Hanging knee raise 2×10–15 |
+| Wed, Sat, Sun | Rest · 8–10k steps · zone 2 walk/cycle 25 min on 2 of these days |
+
+### 6. Progression (double progression, per exercise)
+
+- Hit the top of the rep range on every set at the target effort → next session load += `loadStepKg`, reps reset to the bottom.
+- Miss the bottom of the range on 2 sessions in a row → keep the load, drop one set of that exercise for a week; 3 misses → load −5%.
+- In a deficit, reps may stall; **never** lower the load just because of the deficit: keeping the load is the win.
+- First session of an exercise: suggest a conservative start (e.g. bench = 50% of bodyweight for an intermediate, empty bar for a beginner) and calibrate from the first two sessions.
+
+### 7. Daily adjustments (this session only)
+
+| Trigger | Change |
+| --- | --- |
+| Energy check = Tired, or yesterday's intake < 70% of target | Keep main lifts; drop the last set of every accessory; add 1 rep in reserve; session ≈ 20% shorter |
+| Energy check = Great | Allow +1 rep on the last main-lift set; no extra sets in a deficit (surplus: +1 accessory set allowed) |
+| Eaten < 30% of today's target by 2 h before usual training time | Show the pre-workout snack card (~20 g protein + 30–40 g carbs), picked from the user's usuals or the template library |
+| After the session | Nudge 25–40 g protein at the next meal (links to meal ideas) |
+| `medicalFlag` or age < 18 | No deficit programming; beginner full-body, RIR ≥ 3, and a "check with a professional" note |
+
+### 8. Food follows training ("Fuel my training days", optional)
+
+Keep the weekly kcal the same and protein fixed; move carbs. With T training days and R rest days: `training = weekly × 1.035 / 7`, rest days get the remainder. Example (2,260/day, 4 training days): training 2,340 kcal (+20 g carbs), rest 2,153 kcal (−27 g carbs). Implement as a per-date override on top of `DailyTarget`.
+
+### 9. Weekly check-in hooks
+
+- Adherence < 50% of sessions for 2 weeks → drop to one fewer day or a shorter session, and say so.
+- Weight trend stalled 2 weeks → food or steps change (never more training volume in a deficit).
+- Missed rep targets on most main lifts for 2 weeks → schedule a deload next week.
+
+### 10. API
+
+- `POST /api/workouts/generate` → builds the week (`WorkoutPlan.plan` JSON: `{ phase, split, days: [{ date, name, exercises: [{ slug, sets, repMin, repMax, rir, restSec, targetKg }] }] }`), validated with Zod before saving.
+- `GET /api/workouts/today?energy=great|ok|tired` → today's session with daily adjustments applied and the coach notes.
+- `POST /api/workouts/logs` → `{ planId, exerciseSlug, sets: [{ kg, reps, rir? }] }`; returns the next target for that exercise.
 
 ## Build order for Claude Code
 
