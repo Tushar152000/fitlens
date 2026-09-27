@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { NATIVE_DRIVER } from "@/lib/motion";
+import { MealSkeleton } from "@/components/skeletons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft, NotebookPen, Plus, Sparkles, Trash2 } from "lucide-react-native";
@@ -19,7 +21,7 @@ import { AddItemSheet } from "@/components/log/add-item-sheet";
 import { AiLimitSheet, type ScanUsage } from "@/components/log/ai-limit-sheet";
 import { Analysing, Failed, Found } from "@/components/log/meal-states";
 import { QueryError } from "@/components/query-error";
-import { Button, Card, FieldError, MealItemEditor, Skeleton, Switch, Text } from "@/components/ui";
+import { Button, Card, FieldError, MealItemEditor, Switch, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { confirmAction } from "@/lib/confirm";
 import { formatInt, MEAL_LABEL } from "@/lib/format";
@@ -63,9 +65,7 @@ export default function ConfirmMealScreen() {
   if (meal.isPending) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.ground, padding: 20, paddingTop: 80, gap: 12 }}>
-        <Skeleton height={32} width="60%" />
-        <Skeleton height={120} />
-        <Skeleton height={120} />
+        <MealSkeleton />
       </View>
     );
   }
@@ -374,8 +374,8 @@ function ScanLine({ height }: { height: number }) {
     const ease = Easing.inOut(Easing.ease);
     const anim = Animated.loop(
       Animated.sequence([
-        Animated.timing(y, { toValue: 1, duration: 1600, easing: ease, useNativeDriver: true }),
-        Animated.timing(y, { toValue: 0, duration: 1600, easing: ease, useNativeDriver: true }),
+        Animated.timing(y, { toValue: 1, duration: 1600, easing: ease, useNativeDriver: NATIVE_DRIVER }),
+        Animated.timing(y, { toValue: 0, duration: 1600, easing: ease, useNativeDriver: NATIVE_DRIVER }),
       ]),
     );
     anim.start();

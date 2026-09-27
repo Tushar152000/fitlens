@@ -1,18 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { TodaySkeleton, WorkoutCardSkeleton } from "@/components/skeletons";
 import { router } from "expo-router";
 import { Camera, ChevronRight, Dumbbell, Flame, Keyboard, Plus } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
-import {
-  Button,
-  Card,
-  CalorieRing,
-  InsightCard,
-  MacroBar,
-  MealRow,
-  Screen,
-  Skeleton,
-  Text,
-} from "@/components/ui";
+import { Button, Card, CalorieRing, InsightCard, MacroBar, MealRow, Screen, Text } from "@/components/ui";
 import { QueryError } from "@/components/query-error";
 import { useMe } from "@/lib/auth";
 import { formatInt, formatTime, MEAL_LABEL, MEAL_TYPES, mealTitle, nextMealType } from "@/lib/format";
@@ -64,11 +55,7 @@ export default function TodayScreen() {
       </View>
 
       {day.isPending ? (
-        <View style={{ gap: 12 }}>
-          <Skeleton height={228} />
-          <Skeleton height={64} />
-          <Skeleton height={64} />
-        </View>
+        <TodaySkeleton />
       ) : day.isError ? (
         <QueryError error={day.error} onRetry={refresh} />
       ) : (
@@ -78,7 +65,7 @@ export default function TodayScreen() {
       <View style={{ gap: 10 }}>
         <Text variant="h2">Workout</Text>
         {workout.isPending ? (
-          <Skeleton height={88} />
+          <WorkoutCardSkeleton />
         ) : workout.data ? (
           <WorkoutCard workout={workout.data} />
         ) : null}

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { FormSkeleton } from "@/components/skeletons";
 import { router } from "expo-router";
 import {
   Armchair,
@@ -27,7 +28,6 @@ import {
   NumberField,
   ProgressSteps,
   Segmented,
-  Skeleton,
   Text,
   TileGroup,
 } from "@/components/ui";
@@ -60,9 +60,8 @@ export default function OnboardingScreen() {
   });
   if (returning && plan.isPending) {
     return (
-      <View style={{ flex: 1, padding: 24, gap: 16, backgroundColor: colors.ground }}>
-        <Skeleton height={44} />
-        <Skeleton height={300} />
+      <View style={{ flex: 1, padding: 24, paddingTop: 72, gap: 20, backgroundColor: colors.ground }}>
+        <FormSkeleton />
       </View>
     );
   }

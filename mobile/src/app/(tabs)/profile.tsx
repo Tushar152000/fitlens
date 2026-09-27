@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { GoalCardSkeleton } from "@/components/skeletons";
 import { Image } from "expo-image";
 import { File, Paths } from "expo-file-system";
 import { router } from "expo-router";
@@ -7,7 +8,7 @@ import { ChevronRight, Crown, Download, Flame, LogOut, Pencil, Trash2 } from "lu
 import { useState, type ReactNode } from "react";
 import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Sheet } from "@/components/sheet";
-import { Button, FieldError, Screen, Skeleton, Switch, Text } from "@/components/ui";
+import { Button, FieldError, Screen, Switch, Text } from "@/components/ui";
 import { api, apiText } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { formatInt } from "@/lib/format";
@@ -101,7 +102,7 @@ export default function ProfileScreen() {
       </View>
 
       {plan.isPending ? (
-        <Skeleton height={150} />
+        <GoalCardSkeleton />
       ) : (
         <View style={styles.goal} accessibilityLabel="Current goal">
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>

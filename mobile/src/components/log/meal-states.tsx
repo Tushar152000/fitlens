@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { NATIVE_DRIVER } from "@/lib/motion";
 import { Camera, Check, CircleAlert, RotateCw, Trash2 } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Animated, Pressable, StyleSheet, View } from "react-native";
@@ -87,8 +88,8 @@ function usePulse() {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(v, { toValue: 0.5, duration: 600, useNativeDriver: true }),
-        Animated.timing(v, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.timing(v, { toValue: 0.5, duration: 600, useNativeDriver: NATIVE_DRIVER }),
+        Animated.timing(v, { toValue: 1, duration: 600, useNativeDriver: NATIVE_DRIVER }),
       ]),
     );
     loop.start();

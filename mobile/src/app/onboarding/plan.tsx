@@ -1,20 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { PlanSkeleton } from "@/components/skeletons";
 import { router } from "expo-router";
 import { CircleCheck, TriangleAlert } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Svg, { Circle, Line } from "react-native-svg";
 import { QueryError } from "@/components/query-error";
-import {
-  Button,
-  Card,
-  ChoiceCardGroup,
-  FieldError,
-  ProgressSteps,
-  Screen,
-  Skeleton,
-  Text,
-} from "@/components/ui";
+import { Button, Card, ChoiceCardGroup, FieldError, ProgressSteps, Screen, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatInt } from "@/lib/format";
@@ -42,9 +34,10 @@ export default function PlanScreen() {
   if (plan.isPending) {
     return (
       <Screen gutter={24}>
-        <Skeleton height={44} />
-        <Skeleton height={180} />
-        <Skeleton height={200} />
+        <View style={{ minHeight: 44, justifyContent: "center" }}>
+          <ProgressSteps current={4} total={4} />
+        </View>
+        <PlanSkeleton />
       </Screen>
     );
   }

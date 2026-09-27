@@ -1,11 +1,12 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { BriefingSkeleton } from "@/components/skeletons";
 import { router } from "expo-router";
 import { BatteryLow, CircleCheck, Coffee, Sparkles } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { BackHeader } from "@/components/back-header";
 import { QueryError } from "@/components/query-error";
-import { Button, Card, FieldError, Screen, Segmented, Skeleton, Text } from "@/components/ui";
+import { Button, Card, FieldError, Screen, Segmented, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { setEnergy, useEnergy } from "@/lib/energy";
 import { formatInt } from "@/lib/format";
@@ -26,10 +27,7 @@ export default function BriefingScreen() {
     return (
       <Screen>
         <BackHeader />
-        <Skeleton height={36} width="70%" />
-        <Skeleton height={72} />
-        <Skeleton height={160} />
-        <Skeleton height={300} />
+        <BriefingSkeleton />
       </Screen>
     );
   }

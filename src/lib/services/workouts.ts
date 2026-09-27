@@ -175,7 +175,11 @@ export async function getTodayWorkout(userId: string, today: Date, energy: Energ
   });
 
   const todayDay = week.days.find((d) => d.date === todayKey) ?? null;
-  const nextDay = week.days.find((d) => d.date > todayKey) ?? null;
+  // Late in the week (e.g. a Sunday sign-up) the next session is in next week's plan.
+  const nextDay =
+    week.days.find((d) => d.date > todayKey) ??
+    (await getOrCreateWeek(userId, new Date(monday.getTime() + 7 * DAY))).week.days[0] ??
+    null;
   const restricted = Boolean(
     profile && (profile.medicalFlag || ageFromBirthDate(profile.birthDate, today) < 18),
   );

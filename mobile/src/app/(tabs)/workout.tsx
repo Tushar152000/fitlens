@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { WorkoutSkeleton } from "@/components/skeletons";
 import { router } from "expo-router";
 import {
   Check,
@@ -13,7 +14,7 @@ import {
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { QueryError } from "@/components/query-error";
-import { Button, Card, FieldError, Screen, Skeleton, Text } from "@/components/ui";
+import { Button, Card, FieldError, Screen, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useEnergy } from "@/lib/energy";
 import { workoutQuery } from "@/lib/queries";
@@ -40,9 +41,7 @@ export default function WorkoutScreen() {
   if (workout.isPending) {
     return (
       <Screen tabBar>
-        <Skeleton height={60} width="70%" />
-        <Skeleton height={56} />
-        <Skeleton height={320} />
+        <WorkoutSkeleton />
       </Screen>
     );
   }

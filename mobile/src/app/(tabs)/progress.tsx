@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { ProgressSkeleton } from "@/components/skeletons";
 import { useState } from "react";
 import { View } from "react-native";
 import { QueryError } from "@/components/query-error";
 import { TrendChart, type Progress } from "@/components/trend-chart";
-import { Button, Card, FieldError, InsightCard, NumberField, Screen, Skeleton, Text } from "@/components/ui";
+import { Button, Card, FieldError, InsightCard, NumberField, Screen, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { formatInt } from "@/lib/format";
 import { queryClient } from "@/lib/query";
@@ -45,11 +46,7 @@ export default function ProgressScreen() {
         <Text variant="h1">Progress</Text>
       </View>
       {progress.isPending ? (
-        <>
-          <Skeleton height={190} />
-          <Skeleton height={80} />
-          <Skeleton height={240} />
-        </>
+        <ProgressSkeleton />
       ) : progress.isError ? (
         <QueryError error={progress.error} onRetry={() => progress.refetch()} />
       ) : (

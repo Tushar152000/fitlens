@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { HistorySkeleton } from "@/components/skeletons";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { BackHeader } from "@/components/back-header";
 import { QueryError } from "@/components/query-error";
-import { Card, MealRow, Screen, Segmented, Skeleton, Text } from "@/components/ui";
+import { Card, MealRow, Screen, Segmented, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { formatInt, formatTime, MEAL_LABEL, type MealType } from "@/lib/format";
 import { colors, radius } from "@/lib/theme";
@@ -59,11 +60,7 @@ export default function HistoryScreen() {
         ]}
       />
       {history.isPending ? (
-        <>
-          <Skeleton height={80} />
-          <Skeleton height={230} />
-          <Skeleton height={64} />
-        </>
+        <HistorySkeleton />
       ) : history.isError ? (
         <QueryError error={history.error} onRetry={() => history.refetch()} />
       ) : (

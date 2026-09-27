@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { ProductSkeleton } from "@/components/skeletons";
 import { router, useLocalSearchParams } from "expo-router";
 import { BadgeCheck, TriangleAlert } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 import { BackHeader } from "@/components/back-header";
 import { QueryError } from "@/components/query-error";
-import { Button, Card, FieldError, NumberField, Screen, Skeleton, Stepper, Text } from "@/components/ui";
+import { Button, Card, FieldError, NumberField, Screen, Stepper, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { formatInt, MEAL_LABEL, type MealType } from "@/lib/format";
 import { labelAddsUp } from "@/lib/label";
@@ -34,9 +35,8 @@ export default function CheckLabelScreen() {
   if (scan.isPending) {
     return (
       <Screen>
-        <Skeleton height={44} />
-        <Skeleton height={60} />
-        <Skeleton height={220} />
+        <BackHeader />
+        <ProductSkeleton />
       </Screen>
     );
   }

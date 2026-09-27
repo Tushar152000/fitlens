@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { ProductSkeleton } from "@/components/skeletons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { BadgeCheck, Camera, Package, SearchX } from "lucide-react-native";
 import { useState } from "react";
 import { Linking, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { BackHeader } from "@/components/back-header";
-import { Button, Card, FieldError, Screen, Segmented, Skeleton, Stepper, Text } from "@/components/ui";
+import { Button, Card, FieldError, Screen, Segmented, Stepper, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { formatInt, formatQty, MEAL_LABEL, type MealType } from "@/lib/format";
 import { mealFromParam } from "@/lib/meal-param";
@@ -46,9 +47,7 @@ export default function ProductRoute() {
     return (
       <Screen>
         <BackHeader />
-        <Skeleton height={100} />
-        <Skeleton height={120} />
-        <Skeleton height={220} />
+        <ProductSkeleton />
       </Screen>
     );
   }
