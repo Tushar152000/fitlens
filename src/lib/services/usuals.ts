@@ -47,6 +47,7 @@ export async function getUsuals(userId: string, limit = 6) {
       names: meal.items.map((i) => i.name),
       kcal: Math.round(meal.totalKcal),
       proteinG: Math.round(meal.totalProtein),
+      carbsG: Math.round(meal.totalCarbs),
     }));
 }
 

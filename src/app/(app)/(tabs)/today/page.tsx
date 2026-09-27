@@ -10,7 +10,7 @@ import {
   mealTitle,
   nextMealType,
 } from "@/lib/format";
-import { mockWeek } from "@/lib/mock/workout";
+import { getTodayWorkout } from "@/lib/services/workouts";
 import { getDay, loggingStreak } from "@/lib/services/dashboard";
 import { presignRead } from "@/lib/storage/s3";
 import { requireOnboardedViewer } from "@/lib/viewer";
@@ -26,7 +26,7 @@ function greeting(hour: number) {
 
 /** Screen 6: intake vs targets for today, meals, and today's workout. Same data as GET /api/dashboard. */
 export default async function TodayPage() {
-  const { userId, name, profile, timezone } = await requireOnboardedViewer();
+  const { userId, name, timezone } = await requireOnboardedViewer();
   const today = localDate(timezone);
   const [day, streak] = await Promise.all([getDay(userId, today), loggingStreak(userId, today)]);
 
@@ -65,12 +65,7 @@ export default async function TodayPage() {
       : streak > 1
         ? `You've logged ${streak} days in a row. One day over doesn't undo that. Tomorrow resets.`
         : "Logging it honestly is the hard part, and you did it. Tomorrow resets.";
-  const workout = mockWeek({
-    today,
-    equipment: profile.equipment,
-    daysPerWeek: profile.trainingDaysPerWeek,
-    sessionMinutes: profile.sessionMinutes,
-  });
+  const workout = await getTodayWorkout(userId, today);
 
   return (
     <div className="flex flex-col gap-6">
@@ -206,19 +201,24 @@ export default async function TodayPage() {
           Workout
         </h2>
         <Link
-          href="/workout"
+          href="/workout/brief"
           className="flex items-center gap-3 rounded-card bg-ink p-4 text-white"
         >
           <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-white/10">
             <Dumbbell className="size-6" aria-hidden />
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
-            {workout.isTrainingDay ? (
+            {workout.session ? (
               <>
-                <span className="text-[12px] font-semibold text-white/70">Today</span>
+                <span className="text-[12px] font-semibold text-white/70">
+                  {workout.completed.length >= workout.session.exercises.length
+                    ? "Done today"
+                    : "Today"}
+                </span>
                 <span className="font-semibold">{workout.session.name}</span>
                 <span className="text-[13px] text-white/70">
-                  {workout.session.exercises.length} exercises · {workout.session.minutes} min
+                  {workout.session.exercises.length} exercises · ~{workout.session.estimatedMinutes}{" "}
+                  min · see your coach&apos;s plan
                 </span>
               </>
             ) : (

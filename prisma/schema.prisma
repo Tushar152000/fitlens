@@ -377,12 +377,22 @@ model MealItem {
 
 // ---------- Workouts & check-ins ----------
 
+/// Exercise library; the source of truth is src/lib/training/library.ts (seeded).
 model Exercise {
-  id          String    @id @default(cuid())
-  slug        String    @unique
+  id          String      @id @default(cuid())
+  slug        String      @unique
   name        String
   muscleGroup String
-  equipment   Equipment
+  /// Set-ups where it can be done (a gym user can also do dumbbell/bodyweight moves).
+  equipment   Equipment[]
+  /// Programming slot, e.g. horizontal_push, hinge (docs/DESIGN.md → coach engine §3–4).
+  slot        String      @default("")
+  isMain      Boolean     @default(false)
+  /// Injury keywords that rule it out ("knee", "lower back", "shoulder").
+  avoidIf     String[]    @default([])
+  loadStepKg  Float       @default(0)
+  /// Held for time (plank): reps are seconds.
+  timed       Boolean     @default(false)
   videoUrl    String?
 
   @@map("exercises")

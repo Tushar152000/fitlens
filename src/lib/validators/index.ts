@@ -161,3 +161,35 @@ export const LabelSaveSchema = z.object({
   mealType: MealTypeSchema,
   isLiquid: z.boolean().default(false),
 });
+
+export const EnergySchema = z.enum(["great", "ok", "tired"]);
+
+export const WorkoutLogSchema = z.object({
+  planId: z.string().min(1),
+  exerciseSlug: z.string().min(1),
+  sets: z
+    .array(
+      z.object({
+        kg: z.number().nonnegative().max(500).nullable(),
+        reps: z.number().int().min(0).max(300),
+        rir: z.number().int().min(0).max(5).optional(),
+      }),
+    )
+    .min(1)
+    .max(10),
+});
+
+export const LogItemsSchema = z.object({
+  mealType: MealTypeSchema,
+  items: z
+    .array(
+      z.object({
+        foodId: z.string().min(1),
+        quantity: z.number().positive().max(100),
+        unit: z.string().min(1).max(20),
+        grams: z.number().positive().max(5000),
+      }),
+    )
+    .min(1)
+    .max(10),
+});

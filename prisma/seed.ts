@@ -6,6 +6,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { EXERCISES } from "../src/lib/training/library";
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -270,54 +271,18 @@ const foods: Seed[] = [
   },
 ];
 
-const exercises = [
-  {
-    slug: "barbell-back-squat",
-    name: "Barbell back squat",
-    muscleGroup: "legs",
-    equipment: "FULL_GYM",
-  },
-  {
-    slug: "barbell-bench-press",
-    name: "Barbell bench press",
-    muscleGroup: "chest",
-    equipment: "FULL_GYM",
-  },
-  { slug: "lat-pulldown", name: "Lat pulldown", muscleGroup: "back", equipment: "FULL_GYM" },
-  {
-    slug: "romanian-deadlift",
-    name: "Romanian deadlift",
-    muscleGroup: "hamstrings",
-    equipment: "FULL_GYM",
-  },
-  {
-    slug: "dumbbell-goblet-squat",
-    name: "Dumbbell goblet squat",
-    muscleGroup: "legs",
-    equipment: "DUMBBELLS",
-  },
-  {
-    slug: "dumbbell-row",
-    name: "One-arm dumbbell row",
-    muscleGroup: "back",
-    equipment: "DUMBBELLS",
-  },
-  {
-    slug: "dumbbell-shoulder-press",
-    name: "Dumbbell shoulder press",
-    muscleGroup: "shoulders",
-    equipment: "DUMBBELLS",
-  },
-  { slug: "push-up", name: "Push-up", muscleGroup: "chest", equipment: "BODYWEIGHT" },
-  {
-    slug: "bodyweight-squat",
-    name: "Bodyweight squat",
-    muscleGroup: "legs",
-    equipment: "BODYWEIGHT",
-  },
-  { slug: "glute-bridge", name: "Glute bridge", muscleGroup: "glutes", equipment: "BODYWEIGHT" },
-  { slug: "plank", name: "Plank", muscleGroup: "core", equipment: "BODYWEIGHT" },
-] as const;
+// The workout library lives with the coach engine; the table mirrors it.
+const exercises = EXERCISES.map((e) => ({
+  slug: e.slug,
+  name: e.name,
+  muscleGroup: e.muscleGroup,
+  equipment: e.equipment,
+  slot: e.slot,
+  isMain: e.isMain,
+  avoidIf: e.avoidIf,
+  loadStepKg: e.loadStepKg,
+  timed: Boolean(e.timed),
+}));
 
 async function main() {
   for (const f of foods) {

@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "exercises" ADD COLUMN     "avoidIf" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "isMain" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "loadStepKg" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "slot" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "timed" BOOLEAN NOT NULL DEFAULT false,
+ALTER COLUMN "equipment" SET DATA TYPE "Equipment"[] USING ARRAY["equipment"];
+
