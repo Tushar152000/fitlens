@@ -1,0 +1,14 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Prisma, esbuild and friends run install scripts; everything else is blocked by default.
+onlyBuiltDependencies:
+  - "@prisma/engines"
+  - prisma
+  - esbuild
+  - "@nestjs/core"
+  - "@swc/core"
+  - sharp
+  - unrs-resolver
+  - msgpackr-extract

@@ -41,7 +41,12 @@ yarn-error.log*
 next-env.d.ts
 
 # prisma
-/src/generated/prisma
+packages/db/src/generated
 
 # env (keep the example)
 !.env.example
+
+# workspace build output
+dist/
+.turbo/
+packages/db/src/generated/

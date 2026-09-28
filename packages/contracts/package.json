@@ -1,0 +1,33 @@
+{
+  "name": "@fitlens/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Zod request/response schemas shared by the API and every client.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "@fitlens/domain": "workspace:*",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@fitlens/tsconfig": "workspace:*",
+    "@types/node": "^22.10.0",
+    "oxlint": "^1.58.0",
+    "typescript": "^5.9.3"
+  }
+}

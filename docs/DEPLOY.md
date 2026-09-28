@@ -1,37 +1,35 @@
-# Deploying FitLens (Vercel + Neon + Cloudflare R2)
+# Deploying FitLens
 
-Free tiers cover a handful of users. No Redis or worker: without `REDIS_URL`, meals are analysed inside the request (`maxDuration = 60` on the AI routes).
+Three deployables, all built by CI from this repo:
 
-| Piece    | Service                                                    | What you need from it                      |
-| -------- | ---------------------------------------------------------- | ------------------------------------------ |
-| App      | [Vercel](https://vercel.com) (Hobby)                       | Import the GitHub repo                     |
-| Database | [Neon](https://neon.tech) (Free)                           | Postgres connection string                 |
-| Photos   | [Cloudflare R2](https://dash.cloudflare.com) (Free, 10 GB) | Bucket + S3 API token                      |
-| Sign-in  | Google Cloud OAuth client (existing)                       | Production redirect URI                    |
-| AI       | OpenAI (existing key)                                      | Billed per photo; `AI_DAILY_LIMIT` caps it |
+| Piece                      | Artifact                                                                         | Suggested host                                              |
+| -------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| API (`APP_ROLE=api`)       | `ghcr.io/<repo>/api` → `node dist/main.js`                                       | Any container host: Render, Railway, Fly.io, Cloud Run, ECS |
+| Worker (`APP_ROLE=worker`) | same image, command `node dist/worker.js`                                        | Same host, separate service (only needed with Redis)        |
+| Web                        | `ghcr.io/<repo>/web` (Next standalone), or Vercel with root directory `apps/web` | Vercel or the container host                                |
+| Database                   | Postgres 16+                                                                     | Neon (Singapore/Mumbai)                                     |
+| Photos                     | S3-compatible bucket                                                             | Cloudflare R2                                               |
+| Queue/locks                | Redis 7 (optional)                                                               | Upstash / host add-on                                       |
+
+Clients reach everything through **one public origin** (the web app). The web server proxies `/api/*` to the API at request time, so cookies are first-party and Google's redirect URI stays `https://<web>/api/auth/callback/google`. The mobile app also uses that origin (`EXPO_PUBLIC_API_URL` in `apps/mobile/eas.json`).
 
 ## 1. Database (Neon)
 
-1. Create a project (region: Singapore or Mumbai, closest to India).
-2. Get two connection strings (Dashboard → **Connect**, or `neon connection-string production --project-id <id> [--pooled]`):
-   - **pooled** (`…-pooler…`) for the app → Vercel `DATABASE_URL`. Change `sslmode=require` to `sslmode=verify-full` (same security as today; silences a `pg` warning).
-   - **direct** (no `-pooler`) for migrations — schema changes don't work reliably through the pooler.
-3. Create tables and seed foods from your laptop, pointing at the **direct** string:
+1. Create a project close to your users. Take two connection strings:
+   - **pooled** (`…-pooler…`) → API `DATABASE_URL` (use `sslmode=verify-full`)
+   - **direct** → GitHub secret `PRODUCTION_DATABASE_URL` (migrations don't work reliably through the pooler)
+2. First time only, seed foods and exercises from your laptop: `DATABASE_URL=<direct> pnpm db:deploy && DATABASE_URL=<direct> pnpm db:seed`.
 
-```bash
-DATABASE_URL="postgresql://…neon.tech/neondb?sslmode=require" npx prisma migrate deploy
-DATABASE_URL="postgresql://…neon.tech/neondb?sslmode=require" npm run db:seed
-```
+Pool sizing: `DATABASE_POOL_MAX` × (API + worker instances) must stay under the database's connection limit.
 
 ## 2. Photo storage (Cloudflare R2)
 
-1. R2 → **Create bucket** `fitlens-meals` (location: Asia-Pacific).
-2. Bucket → Settings → **CORS policy** (the browser uploads straight to R2):
+1. Create bucket `fitlens-meals`. CORS policy (clients upload straight to the bucket with signed URLs):
 
 ```json
 [
   {
-    "AllowedOrigins": ["https://YOUR-APP.vercel.app"],
+    "AllowedOrigins": ["https://YOUR-WEB-ORIGIN"],
     "AllowedMethods": ["PUT", "GET"],
     "AllowedHeaders": ["content-type"],
     "MaxAgeSeconds": 3600
@@ -39,45 +37,50 @@ DATABASE_URL="postgresql://…neon.tech/neondb?sslmode=require" npm run db:seed
 ]
 ```
 
-3. R2 → **Manage API tokens** → Create token, permission **Object Read & Write**, limited to this bucket. Note the Access Key ID, Secret, and the S3 endpoint `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`.
+2. Create an API token with Object Read & Write on that bucket. Endpoint: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`.
 
-## 3. App (Vercel)
+## 3. API and worker
 
-1. **Add New → Project →** import `Tushar152000/fitlens`, branch `main` (merge `feat/app-ui` first).
-2. Framework: Next.js (auto). Build command: default.
-3. **Environment variables** (Production):
+Create a service from image `ghcr.io/<repo>/api:latest` (make the GHCR package readable by the host, or add registry credentials). Health checks: liveness `GET /api/health/live`, readiness `GET /api/health`. Port 4000.
 
-| Name                                       | Value                                                 |
-| ------------------------------------------ | ----------------------------------------------------- |
-| `DATABASE_URL`                             | Neon pooled string                                    |
-| `AUTH_SECRET`                              | new value: `openssl rand -base64 33`                  |
-| `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`     | from Google Cloud                                     |
-| `S3_ENDPOINT`                              | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`       |
-| `S3_REGION`                                | `auto`                                                |
-| `S3_BUCKET`                                | `fitlens-meals`                                       |
-| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | R2 token                                              |
-| `S3_FORCE_PATH_STYLE`                      | `true`                                                |
-| `AI_PROVIDER`                              | `openai`                                              |
-| `OPENAI_API_KEY`                           | your key                                              |
-| `AI_VISION_MODEL`                          | `gpt-4.1-mini`                                        |
-| `AI_DAILY_LIMIT`                           | `3`                                                   |
-| `OFF_CONTACT`                              | a contact URL or email for Open Food Facts (optional) |
+| Variable                                                                                                             | Value                                                            |
+| -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `NODE_ENV`                                                                                                           | `production`                                                     |
+| `APP_ROLE`                                                                                                           | `api` (or `all` for a single instance without a separate worker) |
+| `PUBLIC_URL`                                                                                                         | `https://YOUR-WEB-ORIGIN`                                        |
+| `DATABASE_URL`                                                                                                       | Neon pooled string                                               |
+| `REDIS_URL`                                                                                                          | optional; enables background jobs, cross-instance locks          |
+| `AUTH_SECRET`                                                                                                        | `openssl rand -base64 33` (keep it: it signs sign-in codes)      |
+| `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`                                                                               | Google OAuth client                                              |
+| `S3_ENDPOINT`, `S3_REGION=auto`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE=true` | R2                                                               |
+| `AI_PROVIDER`                                                                                                        | `anthropic`                                                      |
+| `ANTHROPIC_API_KEY`                                                                                                  | your key                                                         |
+| `AI_DAILY_LIMIT`, `COACH_DAILY_LIMIT`                                                                                | per-user daily caps (default 3 and 40)                           |
+| `OFF_CONTACT`                                                                                                        | contact for Open Food Facts (optional)                           |
 
-Do **not** set `AUTH_URL` or `REDIS_URL` on Vercel.
+Never set `AUTH_DEV_LOGIN` in production (the API refuses to boot with it).
 
-4. Deploy, then note the address, e.g. `https://fitlens-xyz.vercel.app`.
+With Redis, add a second service from the same image with command `node dist/worker.js` and `APP_ROLE=worker`, same env. Scale API instances on request load and workers on queue depth independently.
 
-## 4. Google sign-in
+Put the host's deploy hook URL in GitHub secret `API_DEPLOY_HOOK_URL` (trigger both API and worker).
 
-1. Google Cloud → Credentials → your OAuth client → **Authorised redirect URIs** → add
-   `https://YOUR-APP.vercel.app/api/auth/callback/google`.
-2. OAuth consent screen: while it's in **Testing**, only listed **test users** can sign in (up to 100) — add each friend's Gmail. Or **Publish app**: FitLens only asks for name, email and photo, which don't need Google verification.
+## 4. Web
 
-## 5. Check
+**Vercel:** import the repo, root directory `apps/web`, framework Next.js; install command `pnpm install --frozen-lockfile`, build command `cd ../.. && pnpm turbo run build --filter=@fitlens/web`. Env: `API_INTERNAL_URL=https://<api-host>` (the API's own URL; browsers never call it directly).
 
-- `https://YOUR-APP.vercel.app/api/health` → `{"status":"ok","db":"ok"}`
-- Sign in, onboard, snap a meal, scan a barcode.
+**Container:** run `ghcr.io/<repo>/web:latest` with `API_INTERNAL_URL`, port 3000; set `WEB_DEPLOY_HOOK_URL`.
 
-## Updating
+## 5. Google sign-in
 
-Push to `main` → Vercel redeploys. After a schema change, run step 1.3's `migrate deploy` against Neon's **direct** string before (or right after) the deploy.
+Authorised redirect URI: `https://YOUR-WEB-ORIGIN/api/auth/callback/google` (unchanged from the Auth.js setup). While the consent screen is in Testing only listed test users can sign in; publishing needs no verification for name/email/photo scopes.
+
+## 6. Release flow
+
+Push to `main` → CI (lint, typecheck, tests, image builds) → Deploy workflow: images pushed to GHCR → `prisma migrate deploy` with `PRODUCTION_DATABASE_URL` → deploy hooks. Migrations run before the new code starts, so write them backwards-compatible (add columns nullable/defaulted first, drop in a later release).
+
+Mobile: pushes touching `apps/mobile` or `packages/contracts` publish an EAS update to the `preview` channel; store builds with `cd apps/mobile && eas build --profile production`.
+
+## 7. Check
+
+- `https://<web>/api/health` → `{"status":"ok","db":"ok","redis":"ok"|"disabled"}`
+- Sign in, onboard, snap a meal, scan a barcode, ask the coach "how am I doing today?".

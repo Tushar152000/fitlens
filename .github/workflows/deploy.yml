@@ -1,0 +1,88 @@
+name: Deploy
+
+# After CI passes on main: publish images to GHCR, run database migrations, then roll out.
+# Configure in repo settings → Secrets and variables → Actions:
+#   secrets.PRODUCTION_DATABASE_URL  direct (non-pooled) Postgres URL, used only for migrations
+#   secrets.API_DEPLOY_HOOK_URL      optional: your host's deploy hook for the API + worker (Render, Railway, Fly…)
+#   secrets.WEB_DEPLOY_HOOK_URL      optional: deploy hook for the web image (skip if web is on Vercel)
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  images:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [api, web]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.app }}
+          tags: |
+            type=sha,format=long
+            type=raw,value=latest
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+  migrate:
+    needs: images
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter @fitlens/db...
+      - name: prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then echo "PRODUCTION_DATABASE_URL not set; skipping migrations"; exit 0; fi
+          pnpm --filter @fitlens/db exec prisma migrate deploy
+
+  rollout:
+    needs: migrate
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Trigger deploy hooks
+        env:
+          API_HOOK: ${{ secrets.API_DEPLOY_HOOK_URL }}
+          WEB_HOOK: ${{ secrets.WEB_DEPLOY_HOOK_URL }}
+        run: |
+          [ -n "$API_HOOK" ] && curl -fsS -X POST "$API_HOOK" && echo "API deploy triggered" || echo "No API hook configured"
+          [ -n "$WEB_HOOK" ] && curl -fsS -X POST "$WEB_HOOK" && echo "Web deploy triggered" || echo "No web hook configured"

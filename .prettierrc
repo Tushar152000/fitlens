@@ -3,6 +3,20 @@
   "singleQuote": false,
   "trailingComma": "all",
   "printWidth": 100,
-  "plugins": ["prettier-plugin-tailwindcss"],
-  "tailwindStylesheet": "./src/app/globals.css"
+  "overrides": [
+    {
+      "files": "apps/web/**/*.{ts,tsx,css}",
+      "options": {
+        "printWidth": 100,
+        "plugins": ["prettier-plugin-tailwindcss"],
+        "tailwindStylesheet": "./apps/web/src/app/globals.css"
+      }
+    },
+    {
+      "files": "apps/mobile/**",
+      "options": {
+        "printWidth": 120
+      }
+    }
+  ]
 }
