@@ -6,12 +6,20 @@
   "build": {
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" },
-      "env": { "EXPO_PUBLIC_API_URL": "https://fitlens-mocha.vercel.app" }
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://fitlens-mocha.vercel.app"
+      },
+      "channel": "preview"
     },
     "production": {
       "autoIncrement": true,
-      "env": { "EXPO_PUBLIC_API_URL": "https://fitlens-mocha.vercel.app" }
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://fitlens-mocha.vercel.app"
+      },
+      "channel": "production"
     }
   },
   "submit": {
