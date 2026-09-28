@@ -19,6 +19,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackHeader } from "@/components/back-header";
+import { PlanBuilder } from "@/components/plan-builder";
 import {
   Button,
   ChipGroup,
@@ -47,6 +48,7 @@ import { colors, fonts, radius } from "@/lib/theme";
 import type { PlanResponse } from "@/lib/types-plan";
 
 const STEP_TITLES = ["Your goal", "About you", "Food and training"];
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const str = (n: number | null | undefined) => (n == null ? "" : String(n));
 
 /** Screens 2–4: three-step onboarding. Prefills from the existing profile when the goal is edited. */
@@ -102,6 +104,7 @@ function OnboardingForm({ initial, returning }: { initial: Partial<OnboardingDra
   const [draft, setDraft] = useState<OnboardingDraft>(() => ({ ...emptyDraft(), ...initial }));
   const [errors, setErrors] = useState<DraftErrors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [built, setBuilt] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const set = <K extends keyof OnboardingDraft>(key: K, value: OnboardingDraft[K]) => {
@@ -130,7 +133,10 @@ function OnboardingForm({ initial, returning }: { initial: Partial<OnboardingDra
     setServerError(null);
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata";
-      await api("/api/onboarding", { json: toPayload(draft, timezone) });
+      // Keep the "building your plan" moment on screen long enough to read (min 2.6 s).
+      await Promise.all([api("/api/onboarding", { json: toPayload(draft, timezone) }), wait(2600)]);
+      setBuilt(true);
+      await wait(700);
       router.replace("/onboarding/plan");
     } catch (err) {
       const details = err instanceof ApiError ? (err.details as { message?: string }[] | undefined) : undefined;
@@ -172,6 +178,7 @@ function OnboardingForm({ initial, returning }: { initial: Partial<OnboardingDra
           {step < 3 ? "Continue" : "Build my plan"}
         </Button>
       </View>
+      {submitting && <PlanBuilder done={built} />}
     </View>
   );
 }

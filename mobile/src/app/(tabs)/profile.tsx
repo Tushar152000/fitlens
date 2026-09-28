@@ -5,7 +5,7 @@ import { File, Paths } from "expo-file-system";
 import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { ChevronRight, Crown, Download, Flame, LogOut, Pencil, Trash2 } from "lucide-react-native";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Sheet } from "@/components/sheet";
 import { Button, FieldError, Screen, Switch, Text } from "@/components/ui";
@@ -13,7 +13,7 @@ import { api, apiText } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { formatInt } from "@/lib/format";
 import { dayQuery, waterQuery } from "@/lib/queries";
-import { ensureNotificationPermission, syncWaterReminders } from "@/lib/reminders";
+import { ensureNotificationPermission, sendReminderConfirmation, syncWaterReminders } from "@/lib/reminders";
 import { queryClient } from "@/lib/query";
 import { colors, fonts, radius } from "@/lib/theme";
 import type { PlanResponse } from "@/lib/types-plan";
@@ -229,6 +229,17 @@ function Reminders({ lunch, dinner, water }: { lunch: boolean; dinner: boolean; 
   const { refresh } = useAuth();
   const [state, setState] = useState({ lunch, dinner, water });
   const [error, setError] = useState<string | null>(null);
+  const [nextWater, setNextWater] = useState<Date | null>(null);
+
+  // Show when the next water reminder is due (also re-schedules them from today's progress).
+  useEffect(() => {
+    if (!state.water) return; // the line is hidden while off
+    queryClient
+      .fetchQuery(waterQuery)
+      .then((day) => syncWaterReminders({ enabled: true, leftMl: day.targetMl - day.consumedMl }))
+      .then(setNextWater)
+      .catch(() => {});
+  }, [state.water]);
 
   async function toggle(key: "lunch" | "dinner" | "water", value: boolean) {
     setError(null);
@@ -243,7 +254,9 @@ function Reminders({ lunch, dinner, water }: { lunch: boolean; dinner: boolean; 
       if (key === "water") {
         // Schedules (or clears) the phone's reminders from today's progress.
         const day = await queryClient.fetchQuery({ ...waterQuery, staleTime: 0 });
-        await syncWaterReminders({ enabled: value, leftMl: day.targetMl - day.consumedMl });
+        const next = await syncWaterReminders({ enabled: value, leftMl: day.targetMl - day.consumedMl });
+        setNextWater(next);
+        if (value) await sendReminderConfirmation(next);
       }
     } catch {
       setState((s) => ({ ...s, [key]: !value }));
@@ -266,6 +279,11 @@ function Reminders({ lunch, dinner, water }: { lunch: boolean; dinner: boolean; 
             <Text size={13} color={colors.ink3}>
               {sub}
             </Text>
+            {key === "water" && state.water && nextWater && (
+              <Text weight={600} size={13} color={colors.water}>
+                Next reminder: {formatNext(nextWater)}
+              </Text>
+            )}
           </View>
           <Switch checked={state[key]} onChange={(v) => toggle(key, v)} label={label} />
         </View>
@@ -278,6 +296,12 @@ function Reminders({ lunch, dinner, water }: { lunch: boolean; dinner: boolean; 
     </>
   );
 }
+
+const formatNext = (d: Date) => {
+  const today = new Date().toDateString() === d.toDateString();
+  const time = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit" }).format(d);
+  return today ? `today, ${time}` : `${new Intl.DateTimeFormat("en-IN", { weekday: "long" }).format(d)}, ${time}`;
+};
 
 /** Plan card: free scans left today + Go Pro. */
 function PlanCard({ usage }: { usage: Usage }) {

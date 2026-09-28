@@ -47,7 +47,7 @@ export function TodaySkeleton() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 20 }}>
           <Skeleton height={148} width={148} radius={74} tone="card" />
           <View style={{ flex: 1, gap: 16 }}>
-            {[0, 1, 2].map((i) => (
+            {[0, 1, 2, 3].map((i) => (
               <View key={i} style={{ gap: 8 }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                   <Line width="40%" height={12} tone="card" />
@@ -60,6 +60,12 @@ export function TodaySkeleton() {
         </View>
         <View style={styles.divider} />
         <Line width="55%" height={12} tone="card" />
+        <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+          <Line width="35%" height={12} tone="card" />
+          <View style={{ flex: 1 }} />
+          <Skeleton height={32} width={70} radius={16} tone="card" />
+          <Skeleton height={32} width={70} radius={16} tone="card" />
+        </View>
       </Box>
       <View style={{ gap: 10 }}>
         <Line width={90} height={20} />

@@ -57,18 +57,21 @@ async function cancelWater() {
 /**
  * Bring scheduled water reminders in line with the setting and today's progress.
  * `leftMl` is what's still to drink today (0 or less = target reached, skip today).
+ * Returns when the next reminder is due (null when off).
  */
-export async function syncWaterReminders({ enabled, leftMl }: { enabled: boolean; leftMl: number }) {
-  if (Platform.OS === "web") return;
+export async function syncWaterReminders({ enabled, leftMl }: { enabled: boolean; leftMl: number }): Promise<Date | null> {
+  if (Platform.OS === "web") return null;
   await cancelWater();
-  if (!enabled || !(await Notifications.getPermissionsAsync()).granted) return;
+  if (!enabled || !(await Notifications.getPermissionsAsync()).granted) return null;
 
   const now = new Date();
+  let next: Date | null = null;
   for (let day = 0; day < DAYS_AHEAD; day++) {
     if (day === 0 && leftMl <= 0) continue;
     for (const hour of HOURS) {
       const at = new Date(now.getFullYear(), now.getMonth(), now.getDate() + day, hour, 0, 0);
       if (at <= now) continue;
+      next ??= at;
       const left = day === 0 ? leftMl : null;
       await Notifications.scheduleNotificationAsync({
         identifier: `${PREFIX}${at.toISOString()}`,
@@ -83,4 +86,20 @@ export async function syncWaterReminders({ enabled, leftMl }: { enabled: boolean
       });
     }
   }
+  return next;
+}
+
+/** One notification a few seconds after switching reminders on, so people see they work. */
+export async function sendReminderConfirmation(next: Date | null) {
+  if (Platform.OS === "web") return;
+  const when = next
+    ? new Intl.DateTimeFormat("en-IN", { weekday: next.getDate() === new Date().getDate() ? undefined : "short", hour: "numeric", minute: "2-digit" }).format(next)
+    : null;
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "Water reminders are on",
+      body: when ? `Next one at ${when}. We'll stop for the day once you hit your target.` : "We'll remind you every 2 hours, 9 am–9 pm.",
+    },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 5, channelId: CHANNEL },
+  });
 }

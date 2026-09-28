@@ -108,11 +108,13 @@ All 19 screens are drawn in the canvas (numbers match the artboard titles). Each
 | 5 | `/onboarding/plan` | Your plan (`feasible=true`) | "Realistic goal" badge, now → goal card with projection, dark target card, BMI / BMR / workouts tiles, "Start my plan". |
 | 5b | `/onboarding/plan` | Goal too fast (`feasible=false`) | Amber "Too fast to be safe" badge, headline with the unsafe rate, two option cards: **Keep the goal** (later date, recommended) / **Keep the date** (closer target); dark "daily target either way" card; CTA reflects the choice; "Change my goal". |
 
+**4 → 5 "Building your plan"** (app): full-screen coach avatar (skin #E9C58E head and arms, brand shirt, ink legs) pressing brand-glow dumbbells overhead in a 200 px ring that fills in `brand` as a 3-step checklist ticks ("Reading your body stats", "Setting calories and macros", "Planning your training week"); ends on "Your plan is ready". Shown for at least 2.6 s; still (no loop) under reduced motion. The logo arc itself is never animated.
+
 ### Daily loop
 
 | # | Route | Purpose | Key content |
 | --- | --- | --- | --- |
-| 6 | `/today` | Dashboard | Greeting, streak pill, CalorieRing + MacroBars, meal list, dashed "Add dinner" slot, workout card, TabBar. |
+| 6 | `/today` | Home grid | Date + "Training day" tag, greeting, streak pill. **Calorie card** (tap → History): 116 px ring with kcal left, compact macro grid (label · bar · "74/148 g"), one "focus" line in protein green ("Protein is your focus: 74 g to go"). **2×2 grid** of 20 px-radius tiles, each = 30 px icon tile + label, big number, 8 px bar, one action: **Water** ("1.5 / 3.7 L", `water` bar, "+ Glass 250 ml" button, tap label → 6f), **Steps** ("6,240 / 8k", protein bar, coaching line "1,760 to go · a 15-min walk after dinner"), **Workout** (ink tile, "Workout · 7 pm", session name, "45 min · 6 exercises", brand "Start" → 10a), **Weight** ("80.6 kg", brand sparkline of weekly averages, "−1.4 kg in 3 weeks · on track" → 11). **Next up** row: "Next up: dinner" + "3 meals today · 1,239 kcal" link, dashed "Add dinner" + "Ideas" pill. TabBar (Progress → 11a). |
 | 6b | `/today` | Nothing logged yet | Empty ring "2,260 kcal to go", zero bars, dark "Start with breakfast" card (Snap / type), 2×2 dashed slots + rest-day tile. |
 | 6c | `/today` | Over target | Ring fully ink with a grey overflow arc, centre "212 kcal over"; over-target bars fill **ink**; neutral InsightCard "A little over. No stress." + a positive note. Never red. |
 | 6d | `/today/ideas?meal=DINNER` | What should I eat? | Dark "Left for dinner" card (kcal + protein with mini bars), scrollable filter chips (All, My usuals, Under 15 min, Veg, High protein), 3 ranked idea cards (tag "Best fit" with brand border on #1, meta line, kcal, protein in protein colour, "leaves N kcal"), protein top-up tip when the best idea leaves > 20 g uncovered, footer note on what it's based on. Entry: "Dinner ideas" pill beside the next unlogged meal slot on Today. |
@@ -144,13 +146,32 @@ All 19 screens are drawn in the canvas (numbers match the artboard titles). Each
 | 11 | `/progress` | Weekly check-in | Weight + waist inputs, InsightCard with adjustment + reason, weight trend (you vs dashed plan), 3 tiles. |
 | 12 | `/history` | Meal history | 7 / 30-day segmented, avg on full days + days logged, daily kcal bars (brand = within target, ink = over, grey stub = not logged, faded = today so far) with dashed target line, selected day's meals (tap to edit). |
 | 13 | `/profile` | Profile and settings | Avatar + plan + streak, dark current-goal card (Edit), Body and training rows, reminder switches (2 pm lunch / 9 pm dinner), plan card with scans left + "Go Pro", data: export CSV, sign out, delete account (danger text). |
+| 6f | `/today/water` | Water | Bottle graphic filling in `water` (turns protein green at target), "1.5 / 3.7 L", "2.2 L to go · about 9 glasses"; 3 quick adds (+ Glass 250, + Bottle 500, Custom); "Why 3.7 L" reason card; today's entries (time · size) with Undo on the latest; dark reminder card ("Next reminder at 6:00 pm" / "Reminders paused until tomorrow") → 13a. |
+| 11a | `/progress` | Your week (analytics) | Week / 30 days segmented; dark scorecard (mini ring "3/6", "3 of 6 habits on track" + one-line summary); **metric table** of 6 rows (Calories, Protein, Water, Steps, Workouts, Weight), each = label, value, status line (green when on track) and 7 mini bars Mon–Sun in the metric colour, full opacity on days the goal was hit and 30% otherwise; pattern card in protein-soft (one data-backed observation); "Do your Sunday check-in" → 11. |
+| 13a | `/profile/reminders` | Reminders | Water row with switch; when on: interval segmented (Every 1 / 2 / 3 h), From/To times, "Up to N reminders today · next at 6:00 pm". Then Log lunch (2 pm if nothing logged), Log dinner (9 pm, with ideas), Workout (30 min before usual time), Weekly check-in (Sun 9 am), each with switch; Quiet hours 10 pm–7 am; "Send me a test notification". |
+| 13b | notifications | Reminder notifications | Copy and actions: **Water** "Time for some water / A glass (250 ml) now. 2.2 L to go today." [+ 250 ml] [Snooze 30 min]; **Workout** "Upper body A in 30 min / You have eaten 1,239 kcal. Fuelled and ready." [Open briefing] [Skip today]; **Dinner** "Log dinner? / 1,021 kcal and 74 g protein left. Chicken curry, 2 roti and curd fits." [Snap it] [See ideas]; **Check-in** "Your 30-second check-in / Weigh in and see this week's adjustment." [Check in]. |
 
 ## Water (hydration)
 
 - **Target** (`src/lib/nutrition/water.ts`, unit-tested; never from an LLM): 33 ml × body weight, plus daily activity (sedentary 0, light 250, moderate 500, very active 750, athlete 1,000 ml), plus 500 ml on training days (from the week's workout plan); rounded to 100 ml, kept within 1.5–4.5 L. The card shows the reason with the numbers ("82 kg × 33 ml + 250 ml for light activity ≈ 3.0 L") and a goal tip. With `medicalFlag`, add "follow your doctor's fluid advice".
-- **Today card** (below the calorie card): droplet tile, "Water · Today's target / Training day target", "1.2 / 3.0 L", 10 px bar in `water`, two 48 px buttons **+ Glass 250 ml** and **+ Bottle 500 ml**, and an undo button for the last entry. At target: protein-green "Target reached. Reminders are off for the rest of today."
+- **In the Today card** (no separate card): a fourth bar **Water** under Protein / Carbs / Fat ("1.0 / 3.5 L", 8 px bar in `water`, full at target). Below "N eaten of N kcal target", one compact row: "2.5 L left" (water colour; protein-green "Target reached" at target), 32 px `water-soft` chips **+250 ml** and **+500 ml**, an undo icon for the last entry, and an info icon that toggles the target's reason and goal tip.
 - **Reminders** (Profile → Reminders, first row): "Water reminders · Every 2 hours, 9 am–9 pm, until you hit today's target". Local notifications scheduled by the app for the next 7 days; today's remaining ones are dropped once the target is reached. Copy: "Time for some water / A glass (250 ml) now. 1.8 L to go today."
 - **API:** `GET /api/water` (target, reason, tip, consumed, entries), `POST /api/water { ml }` (50–2,000), `DELETE /api/water/:id`; `PATCH /api/profile/reminders { water }`.
+
+## Reminders (all types)
+
+- **Mobile app (Expo):** local notifications via `expo-notifications` on an Android channel "Reminders". Reschedule the next 7 days whenever the relevant data or setting changes, and cancel today's remaining ones once done (water target hit, meal logged, workout done). Android 13+ needs the notification permission: ask right after onboarding with a one-line reason, never on first launch.
+- **Actions:** register notification categories so "+ 250 ml" posts `POST /api/water { ml: 250 }` and "Snooze 30 min" reschedules, both without opening the app; other actions deep-link (`fitlens://log`, `fitlens://today/ideas`, `fitlens://workout/brief`, `fitlens://progress/checkin`).
+- **Rules:** never during quiet hours (default 10 pm–7 am); skip a reminder whose job is already done; at most one reminder per 30 min (the later one wins).
+- **Web (PWA):** browsers can't reliably schedule local notifications, so the web app only shows in-app nudges; real push on web would need Web Push from the server (not in v1).
+- **Settings API:** `GET/PATCH /api/profile/reminders` → `{ water: { on, everyHours: 1|2|3, from: "09:00", to: "21:00" }, lunch, dinner, workout, checkin, quiet: { from: "22:00", to: "07:00" } }`.
+
+## Analytics (Progress tab, 11a)
+
+- **Endpoint:** `GET /api/insights?range=7|30` → per-day series for kcal, protein g, water ml, steps, workouts done, 7-day-average weight, plus each day's target, and a `summary` (`onTrack: n of 6`, one-line text) and `pattern` (optional).
+- **"On track" rules:** Calories: weekly average within ±5% of target. Protein: target hit ≥ 5 of 7 days. Water: target hit ≥ 5 of 7 days. Steps: average ≥ goal. Workouts: done ≥ planned. Weight: trend within ±25% of the planned rate (or stable for recomposition).
+- **Pattern line:** computed, not generated: compare days that hit a goal vs days that didn't on one feature (e.g. protein at breakfast ≥ 25 g, logged before 10 am, trained that day). Show only when the split is at least 3 vs 3 days. An LLM may reword it, never change the numbers.
+- **Steps source:** manual entry today; in the Expo app, read daily steps from Health Connect (Android) and HealthKit (iOS) and store with `source`.
 
 ## States
 

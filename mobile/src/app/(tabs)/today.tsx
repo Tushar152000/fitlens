@@ -5,7 +5,7 @@ import { Camera, ChevronRight, Dumbbell, Flame, Keyboard, Plus } from "lucide-re
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Card, CalorieRing, InsightCard, MacroBar, MealRow, Screen, Text } from "@/components/ui";
 import { QueryError } from "@/components/query-error";
-import { WaterCard } from "@/components/water-card";
+import { useWater, WaterBar, WaterQuickAdd } from "@/components/water-card";
 import { queryClient } from "@/lib/query";
 import { useMe } from "@/lib/auth";
 import { formatInt, formatTime, MEAL_LABEL, MEAL_TYPES, mealTitle, nextMealType } from "@/lib/format";
@@ -83,6 +83,7 @@ function DayContent({ day, hour }: { day: Day; hour: number }) {
     day.meals.map((m) => m.mealType),
     hour,
   );
+  const water = useWater();
   const over = target ? day.eaten.kcal - target.kcal : 0;
   const positiveNote =
     target && day.eaten.proteinG >= target.proteinG
@@ -97,16 +98,18 @@ function DayContent({ day, hour }: { day: Day; hour: number }) {
         <Card>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 20 }}>
             <CalorieRing eaten={day.eaten.kcal} target={target.kcal} size={148} />
-            <View style={{ flex: 1, gap: 12 }}>
+            <View style={{ flex: 1, gap: 10 }}>
               <MacroBar macro="protein" eaten={day.eaten.proteinG} target={target.proteinG} />
               <MacroBar macro="carbs" eaten={day.eaten.carbsG} target={target.carbsG} />
               <MacroBar macro="fat" eaten={day.eaten.fatG} target={target.fatG} />
+              <WaterBar day={water.water.data} />
             </View>
           </View>
           <View style={styles.divider} />
           <Text size={13} color={colors.ink2} tabular>
             {formatInt(day.eaten.kcal)} eaten of {formatInt(target.kcal)} kcal target
           </Text>
+          <WaterQuickAdd water={water} />
         </Card>
       ) : (
         <Card>
@@ -115,8 +118,6 @@ function DayContent({ day, hour }: { day: Day; hour: number }) {
       )}
 
       {target && over > 0 && <InsightCard headline="A little over. No stress." reason={positiveNote} />}
-
-      <WaterCard />
 
       <View style={{ gap: 10 }}>
         <View style={styles.sectionHead}>
