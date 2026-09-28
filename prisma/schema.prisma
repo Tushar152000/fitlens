@@ -116,6 +116,7 @@ model User {
   checkins     Checkin[]
   aiCalls      AiCall[]
   labelScans   LabelScan[]
+  waterLogs    WaterLog[]
 
   @@map("users")
 }
@@ -182,6 +183,8 @@ model Profile {
   /// Design 13 reminder switches (2 pm lunch, 9 pm dinner). Stored now; sending needs web push.
   remindLunch         Boolean       @default(false)
   remindDinner        Boolean       @default(false)
+  /// Water reminders every 2 h, 9 am–9 pm; the app schedules them as local notifications.
+  remindWater         Boolean       @default(false)
   onboardedAt         DateTime?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
@@ -467,4 +470,18 @@ model AiCall {
 
   @@index([userId, createdAt])
   @@map("ai_calls")
+}
+
+/// Water drunk, one row per tap ("+ Glass 250 ml"). The daily target is computed, not stored.
+model WaterLog {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime @db.Date // the user's local date
+  ml        Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("water_logs")
 }

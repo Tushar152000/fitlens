@@ -12,7 +12,8 @@ import { Button, FieldError, Screen, Switch, Text } from "@/components/ui";
 import { api, apiText } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { formatInt } from "@/lib/format";
-import { dayQuery } from "@/lib/queries";
+import { dayQuery, waterQuery } from "@/lib/queries";
+import { ensureNotificationPermission, syncWaterReminders } from "@/lib/reminders";
 import { queryClient } from "@/lib/query";
 import { colors, fonts, radius } from "@/lib/theme";
 import type { PlanResponse } from "@/lib/types-plan";
@@ -155,7 +156,7 @@ export default function ProfileScreen() {
       </Group>
 
       <Group title="Reminders">
-        <Reminders lunch={profile.remindLunch} dinner={profile.remindDinner} />
+        <Reminders lunch={profile.remindLunch} dinner={profile.remindDinner} water={profile.remindWater ?? false} />
       </Group>
 
       {usage.data && <PlanCard usage={usage.data} />}
@@ -224,15 +225,26 @@ function LinkRow({ label, icon, onPress }: { label: string; icon?: ReactNode; on
 }
 
 /** Design 13 reminder switches, saved as you toggle. */
-function Reminders({ lunch, dinner }: { lunch: boolean; dinner: boolean }) {
-  const [state, setState] = useState({ lunch, dinner });
+function Reminders({ lunch, dinner, water }: { lunch: boolean; dinner: boolean; water: boolean }) {
+  const { refresh } = useAuth();
+  const [state, setState] = useState({ lunch, dinner, water });
   const [error, setError] = useState<string | null>(null);
 
-  async function toggle(key: "lunch" | "dinner", value: boolean) {
-    setState((s) => ({ ...s, [key]: value }));
+  async function toggle(key: "lunch" | "dinner" | "water", value: boolean) {
     setError(null);
+    if (key === "water" && value && !(await ensureNotificationPermission())) {
+      setError("Allow notifications for FitLens in your phone's Settings to get water reminders.");
+      return;
+    }
+    setState((s) => ({ ...s, [key]: value }));
     try {
       await api("/api/profile/reminders", { method: "PATCH", json: { [key]: value } });
+      refresh().catch(() => {}); // so the switch shows the saved value next time
+      if (key === "water") {
+        // Schedules (or clears) the phone's reminders from today's progress.
+        const day = await queryClient.fetchQuery({ ...waterQuery, staleTime: 0 });
+        await syncWaterReminders({ enabled: value, leftMl: day.targetMl - day.consumedMl });
+      }
     } catch {
       setState((s) => ({ ...s, [key]: !value }));
       setError("Couldn't save. Try again.");
@@ -243,6 +255,7 @@ function Reminders({ lunch, dinner }: { lunch: boolean; dinner: boolean }) {
     <>
       {(
         [
+          ["water", "Water reminders", "Every 2 hours, 9 am–9 pm, until you hit today's target"],
           ["lunch", "Lunch reminder", "2 pm, if lunch isn't logged"],
           ["dinner", "Dinner reminder", "9 pm, if dinner isn't logged"],
         ] as const

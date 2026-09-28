@@ -20,6 +20,8 @@ export const colors = {
   caution: "#e8a15c",
   cautionSoft: "#fdebd3",
   cautionText: "#8a3c08",
+  water: "#2f6f9f", // water card and bar; text-safe on ground and surface
+  waterSoft: "#dde9f2",
   chip: "#eae5da",
   dash: "#c9c2b4",
   white: "#ffffff",

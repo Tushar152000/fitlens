@@ -53,6 +53,8 @@ Put these in `src/app/globals.css` using Tailwind v4 `@theme`:
   --color-carbs: #e3a13b; /* bar fill only; carbs text = #9A6212 */
   --color-fat: #6d4fb0;
   --color-caution-soft: #fdebd3; /* low-confidence tag bg; text #8A3C08 */
+  --color-water: #2f6f9f; /* water bar, icon, + Glass text (>= 4.5:1 on ground and surface) */
+  --color-water-soft: #dde9f2; /* water icon tile, pressed + Glass */
 
   --font-display: "Bricolage Grotesque", sans-serif;
   --font-sans: "Figtree", system-ui, sans-serif;
@@ -142,6 +144,13 @@ All 19 screens are drawn in the canvas (numbers match the artboard titles). Each
 | 11 | `/progress` | Weekly check-in | Weight + waist inputs, InsightCard with adjustment + reason, weight trend (you vs dashed plan), 3 tiles. |
 | 12 | `/history` | Meal history | 7 / 30-day segmented, avg on full days + days logged, daily kcal bars (brand = within target, ink = over, grey stub = not logged, faded = today so far) with dashed target line, selected day's meals (tap to edit). |
 | 13 | `/profile` | Profile and settings | Avatar + plan + streak, dark current-goal card (Edit), Body and training rows, reminder switches (2 pm lunch / 9 pm dinner), plan card with scans left + "Go Pro", data: export CSV, sign out, delete account (danger text). |
+
+## Water (hydration)
+
+- **Target** (`src/lib/nutrition/water.ts`, unit-tested; never from an LLM): 33 ml × body weight, plus daily activity (sedentary 0, light 250, moderate 500, very active 750, athlete 1,000 ml), plus 500 ml on training days (from the week's workout plan); rounded to 100 ml, kept within 1.5–4.5 L. The card shows the reason with the numbers ("82 kg × 33 ml + 250 ml for light activity ≈ 3.0 L") and a goal tip. With `medicalFlag`, add "follow your doctor's fluid advice".
+- **Today card** (below the calorie card): droplet tile, "Water · Today's target / Training day target", "1.2 / 3.0 L", 10 px bar in `water`, two 48 px buttons **+ Glass 250 ml** and **+ Bottle 500 ml**, and an undo button for the last entry. At target: protein-green "Target reached. Reminders are off for the rest of today."
+- **Reminders** (Profile → Reminders, first row): "Water reminders · Every 2 hours, 9 am–9 pm, until you hit today's target". Local notifications scheduled by the app for the next 7 days; today's remaining ones are dropped once the target is reached. Copy: "Time for some water / A glass (250 ml) now. 1.8 L to go today."
+- **API:** `GET /api/water` (target, reason, tip, consumed, entries), `POST /api/water { ml }` (50–2,000), `DELETE /api/water/:id`; `PATCH /api/profile/reminders { water }`.
 
 ## States
 

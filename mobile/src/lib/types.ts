@@ -30,6 +30,7 @@ export interface Profile {
   timezone: string;
   remindLunch: boolean;
   remindDinner: boolean;
+  remindWater: boolean;
   onboardedAt: string | null;
 }
 
@@ -153,4 +154,17 @@ export interface TodayWorkout {
   nextDay: { date: string; name: string; exercises: Prescription[] } | null;
   fuel: { ratio: number; low: boolean; eatenKcal: number; targetKcal: number };
   snack: SnackPick | null;
+}
+
+/** GET /api/water (src/lib/services/water.ts). */
+export interface WaterDay {
+  date: string;
+  targetMl: number;
+  reason: string;
+  tip: string;
+  caution: string | null;
+  trainingDay: boolean;
+  consumedMl: number;
+  logs: { id: string; ml: number; createdAt: string }[];
+  remind: boolean;
 }

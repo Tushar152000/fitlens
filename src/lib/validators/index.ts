@@ -129,6 +129,12 @@ export const GoalOptionSchema = z.object({
 export const RemindersSchema = z.object({
   lunch: z.boolean().optional(),
   dinner: z.boolean().optional(),
+  water: z.boolean().optional(),
+});
+
+/** One water tap: a glass (250 ml), a bottle (500 ml), or a custom amount. */
+export const WaterAddSchema = z.object({
+  ml: z.number().int().min(50).max(2000),
 });
 
 export const QuickAddSchema = z.object({

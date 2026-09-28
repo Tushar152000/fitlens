@@ -5,6 +5,8 @@ import { Camera, ChevronRight, Dumbbell, Flame, Keyboard, Plus } from "lucide-re
 import { Pressable, StyleSheet, View } from "react-native";
 import { Button, Card, CalorieRing, InsightCard, MacroBar, MealRow, Screen, Text } from "@/components/ui";
 import { QueryError } from "@/components/query-error";
+import { WaterCard } from "@/components/water-card";
+import { queryClient } from "@/lib/query";
 import { useMe } from "@/lib/auth";
 import { formatInt, formatTime, MEAL_LABEL, MEAL_TYPES, mealTitle, nextMealType } from "@/lib/format";
 import { dayQuery, workoutQuery } from "@/lib/queries";
@@ -32,6 +34,7 @@ export default function TodayScreen() {
   const refresh = () => {
     day.refetch();
     workout.refetch();
+    queryClient.invalidateQueries({ queryKey: ["water"] });
   };
 
   return (
@@ -112,6 +115,8 @@ function DayContent({ day, hour }: { day: Day; hour: number }) {
       )}
 
       {target && over > 0 && <InsightCard headline="A little over. No stress." reason={positiveNote} />}
+
+      <WaterCard />
 
       <View style={{ gap: 10 }}>
         <View style={styles.sectionHead}>

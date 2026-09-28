@@ -21,6 +21,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { OfflineBanner } from "@/components/offline-banner";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { queryClient, wireQueryLifecycle } from "@/lib/query";
+import { configureNotifications } from "@/lib/reminders";
 import { colors } from "@/lib/theme";
 
 SplashScreen.preventAutoHideAsync();
@@ -39,6 +40,9 @@ export default function RootLayout() {
     Figtree_700Bold,
   });
   useEffect(() => wireQueryLifecycle(), []);
+  useEffect(() => {
+    configureNotifications().catch(() => {});
+  }, []);
 
   return (
     <SafeAreaProvider>
