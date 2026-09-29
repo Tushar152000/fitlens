@@ -1,4 +1,0 @@
-# Next.js build output (the root .gitignore only covers /.next at the repo root)
-/.next/
-/out/
-/node_modules/
