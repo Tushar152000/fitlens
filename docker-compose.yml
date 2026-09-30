@@ -1,4 +1,7 @@
-# Local dev services: Postgres, Redis (queue) and MinIO (S3-compatible photo storage).
+# Local stack.
+#   pnpm infra:up                 → Postgres, Redis, MinIO (run api/web on the host with `pnpm dev`)
+#   docker compose --profile app up --build → also runs api, worker and web in containers
+# Host ports are overridable (e.g. REDIS_PORT=6380) when something else already uses them.
 services:
   postgres:
     image: postgres:17
@@ -6,33 +9,68 @@ services:
       POSTGRES_USER: fitlens
       POSTGRES_PASSWORD: fitlens
       POSTGRES_DB: fitlens
-    ports: ["5432:5432"]
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fitlens"]
+      interval: 5s
+      retries: 10
 
   redis:
     image: redis:7
-    ports: ["6379:6379"]
+    ports: ["${REDIS_PORT:-6379}:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
 
+  # S3-compatible photo storage. The API creates the bucket on boot outside production.
   minio:
-    image: quay.io/minio/minio
+    image: minio/minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: fitlens
       MINIO_ROOT_PASSWORD: fitlens-secret
-    ports: ["9000:9000", "9001:9001"]
+    ports: ["${MINIO_PORT:-9000}:9000", "${MINIO_CONSOLE_PORT:-9001}:9001"]
     volumes: [miniodata:/data]
 
-  # Creates the photo bucket on first start.
-  minio-init:
-    image: quay.io/minio/mc
-    depends_on: [minio]
-    entrypoint: >
-      /bin/sh -c "
-      sleep 3;
-      mc alias set local http://minio:9000 fitlens fitlens-secret;
-      mc mb --ignore-existing local/fitlens-meals;
-      exit 0;
-      "
+  api:
+    profiles: [app]
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    env_file: .env
+    environment:
+      APP_ROLE: api
+      NODE_ENV: production
+      DATABASE_URL: postgresql://fitlens:fitlens@postgres:5432/fitlens?schema=public
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+    ports: ["4000:4000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker:
+    profiles: [app]
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    command: ["node", "dist/worker.js"]
+    env_file: .env
+    environment:
+      APP_ROLE: worker
+      NODE_ENV: production
+      DATABASE_URL: postgresql://fitlens:fitlens@postgres:5432/fitlens?schema=public
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  web:
+    profiles: [app]
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    environment:
+      API_INTERNAL_URL: http://api:4000
+    ports: ["3000:3000"]
+    depends_on: [api]
 
 volumes:
   pgdata:

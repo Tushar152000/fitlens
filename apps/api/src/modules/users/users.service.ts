@@ -1,0 +1,135 @@
+import { Injectable } from "@nestjs/common";
+import type { RemindersInput } from "@fitlens/contracts";
+import { localDate } from "@fitlens/domain/dates";
+import { AppError } from "../../common/errors.js";
+import { PrismaService } from "../../infra/prisma/prisma.service.js";
+
+export const DEFAULT_TIMEZONE = "Asia/Kolkata";
+
+/** One CSV cell, quoted when it holds a quote, comma or newline. */
+export const csvCell = (v: unknown) => {
+  const s = v == null ? "" : String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+/** Identity and per-user settings every other module needs (timezone → the user's "today"). */
+@Injectable()
+export class UsersService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async timezone(userId: string): Promise<string> {
+    const profile = await this.prisma.profile.findUnique({
+      where: { userId },
+      select: { timezone: true },
+    });
+    return profile?.timezone ?? DEFAULT_TIMEZONE;
+  }
+
+  /** The user's local calendar date as a UTC-midnight Date (for @db.Date columns). */
+  async today(userId: string): Promise<Date> {
+    return localDate(await this.timezone(userId));
+  }
+
+  async me(userId: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, image: true, profile: true },
+    });
+    const { profile, ...rest } = user;
+    return { ...rest, onboarded: Boolean(profile?.onboardedAt), profile };
+  }
+
+  /** Save the design-13 reminder switches (lunch, dinner, water). */
+  async setReminders(userId: string, { lunch, dinner, water }: RemindersInput) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { userId },
+      select: { userId: true },
+    });
+    if (!profile) throw new AppError(404, "Finish onboarding first");
+    return this.prisma.profile.update({
+      where: { userId },
+      data: {
+        ...(lunch !== undefined ? { remindLunch: lunch } : {}),
+        ...(dinner !== undefined ? { remindDinner: dinner } : {}),
+        ...(water !== undefined ? { remindWater: water } : {}),
+      },
+      select: { remindLunch: true, remindDinner: true, remindWater: true },
+    });
+  }
+
+  /**
+   * Design 13 "Export CSV": every confirmed meal item plus weigh-ins, as one CSV document.
+   * Read-only over the meals and progress tables; the user's own rows only.
+   */
+  async exportCsv(userId: string): Promise<{ filename: string; csv: string }> {
+    const [meals, metrics] = await Promise.all([
+      this.prisma.mealLog.findMany({
+        where: { userId, status: "CONFIRMED" },
+        include: { items: true },
+        orderBy: [{ date: "asc" }, { createdAt: "asc" }],
+      }),
+      this.prisma.bodyMetric.findMany({ where: { userId }, orderBy: { date: "asc" } }),
+    ]);
+
+    const rows = [
+      [
+        "type",
+        "date",
+        "meal",
+        "item",
+        "quantity",
+        "unit",
+        "grams",
+        "kcal",
+        "protein_g",
+        "carbs_g",
+        "fat_g",
+        "note",
+      ],
+    ];
+    for (const m of meals) {
+      for (const i of m.items) {
+        rows.push([
+          "meal_item",
+          m.date.toISOString().slice(0, 10),
+          m.mealType.toLowerCase(),
+          i.name,
+          String(i.quantity),
+          i.unit,
+          String(Math.round(i.grams)),
+          String(Math.round(i.kcal)),
+          String(Math.round(i.proteinG * 10) / 10),
+          String(Math.round(i.carbsG * 10) / 10),
+          String(Math.round(i.fatG * 10) / 10),
+          m.note ?? "",
+        ]);
+      }
+    }
+    for (const b of metrics) {
+      rows.push([
+        "weigh_in",
+        b.date.toISOString().slice(0, 10),
+        "",
+        "weight_kg",
+        String(b.weightKg),
+        "kg",
+        "",
+        "",
+        "",
+        "",
+        "",
+        b.waistCm != null ? `waist ${b.waistCm} cm` : "",
+      ]);
+    }
+
+    return {
+      filename: `fitlens-export-${new Date().toISOString().slice(0, 10)}.csv`,
+      csv: rows.map((r) => r.map(csvCell).join(",")).join("\n") + "\n",
+    };
+  }
+
+  /** Removes the user and everything tied to it (all relations cascade). Photos are left for a cleanup job. */
+  async deleteAccount(userId: string) {
+    await this.prisma.user.delete({ where: { id: userId } });
+  }
+}

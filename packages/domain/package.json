@@ -1,0 +1,54 @@
+{
+  "name": "@fitlens/domain",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pure, framework-free business rules: nutrition, training, dates, formatting, barcodes, labels.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./nutrition": {
+      "types": "./dist/nutrition/index.d.ts",
+      "default": "./dist/nutrition/index.js"
+    },
+    "./training": {
+      "types": "./dist/training/index.d.ts",
+      "default": "./dist/training/index.js"
+    },
+    "./dates": {
+      "types": "./dist/dates.d.ts",
+      "default": "./dist/dates.js"
+    },
+    "./format": {
+      "types": "./dist/format.d.ts",
+      "default": "./dist/format.js"
+    },
+    "./barcode": {
+      "types": "./dist/barcode.d.ts",
+      "default": "./dist/barcode.js"
+    },
+    "./label": {
+      "types": "./dist/label.d.ts",
+      "default": "./dist/label.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@fitlens/tsconfig": "workspace:*",
+    "@types/node": "^22.10.0",
+    "oxlint": "^1.58.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

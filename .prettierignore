@@ -1,4 +1,11 @@
 node_modules
+dist
 .next
-src/generated
-package-lock.json
+.turbo
+.expo
+coverage
+pnpm-lock.yaml
+packages/db/src/generated
+packages/db/prisma/migrations
+apps/mobile/ios
+apps/mobile/android
