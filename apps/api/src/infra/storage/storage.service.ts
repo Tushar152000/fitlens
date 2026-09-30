@@ -26,6 +26,9 @@ export class StorageService implements OnApplicationBootstrap {
       region: env.S3_REGION,
       endpoint: env.S3_ENDPOINT,
       forcePathStyle: env.S3_FORCE_PATH_STYLE,
+      // The SDK's default CRC32 checksums are AWS-only: R2 (and GCS) reject them, and they end up in signed URLs.
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
       credentials:
         env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY
           ? { accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_SECRET_ACCESS_KEY }
