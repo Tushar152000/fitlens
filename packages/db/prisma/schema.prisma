@@ -95,7 +95,7 @@ enum AiCallType {
   LABEL_SCAN
 }
 
-// ---------- Auth.js ----------
+// ---------- Identity & auth (users module owns `users`; auth module owns the rest) ----------
 
 model User {
   id            String    @id @default(cuid())
@@ -106,8 +106,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts     Account[]
+  identities   AuthIdentity[]
   sessions     Session[]
+  authCodes    AuthCode[]
+  authEvents   AuthEvent[]
   profile      Profile?
   goals        Goal[]
   dailyTargets DailyTarget[]
@@ -124,46 +126,102 @@ model User {
   @@map("users")
 }
 
-model Account {
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?  @db.Text
-  access_token      String?  @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?  @db.Text
-  session_state     String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([provider, providerAccountId])
-  @@map("accounts")
+enum AuthProvider {
+  GOOGLE
 }
 
-model Session {
-  sessionToken String   @unique
+enum SessionClient {
+  WEB
+  MOBILE
+}
+
+enum AuthEventType {
+  SIGN_IN
+  SIGN_IN_FAILED
+  SIGN_OUT
+  SIGN_OUT_ALL
+  SESSION_REVOKED
+}
+
+/// A sign-in method linked to a user: one row per (provider, provider's stable user id).
+/// We keep no provider access/refresh tokens: FitLens never calls Google on the user's behalf.
+model AuthIdentity {
+  id           String       @id @default(cuid())
   userId       String
-  expires      DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  provider     AuthProvider
+  /// The provider's stable subject id (Google `sub`), never the email: emails can change hands.
+  subject      String
+  /// Email the provider reported at the last sign-in (for support; `users.email` is the account's).
+  email        String?
+  createdAt    DateTime     @default(now())
+  lastSignInAt DateTime     @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([provider, subject])
+  @@index([userId])
+  @@map("auth_identities")
+}
+
+/// A signed-in device. The client holds a random 256-bit token; only its SHA-256 is stored, so a
+/// database leak can't be replayed as sessions. Revoking = deleting the row.
+model Session {
+  id                String        @id @default(cuid())
+  tokenHash         String        @unique @db.Char(64)
+  userId            String
+  client            SessionClient
+  /// Shown in the "signed-in devices" list.
+  userAgent         String?       @db.VarChar(256)
+  /// Truncated (IPv4 /24, IPv6 /48): enough to recognise a place, not a household.
+  ip                String?       @db.VarChar(64)
+  createdAt         DateTime      @default(now())
+  lastSeenAt        DateTime      @default(now())
+  /// Idle expiry: slides forward while the session is used.
+  expiresAt         DateTime
+  /// Hard cap: the session ends here however active it is.
+  absoluteExpiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
   @@map("sessions")
 }
 
-model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
+/// One-time code of the app sign-in hand-off (Google → browser → app). Bound to the app's PKCE
+/// challenge; deleted when redeemed, so it works exactly once. Only the hash is stored.
+model AuthCode {
+  codeHash    String   @id @db.Char(64)
+  userId      String
+  challenge   String   @db.Char(43)
+  redirectUri String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
 
-  @@id([identifier, token])
-  @@map("verification_tokens")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("auth_codes")
+}
+
+/// Security audit trail: sign-ins, failures, sign-outs, revocations. Kept 90 days.
+model AuthEvent {
+  id        String         @id @default(cuid())
+  /// Null for failures before we know who it was (bad state, cancelled at Google).
+  userId    String?
+  type      AuthEventType
+  client    SessionClient?
+  /// Machine-readable cause for failures, e.g. "state_mismatch", "email_unverified".
+  reason    String?        @db.VarChar(64)
+  ip        String?        @db.VarChar(64)
+  userAgent String?        @db.VarChar(256)
+  createdAt DateTime       @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("auth_events")
 }
 
 // ---------- Profile & goals ----------

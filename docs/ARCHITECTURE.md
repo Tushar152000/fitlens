@@ -56,19 +56,19 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 
 ### 3.2 Bounded contexts (modules)
 
-| Module     | Owns tables                                    | Routes                                             |
-| ---------- | ---------------------------------------------- | -------------------------------------------------- |
-| `auth`     | sessions, accounts, verification_tokens        | `/auth/*`, `/mobile/*`                             |
-| `users`    | users                                          | `/me`, `/account`, `/export`, `/profile/reminders` |
-| `plan`     | profiles, goals, daily_targets                 | `/onboarding`, `/targets`, `/plan`, `/goal/option` |
-| `meals`    | meal_logs, meal_items, ai_calls                | `/meals/*`, `/usage`                               |
-| `foods`    | foods, food_units, barcode_misses, label_scans | `/foods/*`                                         |
-| `water`    | water_logs                                     | `/water/*`                                         |
-| `workouts` | exercises, workout_plans, workout_logs         | `/workouts/*`                                      |
-| `progress` | body_metrics, checkins                         | `/checkins`, `/progress`, `/history`, `/dashboard` |
-| `coach`    | coach_conversations, coach_messages            | `/coach/*`                                         |
-| `ai`       | — (model access)                               | —                                                  |
-| `health`   | —                                              | `/health`, `/health/live`                          |
+| Module     | Owns tables                                        | Routes                                             |
+| ---------- | -------------------------------------------------- | -------------------------------------------------- |
+| `auth`     | auth_identities, sessions, auth_codes, auth_events | `/auth/*`                                          |
+| `users`    | users                                              | `/me`, `/account`, `/export`, `/profile/reminders` |
+| `plan`     | profiles, goals, daily_targets                     | `/onboarding`, `/targets`, `/plan`, `/goal/option` |
+| `meals`    | meal_logs, meal_items, ai_calls                    | `/meals/*`, `/usage`                               |
+| `foods`    | foods, food_units, barcode_misses, label_scans     | `/foods/*`                                         |
+| `water`    | water_logs                                         | `/water/*`                                         |
+| `workouts` | exercises, workout_plans, workout_logs             | `/workouts/*`                                      |
+| `progress` | body_metrics, checkins                             | `/checkins`, `/progress`, `/history`, `/dashboard` |
+| `coach`    | coach_conversations, coach_messages                | `/coach/*`                                         |
+| `ai`       | — (model access)                                   | —                                                  |
+| `health`   | —                                                  | `/health`, `/health/live`                          |
 
 **Rule:** a module writes only its own tables. Reading another context's data goes through that module's exported service. This is what makes extraction into a separate service a mechanical change (see §6).
 
@@ -89,11 +89,23 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 
 ### 3.5 Cross-cutting
 
-- **Config:** all env vars are declared and validated in `src/config/env.ts`; the process refuses to boot on invalid config. Read config only via `@InjectEnv()`.
+- **Config:** all env vars are declared and validated in `src/config/env.ts`; the process refuses to boot on invalid config. Read config only via `@InjectEnv()`. `APP_ENV` (`local | test | staging | production`) decides environment-dependent defaults and rules; branch on `isDeployed(env)`, never on `NODE_ENV` (which only says how the code was built). Local setup is `pnpm bootstrap` (`scripts/local.mjs`).
 - **Logging:** structured JSON (pino) with a request id (`x-request-id` in and out); cookies and auth headers are never logged.
-- **Security:** helmet, httpOnly SameSite=Lax session cookie, PKCE hand-off for the app, signed OAuth state bound to a nonce cookie, same-site-only redirects, per-IP throttling plus per-user AI quotas, signed short-lived storage URLs, per-user storage keys verified server-side.
+- **Security:** helmet, the auth design in §3.6, per-IP throttling (stricter on sign-in) plus per-user AI quotas, signed short-lived storage URLs, per-user storage keys verified server-side.
 - **Health:** `/api/health/live` (process up) for liveness, `/api/health` (DB + Redis) for readiness.
 - **Shutdown:** SIGTERM closes the HTTP server, lets queue workers finish in-flight jobs, then disconnects Prisma/Redis.
+
+### 3.6 Authentication (modules/auth)
+
+Google is the only sign-in method today. Web and app have the same features; only the transport of the session differs.
+
+- **Sessions are opaque, database-backed and revocable.** A 256-bit random token; the `sessions` row stores only its SHA-256, so the table can't be replayed. Web carries it in an httpOnly, SameSite=Lax cookie (`__Host-fitlens_session` over https); the app sends `Authorization: Bearer`. Idle expiry slides (30 days web, 90 app, touched at most once a day so authentication is one indexed read) under a hard 365-day cap. Signing out, revoking a device or deleting the account deletes rows, effective immediately. Not JWTs, because those can't be revoked before they expire.
+- **Google flow (both clients):** authorization code with PKCE S256, a `state` and an OIDC `nonce`. Those three, plus where to go next, are sealed (AES-256-GCM, key derived from `AUTH_SECRET` per purpose) in a 10-minute cookie scoped to `/api/auth`. The callback checks state against the cookie, redeems the code with the verifier, verifies the ID token (signature via Google's JWKS, issuer, audience, expiry), then the nonce. Google sits behind the `OidcProvider` port (`GOOGLE_OIDC`); e2e tests inject a fake.
+- **Identity linking:** by provider subject (`auth_identities`), never by email alone. A new subject links to an existing user only when Google says the email is verified and that user has no other Google identity; otherwise a new user is created (through `UsersService`, which owns `users`). Concurrent first sign-ins retry on the unique constraint.
+- **App hand-off:** `/auth/mobile/start` always goes through Google (no "already signed in" shortcut a hostile app could exploit). The callback redirects to the app's scheme (`fitlens://`, plus `exp://` outside production) with a one-time code stored hashed in `auth_codes`, bound to the app's PKCE challenge, valid 2 minutes. `/auth/mobile/token` deletes the code before checking it, so it works once.
+- **Request protection:** guards run rate limit → `OriginGuard` → `AuthGuard`. `OriginGuard` rejects state-changing requests that carry the session cookie unless `Origin` is ours or `Sec-Fetch-Site` is same-origin (bearer requests are exempt). Sign-in routes are limited to `AUTH_RATE_LIMIT`/min/IP and never cached. Redirect targets are same-origin paths only.
+- **Audit and housekeeping:** `auth_events` records sign-ins, failures (with a reason code), sign-outs and revocations, with truncated IP and user agent; kept 90 days. Worker processes delete expired sessions, codes and old events hourly.
+- **Extraction:** `SessionService.authenticate(token)` is the only place a token becomes a user. Splitting auth out means exposing it as token introspection (or issuing short-lived JWTs at a gateway); feature modules only ever see `@UserId()`.
 
 ## 4. Design principles (apply everywhere)
 

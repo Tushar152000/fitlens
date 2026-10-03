@@ -13,7 +13,16 @@ export async function POST(request: Request) {
     "content-type": request.headers.get("content-type") ?? "application/json",
     accept: "text/event-stream",
   });
-  for (const name of ["cookie", "authorization", "x-forwarded-for", "x-request-id", "user-agent"]) {
+  // origin + sec-fetch-site let the API's cross-site request check see where the request came from.
+  for (const name of [
+    "cookie",
+    "authorization",
+    "origin",
+    "sec-fetch-site",
+    "x-forwarded-for",
+    "x-request-id",
+    "user-agent",
+  ]) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
   }

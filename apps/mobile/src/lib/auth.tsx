@@ -2,6 +2,7 @@ import * as Crypto from "expo-crypto";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import type { AuthTokenDto, DevLoginDto } from "@fitlens/contracts";
 import { api, ApiError, setApiToken, setUnauthorizedHandler } from "./api";
 import { API_URL } from "./config";
 import { queryClient } from "./query";
@@ -13,6 +14,8 @@ type AuthState = { status: "loading"; me: null } | { status: "signedOut"; me: nu
 
 type AuthContextValue = AuthState & {
   signIn: () => Promise<void>;
+  /** Local development only (the API offers it when not deployed): email sign-in, no Google. */
+  devSignIn: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   /** Re-reads /api/me, e.g. after onboarding finishes. */
   refresh: () => Promise<void>;
@@ -78,22 +81,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(async () => {
     const { verifier, challenge } = await pkcePair();
     const redirect = Linking.createURL("auth");
-    const start = `${API_URL}/api/mobile/start?challenge=${challenge}&redirect=${encodeURIComponent(redirect)}`;
+    const start = `${API_URL}/api/auth/mobile/start?challenge=${challenge}&redirect=${encodeURIComponent(redirect)}`;
     const result = await WebBrowser.openAuthSessionAsync(start, redirect);
     if (result.type !== "success") return;
-    const code = Linking.parse(result.url).queryParams?.code;
+    const { code, error } = Linking.parse(result.url).queryParams ?? {};
+    // The API sends a short, user-facing reason back when sign-in fails (e.g. "Sign-in was cancelled").
+    if (typeof error === "string") throw new Error(error);
     if (typeof code !== "string") throw new Error("Sign-in didn't finish. Try again.");
-    const { token } = await api<{ token: string }>("/api/mobile/token", { json: { code, verifier } });
+    const { token } = await api<AuthTokenDto>("/api/auth/mobile/token", { json: { code, verifier } });
     setApiToken(token);
     await writeToken(token);
     await load();
   }, [load]);
 
+  const devSignIn = useCallback(
+    async (email: string) => {
+      const { token } = await api<DevLoginDto>("/api/auth/dev", { json: { email } });
+      setApiToken(token);
+      await writeToken(token);
+      await load();
+    },
+    [load],
+  );
+
   const signOut = useCallback(async () => {
-    await api("/api/mobile/signout", { method: "POST" }).catch(() => {});
+    await api("/api/auth/signout", { method: "POST" }).catch(() => {});
     await clear();
   }, [clear]);
 
-  const value = useMemo(() => ({ ...state, signIn, signOut, refresh: load }), [state, signIn, signOut, load]);
+  const value = useMemo(
+    () => ({ ...state, signIn, devSignIn, signOut, refresh: load }),
+    [state, signIn, devSignIn, signOut, load],
+  );
   return <AuthContext value={value}>{children}</AuthContext>;
 }

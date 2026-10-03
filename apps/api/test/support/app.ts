@@ -4,15 +4,21 @@ import cookieParser from "cookie-parser";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { applyTestEnv } from "./env.js";
+import { FakeGoogle } from "./fake-google.js";
 
 applyTestEnv();
 const { AppModule } = await import("../../src/app.module.js");
 const { PrismaService } = await import("../../src/infra/prisma/prisma.service.js");
+const { GOOGLE_OIDC } = await import("../../src/modules/auth/google/oidc.js");
 
 export interface TestApp {
   app: INestApplication;
   prisma: InstanceType<typeof PrismaService>;
   http: () => ReturnType<typeof request>;
+  /** A fresh cookie jar (a browser). */
+  browser: () => ReturnType<typeof request.agent>;
+  /** Google, as far as the API can tell. */
+  google: FakeGoogle;
   /** A fresh signed-in user. Requests made through the returned agent carry the session cookie. */
   signIn: (
     name?: string,
@@ -20,9 +26,25 @@ export interface TestApp {
   close: () => Promise<void>;
 }
 
-/** Boots the real AppModule (same middleware as main.ts) against the test database. */
-export async function createTestApp(): Promise<TestApp> {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+export interface TestAppOptions {
+  /** Environment overrides for this app only (e.g. a low AUTH_RATE_LIMIT). */
+  env?: Record<string, string>;
+}
+
+/** Boots the real AppModule (same middleware as main.ts) against the test database, with a fake Google. */
+export async function createTestApp(options: TestAppOptions = {}): Promise<TestApp> {
+  const google = new FakeGoogle();
+  const saved = { ...process.env };
+  Object.assign(process.env, options.env);
+  let moduleRef;
+  try {
+    moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(GOOGLE_OIDC)
+      .useValue(google)
+      .compile();
+  } finally {
+    process.env = saved;
+  }
   const app = moduleRef.createNestApplication({ logger: false });
   app.setGlobalPrefix("api");
   app.use(cookieParser());
@@ -34,12 +56,14 @@ export async function createTestApp(): Promise<TestApp> {
     app,
     prisma,
     http: () => request(server),
+    browser: () => request.agent(server),
+    google,
     async signIn(name = "Test User") {
       const agent = request.agent(server);
       const res = await agent
         .post("/api/auth/dev")
         .send({ email: `${randomUUID()}@test.fitlens`, name })
-        .expect(201);
+        .expect(200);
       return { userId: res.body.userId as string, token: res.body.token as string, agent };
     },
     close: () => app.close(),

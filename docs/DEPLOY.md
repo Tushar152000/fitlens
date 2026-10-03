@@ -45,20 +45,25 @@ Create a service from image `ghcr.io/<repo>/api:latest` (make the GHCR package r
 
 | Variable                                                                                                             | Value                                                            |
 | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `APP_ENV`                                                                                                            | `production` (or `staging`): enables the strict checks below     |
 | `NODE_ENV`                                                                                                           | `production`                                                     |
 | `APP_ROLE`                                                                                                           | `api` (or `all` for a single instance without a separate worker) |
 | `PUBLIC_URL`                                                                                                         | `https://YOUR-WEB-ORIGIN`                                        |
 | `DATABASE_URL`                                                                                                       | Neon pooled string                                               |
 | `REDIS_URL`                                                                                                          | optional; enables background jobs, cross-instance locks          |
-| `AUTH_SECRET`                                                                                                        | `openssl rand -base64 33` (keep it: it signs sign-in codes)      |
-| `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`                                                                               | Google OAuth client                                              |
+| `AUTH_SECRET`                                                                                                        | `openssl rand -base64 33` (32+ chars; seals sign-in state)       |
+| `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`                                                                               | Google OAuth client (required in production)                     |
+| `SESSION_DAYS`, `MOBILE_SESSION_DAYS`, `SESSION_MAX_DAYS`                                                            | idle web / app session days, hard cap (default 30, 90, 365)      |
+| `AUTH_RATE_LIMIT`                                                                                                    | sign-in requests per minute per IP per route (default 20)        |
 | `S3_ENDPOINT`, `S3_REGION=auto`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE=true` | R2                                                               |
 | `AI_PROVIDER`                                                                                                        | `anthropic`                                                      |
 | `ANTHROPIC_API_KEY`                                                                                                  | your key                                                         |
 | `AI_DAILY_LIMIT`, `COACH_DAILY_LIMIT`                                                                                | per-user daily caps (default 3 and 40)                           |
 | `OFF_CONTACT`                                                                                                        | contact for Open Food Facts (optional)                           |
 
-Never set `AUTH_DEV_LOGIN` in production (the API refuses to boot with it).
+Template: `.env.production.example`. Use a separate `AUTH_SECRET`, Google OAuth client and database per environment.
+
+With `APP_ENV=staging` or `production` the API refuses to boot with `AUTH_DEV_LOGIN` on, without Google credentials, or with a non-https `PUBLIC_URL`, and never reads a `.env` file. If `APP_ENV` is unset, a `NODE_ENV=production` process is treated as production.
 
 With Redis, add a second service from the same image with command `node dist/worker.js` and `APP_ROLE=worker`, same env. Scale API instances on request load and workers on queue depth independently.
 
@@ -72,7 +77,7 @@ Put the host's deploy hook URL in GitHub secret `API_DEPLOY_HOOK_URL` (trigger b
 
 ## 5. Google sign-in
 
-Authorised redirect URI: `https://YOUR-WEB-ORIGIN/api/auth/callback/google` (unchanged from the Auth.js setup). While the consent screen is in Testing only listed test users can sign in; publishing needs no verification for name/email/photo scopes.
+Authorised redirect URI: `https://YOUR-WEB-ORIGIN/api/auth/callback/google` (the same URI serves web and app sign-in). While the consent screen is in Testing only listed test users can sign in; publishing needs no verification for name/email/photo scopes.
 
 ## 6. Release flow
 

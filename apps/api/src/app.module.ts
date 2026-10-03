@@ -3,13 +3,15 @@ import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { LoggerModule } from "nestjs-pino";
 import { randomUUID } from "node:crypto";
-import { AuthGuard } from "./common/auth/auth.guard.js";
 import { AllExceptionsFilter } from "./common/http/exception.filter.js";
+import { isStrictRateLimited } from "./common/http/rate-limit.js";
 import { ConfigModule, ENV, type Env } from "./config/config.module.js";
 import { InfraModule } from "./infra/infra.module.js";
 import { AiModule } from "./modules/ai/ai.module.js";
 import { CoachModule } from "./modules/coach/coach.module.js";
+import { AuthGuard } from "./modules/auth/auth.guard.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
+import { OriginGuard } from "./modules/auth/origin.guard.js";
 import { FoodsModule } from "./modules/foods/foods.module.js";
 import { HealthModule } from "./modules/health/health.module.js";
 import { MealsModule } from "./modules/meals/meals.module.js";
@@ -53,8 +55,18 @@ import { WorkoutsModule } from "./modules/workouts/workouts.module.js";
         },
       }),
     }),
-    // Default budget per client IP; AI routes add stricter per-user caps in their services.
-    ThrottlerModule.forRoot([{ name: "default", ttl: 60_000, limit: 300 }]),
+    // Per client IP and route. Sign-in routes (@StrictRateLimit) get AUTH_RATE_LIMIT; AI routes add
+    // per-user caps in their services. In-memory per process: put it on Redis before scaling out.
+    ThrottlerModule.forRootAsync({
+      inject: [ENV],
+      useFactory: (env: Env) => [
+        {
+          name: "default",
+          ttl: 60_000,
+          limit: (ctx) => (isStrictRateLimited(ctx) ? env.AUTH_RATE_LIMIT : 300),
+        },
+      ],
+    }),
     InfraModule,
     AiModule,
     AuthModule,
@@ -69,9 +81,11 @@ import { WorkoutsModule } from "./modules/workouts/workouts.module.js";
     ProgressModule,
     CoachModule,
   ],
+  // Guards run in this order: rate limit → CSRF origin check → session.
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useExisting: OriginGuard },
+    { provide: APP_GUARD, useExisting: AuthGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })

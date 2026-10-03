@@ -59,23 +59,6 @@ export interface CreatedDto {
 
 // ── Auth and users ────────────────────────────────────────────────────────
 
-/** GET /api/auth/providers */
-export interface ProvidersDto {
-  google: boolean;
-  dev: boolean;
-}
-
-/** POST /api/mobile/token */
-export interface MobileTokenDto {
-  token: string;
-  expires: string;
-}
-
-/** POST /api/auth/dev (local development only) */
-export interface DevLoginDto extends MobileTokenDto {
-  userId: string;
-}
-
 /** The `profiles` row. */
 export interface ProfileDto {
   userId: string;
