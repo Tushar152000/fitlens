@@ -12,10 +12,13 @@ pnpm + Turborepo monorepo: `apps/api` (NestJS, the only backend), `apps/web` (Ne
 
 ## Commands (Node 22 — `nvm use`; pnpm via corepack)
 
+Local setup and troubleshooting: `docs/DEVELOPMENT.md`.
+
 ```bash
-pnpm infra:up        # Postgres, Redis, MinIO
+pnpm bootstrap       # set up / repair local env (.env, Docker, migrations, seed)
+pnpm start:all       # everything: services, api :4000 + web :3000, emulator, app (pnpm stop:all)
+pnpm dev             # api :4000 + web :3000 only
 pnpm db:migrate      # apply/create migrations (dev)
-pnpm dev             # api :4000 + web :3000
 pnpm check           # lint + typecheck + test, every workspace (CI runs the same)
 pnpm format          # prettier
 ```

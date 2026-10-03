@@ -62,6 +62,9 @@ jobs:
       - name: Lint, typecheck, test, build (all workspaces)
         run: pnpm turbo run lint typecheck test build --cache-dir=.turbo
 
+      - name: Repo scripts (local bootstrap helpers)
+        run: pnpm test:scripts
+
   docker:
     name: Docker images build
     runs-on: ubuntu-latest
