@@ -13,7 +13,12 @@ import { api, apiText } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { formatInt } from "@/lib/format";
 import { dayQuery, waterQuery } from "@/lib/queries";
-import { ensureNotificationPermission, sendReminderConfirmation, syncWaterReminders } from "@/lib/reminders";
+import {
+  ensureNotificationPermission,
+  remindersAvailable,
+  sendReminderConfirmation,
+  syncWaterReminders,
+} from "@/lib/reminders";
 import { queryClient } from "@/lib/query";
 import { colors, fonts, radius } from "@/lib/theme";
 import type { PlanResponse } from "@/lib/types-plan";
@@ -244,7 +249,10 @@ function Reminders({ lunch, dinner, water }: { lunch: boolean; dinner: boolean; 
 
   async function toggle(key: "lunch" | "dinner" | "water", value: boolean) {
     setError(null);
-    if (key === "water" && value && !(await ensureNotificationPermission())) {
+    if (key === "water" && value && !remindersAvailable) {
+      // Save the choice anyway: it takes effect in the installed app.
+      setError("Water reminders need the installed app. Expo Go on Android can't show them.");
+    } else if (key === "water" && value && !(await ensureNotificationPermission())) {
       setError("Allow notifications for FitLens in your phone's Settings to get water reminders.");
       return;
     }
