@@ -8,11 +8,11 @@ import {
   MEAL_TYPES,
   mealTitle,
   nextMealType,
-} from "@fitlens/domain/format";
+} from "@fitr8/domain/format";
 import { requireOnboardedViewer, serverApi } from "@/lib/server/api";
-import type { DashboardDto, TodayWorkoutDto } from "@fitlens/contracts";
+import type { DashboardDto, TodayWorkoutDto } from "@fitr8/contracts";
 
-export const metadata = { title: "Today — FitLens" };
+export const metadata = { title: "Today — FITR8" };
 
 function greeting(hour: number) {
   if (hour < 5) return "Up late";

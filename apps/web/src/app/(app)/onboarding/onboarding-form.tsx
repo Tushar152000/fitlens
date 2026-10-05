@@ -106,7 +106,7 @@ export function OnboardingForm({
       router.push("/onboarding/plan");
       router.refresh();
     } catch {
-      setServerError("Couldn't reach FitLens. Check your connection and try again.");
+      setServerError("Couldn't reach FITR8. Check your connection and try again.");
       setSubmitting(false);
     }
   }

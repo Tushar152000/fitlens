@@ -38,7 +38,7 @@ export async function createTestApp(): Promise<TestApp> {
       const agent = request.agent(server);
       const res = await agent
         .post("/api/auth/dev")
-        .send({ email: `${randomUUID()}@test.fitlens`, name })
+        .send({ email: `${randomUUID()}@fitr8.test`, name })
         .expect(201);
       return { userId: res.body.userId as string, token: res.body.token as string, agent };
     },

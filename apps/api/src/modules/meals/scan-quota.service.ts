@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { startOfLocalDay } from "@fitlens/domain/dates";
+import { startOfLocalDay } from "@fitr8/domain/dates";
 import { AppError } from "../../common/errors.js";
 import { InjectEnv, type Env } from "../../config/config.module.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";

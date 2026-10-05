@@ -1,8 +1,8 @@
-import { MEAL_TYPES, mealTypeForHour, type MealType } from "@fitlens/domain/format";
+import { MEAL_TYPES, mealTypeForHour, type MealType } from "@fitr8/domain/format";
 import { requireOnboardedViewer } from "@/lib/server/api";
 import { LabelCamera } from "./label-camera";
 
-export const metadata = { title: "Photograph label — FitLens" };
+export const metadata = { title: "Photograph label — FITR8" };
 
 /** Design 7f: dark camera with a tall frame for the nutrition table. */
 export default async function LabelPage({ searchParams }: PageProps<"/log/label">) {

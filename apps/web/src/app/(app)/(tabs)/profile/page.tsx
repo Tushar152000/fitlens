@@ -1,11 +1,11 @@
 import { ChevronRight, Download, Flame, Pencil } from "lucide-react";
 import Link from "next/link";
-import { formatInt } from "@fitlens/domain/format";
+import { formatInt } from "@fitr8/domain/format";
 import { requireOnboardedViewer, serverApi, serverApiOrNull } from "@/lib/server/api";
-import type { DashboardDto, PlanDto, UsageDto } from "@fitlens/contracts";
+import type { DashboardDto, PlanDto, UsageDto } from "@fitr8/contracts";
 import { DangerZone, PlanCard, Reminders, SignOutButton } from "./profile-controls";
 
-export const metadata = { title: "Profile — FitLens" };
+export const metadata = { title: "Profile — FITR8" };
 
 const GOAL_LABEL = {
   FAT_LOSS: "Lose fat",
@@ -168,7 +168,7 @@ export default async function ProfilePage() {
       <DangerZone />
 
       <p className="text-center text-[12px] text-ink-3">
-        {email} · FitLens gives general fitness guidance, not medical advice.
+        {email} · FITR8 gives general fitness guidance, not medical advice.
       </p>
     </div>
   );

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# FitLens API image. Build from the repo root:  docker build -f apps/api/Dockerfile -t fitlens-api .
+# FITR8 API image. Build from the repo root:  docker build -f apps/api/Dockerfile -t fitr8-api .
 # One image, three uses:
 #   default            → HTTP API          (node dist/main.js)
 #   command worker     → queue consumers   (node dist/worker.js)
@@ -13,16 +13,16 @@ WORKDIR /repo
 # Only the workspaces the API depends on, with a pruned lockfile (turbo prune).
 FROM base AS pruner
 COPY . .
-RUN npx -y turbo@2 prune @fitlens/api --docker
+RUN npx -y turbo@2 prune @fitr8/api --docker
 
 FROM base AS builder
 COPY --from=pruner /repo/out/json/ .
 COPY .npmrc ./
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 COPY --from=pruner /repo/out/full/ .
-RUN pnpm turbo run build --filter=@fitlens/api
+RUN pnpm turbo run build --filter=@fitr8/api
 # Self-contained production bundle: the api package plus its prod deps and built workspace packages.
-RUN pnpm --filter @fitlens/api deploy --prod --legacy /prod/api
+RUN pnpm --filter @fitr8/api deploy --prod --legacy /prod/api
 
 FROM builder AS migrate
 WORKDIR /repo/packages/db

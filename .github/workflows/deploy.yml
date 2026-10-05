@@ -66,13 +66,13 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - run: pnpm install --frozen-lockfile --filter @fitlens/db...
+      - run: pnpm install --frozen-lockfile --filter @fitr8/db...
       - name: prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
         run: |
           if [ -z "$DATABASE_URL" ]; then echo "PRODUCTION_DATABASE_URL not set; skipping migrations"; exit 0; fi
-          pnpm --filter @fitlens/db exec prisma migrate deploy
+          pnpm --filter @fitr8/db exec prisma migrate deploy
 
   rollout:
     needs: migrate

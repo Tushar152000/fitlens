@@ -27,7 +27,7 @@ import {
   type UploadUrlInput,
   type UsageDto,
   type UsualsDto,
-} from "@fitlens/contracts";
+} from "@fitr8/contracts";
 import { UserId } from "../../common/auth/decorators.js";
 import { wire } from "../../common/http/wire.js";
 import { ZodBody } from "../../common/http/zod.js";

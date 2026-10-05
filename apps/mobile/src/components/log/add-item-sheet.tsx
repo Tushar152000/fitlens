@@ -1,5 +1,5 @@
 import { Search, Sparkles } from "lucide-react-native";
-import type { FoodHitDto, ParsedItemDto } from "@fitlens/contracts";
+import type { FoodHitDto, ParsedItemDto } from "@fitr8/contracts";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Sheet } from "@/components/sheet";

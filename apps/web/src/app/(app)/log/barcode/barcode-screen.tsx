@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Sheet } from "@/components/sheet";
 import { Button } from "@/components/ui";
-import { normalizeBarcode } from "@fitlens/domain/barcode";
+import { normalizeBarcode } from "@fitr8/domain/barcode";
 import { cn } from "@/lib/cn";
 import { useCamera } from "@/lib/client/use-camera";
-import type { MealType } from "@fitlens/domain/format";
+import type { MealType } from "@fitr8/domain/format";
 import { ModeTabs } from "../mode-tabs";
 
 const FORMATS = ["ean_13", "ean_8", "upc_a", "upc_e"];

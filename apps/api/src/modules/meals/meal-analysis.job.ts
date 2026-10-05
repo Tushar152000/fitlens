@@ -1,6 +1,6 @@
 import { Inject, Injectable, type OnModuleInit } from "@nestjs/common";
-import type { Prisma } from "@fitlens/db";
-import { sumMacros } from "@fitlens/domain/nutrition";
+import type { Prisma } from "@fitr8/db";
+import { sumMacros } from "@fitr8/domain/nutrition";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { JobQueue, type JobHandler } from "../../infra/queue/job-queue.service.js";
 import { StorageService } from "../../infra/storage/storage.service.js";

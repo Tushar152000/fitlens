@@ -1,4 +1,4 @@
-import type { MealType } from "@fitlens/domain/format";
+import type { MealType } from "@fitr8/domain/format";
 
 /** Typed meals saved while offline (design: "queue typed meals locally"). Per device, best effort. */
 export interface QueuedMeal {

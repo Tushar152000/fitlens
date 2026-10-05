@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ConfirmMealSchema } from "@fitlens/contracts";
+import { ConfirmMealSchema } from "@fitr8/contracts";
 import {
   fromItems,
   rowFromFood,

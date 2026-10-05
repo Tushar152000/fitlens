@@ -1,5 +1,5 @@
 import { cn } from "@/lib/cn";
-import { formatInt } from "@fitlens/domain/format";
+import { formatInt } from "@fitr8/domain/format";
 
 export type Macro = "protein" | "carbs" | "fat";
 

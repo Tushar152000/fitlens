@@ -1,4 +1,4 @@
-import type { OnboardingInput } from "@fitlens/contracts";
+import type { OnboardingInput } from "@fitr8/contracts";
 
 type P = OnboardingInput;
 

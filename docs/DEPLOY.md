@@ -1,4 +1,4 @@
-# Deploying FitLens
+# Deploying FITR8
 
 Three deployables, all built by CI from this repo:
 
@@ -66,7 +66,7 @@ Put the host's deploy hook URL in GitHub secret `API_DEPLOY_HOOK_URL` (trigger b
 
 ## 4. Web
 
-**Vercel:** import the repo, root directory `apps/web`, framework Next.js; install command `pnpm install --frozen-lockfile`, build command `cd ../.. && pnpm turbo run build --filter=@fitlens/web`. Env: `API_INTERNAL_URL=https://<api-host>` (the API's own URL; browsers never call it directly).
+**Vercel:** import the repo, root directory `apps/web`, framework Next.js; install command `pnpm install --frozen-lockfile`, build command `cd ../.. && pnpm turbo run build --filter=@fitr8/web`. Env: `API_INTERNAL_URL=https://<api-host>` (the API's own URL; browsers never call it directly).
 
 **Container:** run `ghcr.io/<repo>/web:latest` with `API_INTERNAL_URL`, port 3000; set `WEB_DEPLOY_HOOK_URL`.
 

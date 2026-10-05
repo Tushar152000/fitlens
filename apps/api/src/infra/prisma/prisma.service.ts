@@ -1,5 +1,5 @@
 import { Injectable, type OnModuleDestroy } from "@nestjs/common";
-import { PrismaClient, prismaOptions } from "@fitlens/db";
+import { PrismaClient, prismaOptions } from "@fitr8/db";
 import { InjectEnv, type Env } from "../../config/config.module.js";
 
 /**

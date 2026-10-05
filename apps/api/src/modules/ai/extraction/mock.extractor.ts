@@ -1,4 +1,4 @@
-import type { LabelRead, MealAnalysis } from "@fitlens/contracts";
+import type { LabelRead, MealAnalysis } from "@fitr8/contracts";
 import type { AiResult, FoodExtractor } from "./types.js";
 
 const SAMPLE: MealAnalysis = {

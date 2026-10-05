@@ -6,7 +6,7 @@ import {
   type CoachConversationSummary,
   type CoachConversationView,
   type CoachStreamEvent,
-} from "@fitlens/contracts";
+} from "@fitr8/contracts";
 import type { Response } from "express";
 import { UserId } from "../../common/auth/decorators.js";
 import { ZodBody } from "../../common/http/zod.js";
@@ -19,7 +19,7 @@ export class CoachController {
   constructor(private readonly coach: CoachService) {}
 
   /**
-   * One user turn, streamed as server-sent events (see CoachStreamEvent in @fitlens/contracts).
+   * One user turn, streamed as server-sent events (see CoachStreamEvent in @fitr8/contracts).
    * Limit/ownership/lock errors are returned as normal JSON before the stream opens.
    */
   @Post("chat")

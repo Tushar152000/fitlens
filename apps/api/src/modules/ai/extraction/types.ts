@@ -1,4 +1,4 @@
-import type { LabelRead, MealAnalysis } from "@fitlens/contracts";
+import type { LabelRead, MealAnalysis } from "@fitr8/contracts";
 
 export interface MealContext {
   mealType: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";

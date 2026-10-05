@@ -6,8 +6,8 @@ import { useState } from "react";
 import { Sheet } from "@/components/sheet";
 import { Button } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import type { UsageDto } from "@fitlens/contracts";
-import type { MealType } from "@fitlens/domain/format";
+import type { UsageDto } from "@fitr8/contracts";
+import type { MealType } from "@fitr8/domain/format";
 
 export type ScanUsage = UsageDto;
 
@@ -55,7 +55,7 @@ export function AiLimitSheet({
       <div className="flex flex-col gap-2 rounded-card bg-ink p-4 text-white">
         <p className="flex items-center gap-2 font-bold">
           <Crown className="size-5 text-brand-glow" aria-hidden />
-          FitLens Pro
+          FITR8 Pro
         </p>
         <p className="text-[13px] text-white/75">
           Unlimited photo scans, label reading and weekly coaching.

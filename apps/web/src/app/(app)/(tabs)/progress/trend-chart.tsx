@@ -1,4 +1,4 @@
-import type { ProgressDto } from "@fitlens/contracts";
+import type { ProgressDto } from "@fitr8/contracts";
 
 const W = 320;
 const H = 170;

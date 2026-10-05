@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# FitLens
+# FITR8
 
 pnpm + Turborepo monorepo: `apps/api` (NestJS, the only backend), `apps/web` (Next.js PWA, pure API client), `apps/mobile` (Expo), `packages/{domain,contracts,db,tsconfig}`.
 
@@ -8,7 +8,7 @@ pnpm + Turborepo monorepo: `apps/api` (NestJS, the only backend), `apps/web` (Ne
 
 - **Architecture and engineering rules:** `docs/ARCHITECTURE.md` — binding for every change (module boundaries, layering, errors, testing, the coach agent loop).
 - **UI:** `docs/DESIGN.md` (tokens, components, screens, states). Match it exactly.
-- **Workflows:** use the `fitlens-feature` skill for any feature/endpoint/table/screen, and `fitlens-coach-tool` for the AI coach.
+- **Workflows:** use the `fitr8-feature` skill for any feature/endpoint/table/screen, and `fitr8-coach-tool` for the AI coach.
 
 ## Commands (Node 22 — `nvm use`; pnpm via corepack)
 

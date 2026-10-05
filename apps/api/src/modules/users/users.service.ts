@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import type { RemindersInput } from "@fitlens/contracts";
-import { localDate } from "@fitlens/domain/dates";
+import type { RemindersInput } from "@fitr8/contracts";
+import { localDate } from "@fitr8/domain/dates";
 import { AppError } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 
@@ -37,6 +37,12 @@ export class UsersService {
     });
     const { profile, ...rest } = user;
     return { ...rest, onboarded: Boolean(profile?.onboardedAt), profile };
+  }
+
+  /** The name the user asked to be called in the web welcome flow. Google sign-in won't overwrite it. */
+  async setName(userId: string, name: string) {
+    await this.prisma.user.update({ where: { id: userId }, data: { name } });
+    return this.me(userId);
   }
 
   /** Save the design-13 reminder switches (lunch, dinner, water). */
@@ -123,7 +129,7 @@ export class UsersService {
     }
 
     return {
-      filename: `fitlens-export-${new Date().toISOString().slice(0, 10)}.csv`,
+      filename: `fitr8-export-${new Date().toISOString().slice(0, 10)}.csv`,
       csv: rows.map((r) => r.map(csvCell).join(",")).join("\n") + "\n",
     };
   }
