@@ -1,4 +1,4 @@
-# FitLens — AI fitness coach
+# FITR8 — AI fitness coach
 
 Snap a photo of your meal → AI detects foods and portions → you confirm → calories and macros are logged against targets computed from your goal. A workout engine plans calorie-aware sessions, weekly check-ins adapt the plan, and an AI coach (a Claude agent with tools over your own data) answers questions and logs water, weigh-ins and meal drafts for you.
 
@@ -35,7 +35,7 @@ packages/
   db/           Prisma schema, migrations, seed, generated client (API only)
   tsconfig/     shared compiler settings
 docs/           ARCHITECTURE.md · DESIGN.md · DEPLOY.md
-.claude/skills  fitlens-feature, fitlens-coach-tool — step-by-step workflows for future development
+.claude/skills  fitr8-feature, fitr8-coach-tool — step-by-step workflows for future development
 ```
 
 ## Getting started
@@ -73,7 +73,7 @@ Run the whole stack in containers instead: `docker compose --profile app up --bu
 | `pnpm db:seed` / `db:studio` / `db:deploy`        | Seed · Prisma Studio · apply migrations (prod)                       |
 | `pnpm infra:up` / `infra:down`                    | Local Postgres, Redis, MinIO                                         |
 
-Filter any task to one workspace: `pnpm turbo run test --filter=@fitlens/api`.
+Filter any task to one workspace: `pnpm turbo run test --filter=@fitr8/api`.
 
 ## Backend at a glance
 
@@ -81,7 +81,7 @@ Filter any task to one workspace: `pnpm turbo run test --filter=@fitlens/api`.
 - **Modular monolith:** each module owns its tables and exposes one service; modules talk only through those services — so any module can be extracted into its own service later (ARCHITECTURE.md §6).
 - **Auth:** Google OIDC in the API; opaque DB sessions (httpOnly cookie on web, bearer token in the app via a PKCE hand-off). Existing Auth.js sessions stay valid.
 - **Reliability:** validated config, global error shape `{ error, details }`, request ids + structured logs, helmet, throttling + per-user AI quotas, liveness/readiness probes, graceful shutdown, idempotent retried jobs.
-- **Deterministic core:** targets, training plans and nutrition maths are pure tested functions in `@fitlens/domain`. The AI only identifies foods/portions (schema-validated, user-confirmed) and talks.
+- **Deterministic core:** targets, training plans and nutrition maths are pure tested functions in `@fitr8/domain`. The AI only identifies foods/portions (schema-validated, user-confirmed) and talks.
 
 ### The AI coach (agent loop)
 
@@ -93,7 +93,7 @@ Filter any task to one workspace: `pnpm turbo run test --filter=@fitlens/api`.
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Health (public) | `GET /health` (readiness: DB + Redis) · `GET /health/live`                                                                                                                                                                                                         |
 | Auth (public)   | `GET /auth/google` · `GET /auth/callback/google` · `POST /auth/signout` · `GET /auth/providers` · `POST /auth/dev` (dev only) · `GET /mobile/start` · `POST /mobile/token` · `POST /mobile/signout`                                                                |
-| Account         | `GET /me` · `DELETE /account` · `GET /export` (CSV) · `PATCH /profile/reminders`                                                                                                                                                                                   |
+| Account         | `GET /me` · `DELETE /account` · `GET /export` (CSV) · `PATCH /profile/reminders` · `PATCH /profile/name`                                                                                                                                                           |
 | Plan            | `POST /onboarding` · `GET /targets` · `GET /plan` · `POST /goal/option`                                                                                                                                                                                            |
 | Meals           | `POST /meals/upload-url` · `POST /meals` · `GET /meals?date=` · `GET/PUT/DELETE /meals/:id` · `POST /meals/:id/recheck` · `POST /meals/parse-items` · `POST /meals/log-items` · `POST /meals/quick-add` · `POST /meals/relog` · `GET /meals/usuals` · `GET /usage` |
 | Foods           | `GET /foods?q=` · `GET /foods/barcode/:code` · `POST /foods/label` · `GET /foods/label/:id` · `POST /foods/label/:id/save`                                                                                                                                         |
@@ -117,4 +117,4 @@ Request schemas: `packages/contracts`. Errors: `{ "error": "message", "details"?
 - **Mobile** (`eas-update.yml`): OTA update to the `preview` channel when the app or contracts change.
 - Dependabot keeps npm and Actions dependencies current.
 
-> Food values in `packages/db/prisma/seed.ts` are approximate placeholders. Replace them with IFCT 2017 / INDB data before launch. FitLens is not medical advice.
+> Food values in `packages/db/prisma/seed.ts` are approximate placeholders. Replace them with IFCT 2017 / INDB data before launch. FITR8 is not medical advice.

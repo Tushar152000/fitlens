@@ -1,5 +1,5 @@
 {
-  "extends": "@fitlens/tsconfig/library.json",
+  "extends": "@fitr8/tsconfig/library.json",
   "compilerOptions": {
     "outDir": "./dist",
     "declaration": false,

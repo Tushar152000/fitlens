@@ -1,7 +1,7 @@
 import { apiBaseUrl } from "@/lib/api-base";
 
 /**
- * Transport only: pipes POST /api/coach/chat to @fitlens/api and streams the reply back unchanged.
+ * Transport only: pipes POST /api/coach/chat to @fitr8/api and streams the reply back unchanged.
  *
  * Every other /api path goes through src/proxy.ts. This one is a route handler because Next gzips
  * proxied responses, and gzip holds small server-sent events back until its buffer fills. Here the

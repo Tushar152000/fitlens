@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "FitLens",
+    "name": "FITR8",
     "slug": "fitlens",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -44,14 +44,14 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "FitLens uses the camera to photograph your meals, barcodes and nutrition labels.",
+          "cameraPermission": "FITR8 uses the camera to photograph your meals, barcodes and nutrition labels.",
           "recordAudioAndroid": false
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "FitLens opens a photo you pick so it can read your meal or a nutrition label.",
+          "photosPermission": "FITR8 opens a photo you pick so it can read your meal or a nutrition label.",
           "cameraPermission": false,
           "microphonePermission": false
         }

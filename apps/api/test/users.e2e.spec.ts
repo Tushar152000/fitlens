@@ -13,6 +13,21 @@ describe("users", () => {
     await t.http().patch("/api/profile/reminders").send({ water: true }).expect(401);
   });
 
+  it("saves the preferred first name, trimmed, before onboarding", async () => {
+    await t.http().patch("/api/profile/name").send({ name: "Asha" }).expect(401);
+    const { agent } = await t.signIn();
+    await agent.patch("/api/profile/name").send({ name: "   " }).expect(400);
+    await agent
+      .patch("/api/profile/name")
+      .send({ name: "x".repeat(61) })
+      .expect(400);
+    await agent.patch("/api/profile/name").send({}).expect(400);
+    const res = await agent.patch("/api/profile/name").send({ name: "  Asha " }).expect(200);
+    expect(res.body).toMatchObject({ name: "Asha", onboarded: false });
+    const me = await agent.get("/api/me").expect(200);
+    expect(me.body.name).toBe("Asha");
+  });
+
   it("saves reminder switches after onboarding", async () => {
     const { agent } = await t.signIn();
     await agent
@@ -68,7 +83,7 @@ describe("users", () => {
     const res = await agent.get("/api/export").expect(200);
     expect(res.headers["content-type"]).toBe("text/csv; charset=utf-8");
     expect(res.headers["content-disposition"]).toMatch(
-      /^attachment; filename="fitlens-export-\d{4}-\d{2}-\d{2}\.csv"$/,
+      /^attachment; filename="fitr8-export-\d{4}-\d{2}-\d{2}\.csv"$/,
     );
     expect(res.headers["cache-control"]).toBe("no-store");
     const lines = res.text.trimEnd().split("\n");

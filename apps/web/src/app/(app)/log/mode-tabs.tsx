@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import type { MealType } from "@fitlens/domain/format";
+import type { MealType } from "@fitr8/domain/format";
 
 const MODES = [
   { key: "type", label: "Type", href: "/log/type" },

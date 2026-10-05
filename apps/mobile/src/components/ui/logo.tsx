@@ -25,17 +25,17 @@ export function LogoMark({ size = 32, onDark = false }: { size?: number; onDark?
   );
 }
 
-/** Mark + live wordmark "FitLens" (Bricolage Grotesque 700, −0.02em). */
+/** Mark + live wordmark "FITR8" (Bricolage Grotesque 700, −0.02em). */
 export function Logo({ size = 32, onDark = false }: { size?: number; onDark?: boolean }) {
   const fontSize = Math.round(size * 0.7);
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }} accessibilityLabel="FitLens">
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }} accessibilityLabel="FITR8">
       <LogoMark size={size} onDark={onDark} />
       <Text
         style={{ fontFamily: fonts.display700, fontSize, lineHeight: fontSize * 1.1, letterSpacing: -0.02 * fontSize }}
         color={onDark ? colors.white : colors.ink}
       >
-        FitLens
+        FITR8
       </Text>
     </View>
   );

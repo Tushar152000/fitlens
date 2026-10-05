@@ -1,7 +1,7 @@
 import { ChevronRight, NotebookPen } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { formatInt } from "@fitlens/domain/format";
+import { formatInt } from "@fitr8/domain/format";
 
 export type MealRowStatus = "PENDING" | "ANALYZING" | "READY" | "CONFIRMED" | "FAILED";
 

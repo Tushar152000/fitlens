@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { LabelRead, LabelSaveInput, LabelScanInput } from "@fitlens/contracts";
-import type { Prisma } from "@fitlens/db";
-import { normalizeBarcode } from "@fitlens/domain/barcode";
+import type { LabelRead, LabelSaveInput, LabelScanInput } from "@fitr8/contracts";
+import type { Prisma } from "@fitr8/db";
+import { normalizeBarcode } from "@fitr8/domain/barcode";
 import { AppError, notFound } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { StorageService } from "../../infra/storage/storage.service.js";

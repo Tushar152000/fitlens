@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, Post, Query, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { randomBytes } from "node:crypto";
-import type { DevLoginDto, MobileTokenDto, ProvidersDto } from "@fitlens/contracts";
+import type { DevLoginDto, MobileTokenDto, ProvidersDto } from "@fitr8/contracts";
 import { z } from "zod";
 import { Public } from "../../common/auth/decorators.js";
 import { signPayload, verifyPayload } from "../../common/crypto.js";
@@ -11,6 +11,7 @@ import { InjectEnv, type Env } from "../../config/config.module.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { GoogleOAuthService } from "./google-oauth.service.js";
 import { isAllowedRedirect, isChallenge, redeemCode, signCode } from "./mobile-handoff.js";
+import { safePath } from "./safe-path.js";
 import { MOBILE_SESSION_DAYS, SessionService } from "./session.service.js";
 
 const STATE_COOKIE = "fitlens_oauth";
@@ -30,9 +31,6 @@ const TokenBody = z.object({
   verifier: z.string().min(43).max(128),
 });
 const DevLoginBody = z.object({ email: z.string().email(), name: z.string().max(80).optional() });
-
-/** Only same-site paths, so the sign-in flow can't be used as an open redirect. */
-const safePath = (p: unknown) => (typeof p === "string" && /^\/(?!\/)/.test(p) ? p : "/today");
 
 @Public()
 @Controller()

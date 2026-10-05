@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import type { CheckinInput } from "@fitlens/contracts";
-import { localDate, parseDateOnly } from "@fitlens/domain/dates";
-import { bodyFatNavy } from "@fitlens/domain/nutrition";
+import type { CheckinInput } from "@fitr8/contracts";
+import { localDate, parseDateOnly } from "@fitr8/domain/dates";
+import { bodyFatNavy } from "@fitr8/domain/nutrition";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 
 /** Weigh-ins (body_metrics). One row per user per date; logging again that day replaces it. */

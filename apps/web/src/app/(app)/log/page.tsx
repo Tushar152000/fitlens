@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import { MEAL_TYPES, mealTypeForHour, type MealType } from "@fitlens/domain/format";
+import { MEAL_TYPES, mealTypeForHour, type MealType } from "@fitr8/domain/format";
 import { requireOnboardedViewer } from "@/lib/server/api";
 import { CameraScreen } from "./camera-screen";
 
-export const metadata = { title: "Log a meal — FitLens" };
+export const metadata = { title: "Log a meal — FITR8" };
 
 /** Screen 7: camera → compress → signed upload → create meal → confirm. `?meal=DINNER` is optional. */
 export default async function LogPage({ searchParams }: PageProps<"/log">) {

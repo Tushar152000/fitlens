@@ -1,6 +1,6 @@
 ---
-name: fitlens-coach-tool
-description: Add or change a tool, prompt rule or context behaviour of the FitLens AI coach (the Claude agent loop in apps/api/src/modules/coach). Use when the coach should be able to read or do something new, or when changing its system prompt, model, effort, limits or caching.
+name: fitr8-coach-tool
+description: Add or change a tool, prompt rule or context behaviour of the FITR8 AI coach (the Claude agent loop in apps/api/src/modules/coach). Use when the coach should be able to read or do something new, or when changing its system prompt, model, effort, limits or caching.
 ---
 
 # Coach agent: adding capabilities safely

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui";
 import { api, ApiError } from "@/lib/client/api";
 
 /** Local development only (the API offers it when AUTH_DEV_LOGIN is on): sign in by email, no Google. */
-export function DevLogin() {
+export function DevLogin({ next }: { next: string }) {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +18,7 @@ export function DevLogin() {
     try {
       await api("/api/auth/dev", { method: "POST", json: { email: email.trim() } });
       // A full load so the server render sees the new session cookie.
-      window.location.assign(new URL("/today", window.location.origin).href);
+      window.location.assign(new URL(next, window.location.origin).href);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Couldn't sign in. Try again.");
       setBusy(false);

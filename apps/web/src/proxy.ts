@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { apiBaseUrl } from "@/lib/api-base";
 
 /**
- * Same-origin /api/* → @fitlens/api. The browser only ever talks to this origin, so the session cookie
+ * Same-origin /api/* → @fitr8/api. The browser only ever talks to this origin, so the session cookie
  * stays first-party. The API origin is read per request (API_INTERNAL_URL is only known when the
  * container starts); next.config rewrites would bake it in at build time.
  *

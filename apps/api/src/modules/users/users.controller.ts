@@ -1,11 +1,13 @@
 import { Controller, Delete, Get, HttpCode, Patch, Res } from "@nestjs/common";
 import type { Response } from "express";
 import {
+  PreferredNameSchema,
   RemindersSchema,
   type MeDto,
+  type PreferredNameInput,
   type RemindersDto,
   type RemindersInput,
-} from "@fitlens/contracts";
+} from "@fitr8/contracts";
 import { UserId } from "../../common/auth/decorators.js";
 import { ZodBody } from "../../common/http/zod.js";
 import { wire } from "../../common/http/wire.js";
@@ -33,6 +35,15 @@ export class UsersController {
         "Cache-Control": "no-store",
       })
       .send(csv);
+  }
+
+  /** Web welcome flow: "First, what can we call you?" */
+  @Patch("profile/name")
+  name(
+    @UserId() userId: string,
+    @ZodBody(PreferredNameSchema) { name }: PreferredNameInput,
+  ): Promise<MeDto> {
+    return wire(this.users.setName(userId, name));
   }
 
   /** Save the design-13 reminder switches (lunch, dinner, water). */

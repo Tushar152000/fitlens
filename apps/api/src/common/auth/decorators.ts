@@ -1,7 +1,7 @@
 import { createParamDecorator, SetMetadata, type ExecutionContext } from "@nestjs/common";
 import type { Request } from "express";
 
-export const IS_PUBLIC = "fitlens:isPublic";
+export const IS_PUBLIC = "fitr8:isPublic";
 
 /** Opt a route out of the global AuthGuard (health checks, the OAuth flow). Everything else requires sign-in. */
 export const Public = () => SetMetadata(IS_PUBLIC, true);

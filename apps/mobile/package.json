@@ -1,5 +1,5 @@
 {
-  "name": "@fitlens/mobile",
+  "name": "@fitr8/mobile",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
@@ -43,7 +43,7 @@
     "react-native-svg": "15.15.4",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.10.1",
-    "@fitlens/contracts": "workspace:*"
+    "@fitr8/contracts": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

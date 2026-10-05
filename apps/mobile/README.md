@@ -1,11 +1,11 @@
-# FitLens mobile (Expo) — `@fitlens/mobile`
+# FITR8 mobile (Expo) — `@fitr8/mobile`
 
-The React Native app for FitLens, one workspace of the pnpm + Turborepo monorepo. It is UI only: every
+The React Native app for FITR8, one workspace of the pnpm + Turborepo monorepo. It is UI only: every
 screen calls the same `/api/*` routes as the web app, served by `apps/api` (see `docs/ARCHITECTURE.md`).
 
 - Expo SDK 57, Expo Router (`src/app` = screens), TanStack Query for data.
 - UI follows `docs/DESIGN.md`; tokens are in `src/lib/theme.ts`, components in `src/components/ui`.
-- Request types and the coach stream events come from `@fitlens/contracts` (`packages/contracts`).
+- Request types and the coach stream events come from `@fitr8/contracts` (`packages/contracts`).
   Response shapes the contracts package doesn't define yet live in `src/lib/types*.ts`.
 - A few pure modules are copied from the web app and must stay in step: `src/lib/format.ts`,
   `onboarding-draft.ts`, `meal-rows.ts`, `barcode.ts`, `label.ts` (each says where it came from).
@@ -18,8 +18,8 @@ screen calls the same `/api/*` routes as the web app, served by `apps/api` (see 
 - The root `.npmrc` sets `node-linker=hoisted`, so everything resolves from the root `node_modules`.
 - Metro: Expo detects the workspace and sets `watchFolders` / `nodeModulesPaths` itself;
   `metro.config.js` only stops it watching the sibling apps.
-- `@fitlens/contracts` is consumed from its build output (`packages/contracts/dist`). Build it after a
-  fresh clone or a contracts change: `pnpm turbo run build --filter=@fitlens/contracts` (or `pnpm build`).
+- `@fitr8/contracts` is consumed from its build output (`packages/contracts/dist`). Build it after a
+  fresh clone or a contracts change: `pnpm turbo run build --filter=@fitr8/contracts` (or `pnpm build`).
 
 ## Run it
 
@@ -37,7 +37,7 @@ Point the app at a server in `apps/mobile/.env` (git-ignored):
 | `EXPO_PUBLIC_API_URL` | Origin of the API, no trailing slash. Unset = the deployed site. Local API from a phone on the same Wi-Fi: `http://<your-computer-ip>:4000`; web preview: `http://localhost:4000`. |
 
 - Phone: install **Expo Go**, run `pnpm dev:mobile`, scan the QR code.
-- Browser preview for quick checks: `pnpm --filter @fitlens/mobile web`. The API allows CORS from
+- Browser preview for quick checks: `pnpm --filter @fitr8/mobile web`. The API allows CORS from
   `http://localhost:8081` (`CORS_ORIGINS` in the root `.env`).
 - Google sign-in needs the deployed https site; local is mainly for the browser preview.
 - `EXPO_PUBLIC_*` values are inlined at bundle time: restart Expo with `--clear` after changing them.

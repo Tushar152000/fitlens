@@ -4,12 +4,12 @@ import { redirect } from "next/navigation";
 import { StickyFooter } from "@/components/sticky-footer";
 import { Button, ProgressSteps } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { formatInt } from "@fitlens/domain/format";
+import { formatInt } from "@fitr8/domain/format";
 import { requireViewer, serverApiOrNull } from "@/lib/server/api";
-import type { PlanDto } from "@fitlens/contracts";
+import type { PlanDto } from "@fitr8/contracts";
 import { TooFastPlan } from "./too-fast";
 
-export const metadata = { title: "Your plan — FitLens" };
+export const metadata = { title: "Your plan — FITR8" };
 
 const dateLabel = (ymd: string) =>
   new Intl.DateTimeFormat("en-IN", {
@@ -53,12 +53,12 @@ export default async function PlanPage() {
       >
         <span className="bg-[#5fae88]" style={{ width: `${(macroKcal.p / macroTotal) * 100}%` }} />
         <span className="bg-carbs" style={{ width: `${(macroKcal.c / macroTotal) * 100}%` }} />
-        <span className="bg-[#9d84d6]" style={{ width: `${(macroKcal.f / macroTotal) * 100}%` }} />
+        <span className="bg-[#f08bb0]" style={{ width: `${(macroKcal.f / macroTotal) * 100}%` }} />
       </div>
       <dl className="mt-3 grid grid-cols-3 gap-2 text-[13px]">
         <Macro label="Protein" grams={proteinG} dot="bg-[#5fae88]" />
         <Macro label="Carbs" grams={carbsG} dot="bg-carbs" />
-        <Macro label="Fat" grams={fatG} dot="bg-[#9d84d6]" />
+        <Macro label="Fat" grams={fatG} dot="bg-[#f08bb0]" />
       </dl>
     </section>
   );

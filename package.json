@@ -1,15 +1,15 @@
 {
-  "name": "fitlens",
+  "name": "fitr8",
   "private": true,
   "packageManager": "pnpm@10.34.6",
   "engines": {
     "node": ">=22.12"
   },
   "scripts": {
-    "dev": "turbo run dev --filter=@fitlens/api --filter=@fitlens/web",
-    "dev:api": "turbo run dev --filter=@fitlens/api",
-    "dev:web": "turbo run dev --filter=@fitlens/web",
-    "dev:mobile": "turbo run build --filter=@fitlens/contracts && pnpm --filter @fitlens/mobile start",
+    "dev": "turbo run dev --filter=@fitr8/api --filter=@fitr8/web",
+    "dev:api": "turbo run dev --filter=@fitr8/api",
+    "dev:web": "turbo run dev --filter=@fitr8/web",
+    "dev:mobile": "turbo run build --filter=@fitr8/contracts && pnpm --filter @fitr8/mobile start",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
@@ -19,11 +19,11 @@
     "format:check": "prettier --check .",
     "infra:up": "docker compose up -d postgres redis minio",
     "infra:down": "docker compose down",
-    "db:generate": "pnpm --filter @fitlens/db generate",
-    "db:migrate": "pnpm --filter @fitlens/db migrate",
-    "db:deploy": "pnpm --filter @fitlens/db deploy:migrations",
-    "db:seed": "pnpm --filter @fitlens/db seed",
-    "db:studio": "pnpm --filter @fitlens/db studio"
+    "db:generate": "pnpm --filter @fitr8/db generate",
+    "db:migrate": "pnpm --filter @fitr8/db migrate",
+    "db:deploy": "pnpm --filter @fitr8/db deploy:migrations",
+    "db:seed": "pnpm --filter @fitr8/db seed",
+    "db:studio": "pnpm --filter @fitr8/db studio"
   },
   "devDependencies": {
     "prettier": "^3.9.9",

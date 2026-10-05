@@ -16,12 +16,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AiLimitSheet, type ScanUsage } from "@/components/ai-limit-sheet";
-import type { FoodHitDto, MealDetailDto, ParsedItemDto } from "@fitlens/contracts";
+import type { FoodHitDto, MealDetailDto, ParsedItemDto } from "@fitr8/contracts";
 import { Sheet } from "@/components/sheet";
 import { Button, MealItemEditor, Switch } from "@/components/ui";
 import { api, ApiError } from "@/lib/client/api";
 import { cn } from "@/lib/cn";
-import { formatInt, MEAL_LABEL, sentenceCase, type MealType } from "@fitlens/domain/format";
+import { formatInt, MEAL_LABEL, sentenceCase, type MealType } from "@fitr8/domain/format";
 import {
   fromItems,
   rowFromFood,

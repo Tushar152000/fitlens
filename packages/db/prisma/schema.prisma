@@ -1,4 +1,4 @@
-// FitLens data model. See PRD section 10.
+// FITR8 data model. See PRD section 10.
 
 generator client {
   provider            = "prisma-client"

@@ -8,7 +8,7 @@ import {
   type LabelSaveInput,
   type LabelScanDto,
   type LabelScanInput,
-} from "@fitlens/contracts";
+} from "@fitr8/contracts";
 import { UserId } from "../../common/auth/decorators.js";
 import { ZodBody } from "../../common/http/zod.js";
 import { wire } from "../../common/http/wire.js";

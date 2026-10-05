@@ -7,8 +7,8 @@ import { useState } from "react";
 import { StickyFooter } from "@/components/sticky-footer";
 import { Button, NumberField, Stepper } from "@/components/ui";
 import { api } from "@/lib/client/api";
-import { formatInt, MEAL_LABEL, type MealType } from "@fitlens/domain/format";
-import { labelAddsUp } from "@fitlens/domain/label";
+import { formatInt, MEAL_LABEL, type MealType } from "@fitr8/domain/format";
+import { labelAddsUp } from "@fitr8/domain/label";
 
 const str = (n: number | null) => (n == null ? "" : String(Math.round(n * 10) / 10));
 const num = (s: string) => (s.trim() === "" ? NaN : Number(s));

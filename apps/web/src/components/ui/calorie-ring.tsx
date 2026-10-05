@@ -1,4 +1,4 @@
-import { formatInt } from "@fitlens/domain/format";
+import { formatInt } from "@fitr8/domain/format";
 
 const R = 68;
 const STROKE = 14;

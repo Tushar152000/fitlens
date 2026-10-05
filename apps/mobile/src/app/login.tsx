@@ -40,7 +40,7 @@ export default function LoginScreen() {
           </Button>
           {error && <FieldError>{error}</FieldError>}
           <Text size={12} color={colors.ink3} center>
-            By continuing you agree to our Terms and Privacy Policy. FitLens gives general fitness guidance and is not
+            By continuing you agree to our Terms and Privacy Policy. FITR8 gives general fitness guidance and is not
             medical advice.
           </Text>
         </>

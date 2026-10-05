@@ -14,7 +14,7 @@ interface GoogleIdentity {
   picture?: string;
 }
 
-/** Google sign-in (OpenID Connect authorization-code flow) that maps a Google identity to a FitLens user. */
+/** Google sign-in (OpenID Connect authorization-code flow) that maps a Google identity to a FITR8 user. */
 @Injectable()
 export class GoogleOAuthService {
   constructor(

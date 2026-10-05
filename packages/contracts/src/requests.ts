@@ -132,6 +132,11 @@ export const RemindersSchema = z.object({
   water: z.boolean().optional(),
 });
 
+/** Web welcome flow, "Preferred first name". */
+export const PreferredNameSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+});
+
 /** One water tap: a glass (250 ml), a bottle (500 ml), or a custom amount. */
 export const WaterAddSchema = z.object({
   ml: z.number().int().min(50).max(2000),
@@ -211,6 +216,7 @@ export type ParseItemsInput = z.infer<typeof ParseItemsSchema>;
 export type RelogInput = z.infer<typeof RelogSchema>;
 export type GoalOptionInput = z.infer<typeof GoalOptionSchema>;
 export type RemindersInput = z.infer<typeof RemindersSchema>;
+export type PreferredNameInput = z.infer<typeof PreferredNameSchema>;
 export type WaterAddInput = z.infer<typeof WaterAddSchema>;
 export type QuickAddInput = z.infer<typeof QuickAddSchema>;
 export type LabelScanInput = z.infer<typeof LabelScanSchema>;

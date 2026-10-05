@@ -14,7 +14,7 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "FitLens — AI fitness coach",
+  title: "FITR8 — AI fitness coach",
   description:
     "Snap your meals, hit your goal. Calorie tracking and adaptive workouts for Indian food.",
 };
@@ -23,7 +23,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#f6f3ec",
+  themeColor: "#f6f6f8",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
