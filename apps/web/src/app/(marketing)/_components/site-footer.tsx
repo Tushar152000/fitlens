@@ -31,8 +31,7 @@ export function SiteFooter() {
             <div className="flex flex-col gap-6">
               <Fitr8Wordmark />
               <p className="max-w-[312px] text-[14px] leading-[1.5] text-fitr8-footer-text">
-                Helping you eat smarter, train better &amp; see real progress, all in one
-                app.
+                Helping you eat smarter, train better &amp; see real progress, all in one app.
               </p>
             </div>
             <div className="flex flex-col gap-[13px]">

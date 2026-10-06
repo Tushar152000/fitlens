@@ -22,6 +22,7 @@ coverage/
 # env files (commit only the example)
 .env*
 !.env.example
+!.env.production.example
 
 # logs
 *.log
@@ -34,3 +35,9 @@ npm-debug.log*
 .vercel
 .idea/
 .claude/settings.local.json
+
+# Local dev server logs (pnpm start:all)
+.dev/
+
+# Prisma client generated from the wrong directory (the real one is packages/db/src/generated)
+/src/generated/

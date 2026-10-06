@@ -40,32 +40,38 @@ docs/           ARCHITECTURE.md · DESIGN.md · DEPLOY.md
 
 ## Getting started
 
-Prereqs: Node 22 (`nvm use` reads `.nvmrc`), Docker, and pnpm (`corepack enable`).
+Prereqs: Node 22 (`nvm use`), Docker, and for mobile Expo Go or an Android emulator. **Full guide: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)** (setup, daily commands, phone and emulator, Google sign-in locally, troubleshooting).
 
 ```bash
-pnpm install
-cp .env.example .env          # set AUTH_SECRET: openssl rand -base64 33
-pnpm infra:up                 # Postgres :5432, Redis :6379, MinIO :9000 (console :9001)
-pnpm db:migrate               # apply migrations
-pnpm db:seed                  # starter Indian foods + exercise library
-pnpm dev                      # API http://localhost:4000 · web http://localhost:3000
-pnpm dev:mobile               # Expo (set EXPO_PUBLIC_API_URL in apps/mobile/.env for a phone)
+nvm use && corepack enable && pnpm install
+pnpm bootstrap      # once: .env, Docker services, migrations, seed (safe to re-run)
+pnpm start:all      # API + web + Android emulator + app, in one terminal
+pnpm stop:all       # stop it all (data kept)
 ```
 
-- **No Google keys needed locally:** with `AUTH_DEV_LOGIN=true` the login screen offers an email-only dev sign-in (refused in production).
-- **No AI key needed:** `AI_PROVIDER=mock` returns canned meal detections and a scripted coach so every flow works. Set `AI_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` for real detection and coaching.
-- **Redis is optional:** without `REDIS_URL`, meal analysis runs inline in the request. With it, jobs go to BullMQ and the API process (APP_ROLE=all) or a separate worker consumes them.
-- Port clash? Compose ports are overridable: `REDIS_PORT=6380 pnpm infra:up` (then update `REDIS_URL`).
-- Google sign-in: OAuth client with redirect URI `http://localhost:3000/api/auth/callback/google`; fill `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`.
+Locally nothing needs an account: "Sign in with email (dev)" on web and app, mock AI, MinIO for photos. Web runs at http://localhost:3000, the API at :4000.
 
-Run the whole stack in containers instead: `docker compose --profile app up --build`.
+### Environments
+
+`APP_ENV` says where the API runs; `NODE_ENV` only says how it's built. Templates: `.env.example` (local) and `.env.production.example` (deployed).
+
+| `APP_ENV`               | Used by                               | Dev sign-in | Google   | `PUBLIC_URL` | Reads `.env` |
+| ----------------------- | ------------------------------------- | ----------- | -------- | ------------ | ------------ |
+| `local`                 | `pnpm dev`, the compose `app` profile | on          | optional | http ok      | yes          |
+| `test`                  | e2e tests (set automatically)         | on          | faked    | http ok      | no           |
+| `staging`, `production` | deployments                           | refused     | required | https only   | no           |
+
+Unset, it follows `NODE_ENV` and fails safe: a production build without `APP_ENV` gets production rules.
 
 ## Commands
 
 | Command                                           | What it does                                                         |
 | ------------------------------------------------- | -------------------------------------------------------------------- |
-| `pnpm dev` / `dev:api` / `dev:web` / `dev:mobile` | Run apps in watch mode (packages build first)                        |
-| `pnpm check`                                      | Lint + typecheck + test for every workspace — what CI runs           |
+| `pnpm bootstrap`                                  | Set up or repair the local environment (idempotent)                  |
+| `pnpm start:all` / `stop:all`                     | Start / stop the whole local stack incl. emulator and app            |
+| `pnpm emulator`                                   | Create (once) and boot the "fitlens" Android emulator                |
+| `pnpm dev` / `dev:api` / `dev:web` / `dev:mobile` | Free the app's fixed ports, then run it in watch mode                |
+| `pnpm check`                                      | Lint + typecheck + test for every workspace + repo scripts (= CI)    |
 | `pnpm test`                                       | Unit + e2e tests (e2e needs Postgres; creates `fitlens_test` itself) |
 | `pnpm lint` / `typecheck` / `build`               | One task across the monorepo (Turborepo caches results)              |
 | `pnpm format` / `format:check`                    | Prettier                                                             |
@@ -79,7 +85,7 @@ Filter any task to one workspace: `pnpm turbo run test --filter=@fitr8/api`.
 
 - **One service, two roles:** `node dist/main.js` (HTTP, `APP_ROLE=api`) and `node dist/worker.js` (queues, `APP_ROLE=worker`) from the same image; `APP_ROLE=all` for dev.
 - **Modular monolith:** each module owns its tables and exposes one service; modules talk only through those services — so any module can be extracted into its own service later (ARCHITECTURE.md §6).
-- **Auth:** Google OIDC in the API; opaque DB sessions (httpOnly cookie on web, bearer token in the app via a PKCE hand-off). Existing Auth.js sessions stay valid.
+- **Auth:** Google sign-in (OIDC + PKCE + nonce, ID token verified) in the API; hashed, sliding, revocable DB sessions shared by web (`__Host-` httpOnly cookie) and app (bearer token via a one-time PKCE code). Device list, sign out everywhere, CSRF origin check, sign-in rate limits, audit log (ARCHITECTURE.md §3.6).
 - **Reliability:** validated config, global error shape `{ error, details }`, request ids + structured logs, helmet, throttling + per-user AI quotas, liveness/readiness probes, graceful shutdown, idempotent retried jobs.
 - **Deterministic core:** targets, training plans and nutrition maths are pure tested functions in `@fitr8/domain`. The AI only identifies foods/portions (schema-validated, user-confirmed) and talks.
 
@@ -92,7 +98,8 @@ Filter any task to one workspace: `pnpm turbo run test --filter=@fitr8/api`.
 | Area            | Routes                                                                                                                                                                                                                                                             |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Health (public) | `GET /health` (readiness: DB + Redis) · `GET /health/live`                                                                                                                                                                                                         |
-| Auth (public)   | `GET /auth/google` · `GET /auth/callback/google` · `POST /auth/signout` · `GET /auth/providers` · `POST /auth/dev` (dev only) · `GET /mobile/start` · `POST /mobile/token` · `POST /mobile/signout`                                                                |
+| Auth (public)   | `GET /auth/providers` · `GET /auth/google` · `GET /auth/mobile/start` · `GET /auth/callback/google` · `POST /auth/mobile/token` · `POST /auth/signout` · `POST /auth/dev` (dev only)                                                                               |
+| Sessions        | `GET /auth/sessions` · `DELETE /auth/sessions/:id` · `POST /auth/signout-all`                                                                                                                                                                                      |
 | Account         | `GET /me` · `DELETE /account` · `GET /export` (CSV) · `PATCH /profile/reminders` · `PATCH /profile/name`                                                                                                                                                           |
 | Plan            | `POST /onboarding` · `GET /targets` · `GET /plan` · `POST /goal/option`                                                                                                                                                                                            |
 | Meals           | `POST /meals/upload-url` · `POST /meals` · `GET /meals?date=` · `GET/PUT/DELETE /meals/:id` · `POST /meals/:id/recheck` · `POST /meals/parse-items` · `POST /meals/log-items` · `POST /meals/quick-add` · `POST /meals/relog` · `GET /meals/usuals` · `GET /usage` |

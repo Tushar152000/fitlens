@@ -6,6 +6,13 @@ import { PrismaService } from "../../infra/prisma/prisma.service.js";
 
 export const DEFAULT_TIMEZONE = "Asia/Kolkata";
 
+export interface NewUser {
+  email: string;
+  name: string | null;
+  image: string | null;
+  emailVerified: Date | null;
+}
+
 /** One CSV cell, quoted when it holds a quote, comma or newline. */
 export const csvCell = (v: unknown) => {
   const s = v == null ? "" : String(v);
@@ -28,6 +35,44 @@ export class UsersService {
   /** The user's local calendar date as a UTC-midnight Date (for @db.Date columns). */
   async today(userId: string): Promise<Date> {
     return localDate(await this.timezone(userId));
+  }
+
+  /** The user with this (lower-cased) email, if any. Used by sign-in to link a new identity. */
+  async findIdByEmail(email: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+      select: { id: true },
+    });
+    return user?.id ?? null;
+  }
+
+  /** A new account. Throws Prisma P2002 if the email was taken meanwhile (the caller retries). */
+  async create(input: NewUser): Promise<string> {
+    const user = await this.prisma.user.create({
+      data: {
+        email: input.email.toLowerCase(),
+        name: input.name,
+        image: input.image,
+        emailVerified: input.emailVerified,
+      },
+      select: { id: true },
+    });
+    return user.id;
+  }
+
+  /** Fills name, avatar and email verification from a sign-in where they're still empty; never overwrites. */
+  async fillMissing(userId: string, from: Partial<Omit<NewUser, "email">>) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, image: true, emailVerified: true },
+    });
+    if (!user) return;
+    const data = {
+      ...(!user.name && from.name ? { name: from.name } : {}),
+      ...(!user.image && from.image ? { image: from.image } : {}),
+      ...(!user.emailVerified && from.emailVerified ? { emailVerified: from.emailVerified } : {}),
+    };
+    if (Object.keys(data).length) await this.prisma.user.update({ where: { id: userId }, data });
   }
 
   async me(userId: string) {
