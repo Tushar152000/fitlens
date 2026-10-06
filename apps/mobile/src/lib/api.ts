@@ -36,7 +36,7 @@ async function failFrom(res: { status: number; json(): Promise<unknown> }): Prom
 
 type Options = { method?: string; json?: unknown; signal?: AbortSignal };
 
-/** JSON call to the FitLens API with the bearer token. Throws ApiError with the server's message. */
+/** JSON call to the FITR8 API with the bearer token. Throws ApiError with the server's message. */
 export async function api<T = unknown>(path: string, { method, json, signal }: Options = {}): Promise<T> {
   let res: Response;
   try {

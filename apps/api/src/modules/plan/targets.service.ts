@@ -7,12 +7,12 @@ import {
   bodyFatNavy,
   planGoal,
   type GoalPlan,
-} from "@fitlens/domain/nutrition";
+} from "@fitr8/domain/nutrition";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
-/** Calorie and macro targets: the plan maths lives in @fitlens/domain; this reads its inputs and stores results. */
+/** Calorie and macro targets: the plan maths lives in @fitr8/domain; this reads its inputs and stores results. */
 @Injectable()
 export class TargetsService {
   constructor(private readonly prisma: PrismaService) {}

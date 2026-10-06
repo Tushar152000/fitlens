@@ -1,30 +1,54 @@
-# FitLens design spec (v1, "Warm Athletic")
+# FITR8 design spec (v2, FITR8 palette)
 
-Source of truth for UI work. The visual mockups live in the "FitLens App Design" canvas on claude.ai
-(8 phone screens + a design-system board). This file is the build contract for code.
+Source of truth for UI work. Layouts and components come from the "FitLens App Design" canvas on
+claude.ai (8 phone screens + a design-system board); since the FITR8 rebrand, brand, colour and icon
+come from the FITR8 Figma file ("Ganesh's Work"). This file is the build contract for code.
 
 ## Brand: logo and app icon
 
-The mark is the **Progress lens**: an ink tile (#17181C, radius 116/512) with a 72%-full saffron arc (#E8772E, round caps, starting at 12 o'clock) on a #3A3C43 track, around a #F6F3EC focus dot. Wordmark "FitLens" in Bricolage Grotesque 700, −0.02em. See the "Logo and app icon" board on the canvas.
+The mark is the **FITR8 mark** (Figma node `3788:3999`): two stacked white strokes forming an "F",
+on a brand-purple tile (#8116E0, radius 116/512), mark at 54% of the tile width. Wordmark "FITR8":
+"FIT" in ink, "R8" in brand purple.
 
-| File                                                            | Use                                                                 |
-| --------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `src/app/favicon.ico`                                           | 16/32/48 px favicon (small-size variant: heavier ring, bigger dot)  |
-| `src/app/icon.svg`                                              | SVG favicon for modern browsers (small-size variant)                |
-| `src/app/apple-icon.png`                                        | 180 px iOS home-screen icon, full-bleed (iOS rounds it)             |
-| `src/app/manifest.ts`                                           | PWA manifest; theme #17181C, background #F6F3EC, start `/today`     |
-| `public/icons/icon-192.png`, `icon-512.png`                     | PWA icons (rounded tile)                                            |
-| `public/icons/icon-maskable-512.png`                            | Android maskable icon (glyph inside the 80% safe zone)              |
-| `public/brand/mark.svg`                                         | Master mark, 512 px                                                 |
-| `public/brand/logo-horizontal.svg` / `-on-dark.svg` (+ PNG @4x) | Mark + wordmark lockups; wordmark is outlined paths, no font needed |
+| File                                        | Use                                                             |
+| ------------------------------------------- | --------------------------------------------------------------- |
+| `src/app/favicon.ico`                       | 16/32/48 px favicon (small-size variant: mark at 66%)           |
+| `src/app/icon.svg`                          | SVG favicon for modern browsers (small-size variant)            |
+| `src/app/apple-icon.png`                    | 180 px iOS home-screen icon, full-bleed (iOS rounds it)         |
+| `src/app/manifest.ts`                       | PWA manifest; theme #8116E0, background #F6F6F8, start `/today` |
+| `public/icons/icon-192.png`, `icon-512.png` | PWA icons (rounded tile)                                        |
+| `public/icons/icon-maskable-512.png`        | Android maskable icon (mark at 42%, inside the 80% safe zone)   |
+| `public/brand/mark.svg`                     | Master icon, 512 px                                             |
 
-- In the UI, render the mark as an inline SVG `Logo` component (sizes 24–40 px) next to live Bricolage text, rather than an `<img>`.
-- On dark grounds, lift the tile to #2A2C33 so its edge shows.
-- Never recolour or animate the arc in the icon, add gradients or shadows, or stretch the tile. Minimum size: 16 px favicon, 24 px in UI.
+- In the UI, render the icon with the inline SVG `Logo` / `LogoMark` components (24–40 px) rather
+  than an `<img>`.
+- Never recolour, rotate or stretch the mark, or add gradients or shadows. Minimum size: 16 px
+  favicon, 24 px in UI.
+
+## Public web pages (FITR8 marketing look)
+
+The signed-out web pages follow the FITR8 Figma file ("Ganesh's Work", section `3833:3185`) layout
+and fonts. Everything behind sign-in uses the app tokens below, which share the same purple.
+
+| Route           | Figma node                 | What it is                                                                                |
+| --------------- | -------------------------- | ----------------------------------------------------------------------------------------- |
+| `/`             | `3788:3985` "FITR8"        | Landing page: hero with QR + store badges, feature cards, stats, testimonial, FAQ, footer |
+| `/welcome`      | `3828:2321` "Onboarding 0" | "Welcome to FITR8" + three cards → Continue                                               |
+| `/welcome/name` | `3828:3096` "Onboarding 1" | Step 1 of 5, "First, what can we call you?" → saves `PATCH /api/profile/name`             |
+| `/welcome/done` | none                       | After sign-in: saves the name typed while signed out, then `/onboarding` (or `/today`)    |
+
+- **Tokens:** `--color-fitr8*` in `apps/web/src/app/globals.css` (brand purple `#8116E0`). Fonts:
+  Inter, Playfair Display (testimonial), Roboto Bold (pill labels), loaded only by the `(marketing)`
+  and `(welcome)` layouts.
+- **Wordmark:** `Fitr8Wordmark`. Figma sets it in Rostex; until that font is licensed into the repo it
+  falls back to Inter ExtraBold.
+- **Assets:** `apps/web/public/landing/` and `public/welcome/`, exported from Figma.
+- **Steps 2–5** of the welcome flow aren't designed yet; after step 1 the user continues in the
+  existing in-app onboarding.
 
 ## Principles
 
-1. **One job per screen.** One saffron primary action per screen, pinned to the bottom, full width.
+1. **One job per screen.** One purple primary action per screen, pinned to the bottom, full width.
 2. **Numbers you can trust.** Always show grams and units beside kcal. Flag low-confidence AI items in amber; never hide uncertainty.
 3. **Explain every change.** Any target change shows a one-line reason with the numbers behind it.
 4. **Kind, never shaming.** Over target uses neutral ink, never red. Missed days get a fresh start.
@@ -36,22 +60,22 @@ Put these in `src/app/globals.css` using Tailwind v4 `@theme`:
 
 ```css
 @theme {
-  --color-ground: #f6f3ec; /* app background */
+  --color-ground: #f6f6f8; /* app background */
   --color-surface: #ffffff; /* cards, inputs, tab bar */
-  --color-sunken: #f3efe7; /* steppers, set fields */
-  --color-track: #f0ebe1; /* empty ring/bar track */
-  --color-line: #e2ddd2; /* dividers */
-  --color-line-strong: #d9d3c7; /* input + secondary button border */
-  --color-ink: #17181c; /* text, strong buttons, dark cards */
-  --color-ink-2: #4a4d55; /* secondary text */
-  --color-ink-3: #6b6e76; /* meta text (still >= 4.5:1 on ground) */
-  --color-brand: #c2410c; /* primary action, calories ring */
-  --color-brand-hover: #9a3412;
-  --color-brand-glow: #e8772e; /* shutter, streak flame; never under text */
+  --color-sunken: #f0f0f5; /* steppers, set fields */
+  --color-track: #ececf2; /* empty ring/bar track */
+  --color-line: #e3e3ea; /* dividers */
+  --color-line-strong: #d4d4de; /* input + secondary button border */
+  --color-ink: #151724; /* text, strong buttons, dark cards */
+  --color-ink-2: #4a4c5a; /* secondary text */
+  --color-ink-3: #6b6d7a; /* meta text (still >= 4.5:1 on ground) */
+  --color-brand: #8116e0; /* FITR8 purple: primary action, calories ring */
+  --color-brand-hover: #6a0fbd;
+  --color-brand-glow: #a855f7; /* shutter, streak flame; never under text */
   --color-protein: #2f6b4f; /* protein + success */
   --color-protein-soft: #ddebe3;
   --color-carbs: #e3a13b; /* bar fill only; carbs text = #9A6212 */
-  --color-fat: #6d4fb0;
+  --color-fat: #c0396b; /* rose: distinct from brand purple and water blue */
   --color-caution-soft: #fdebd3; /* low-confidence tag bg; text #8A3C08 */
   --color-water: #2f6f9f; /* water bar, icon, + Glass text (>= 4.5:1 on ground and surface) */
   --color-water-soft: #dde9f2; /* water icon tile, pressed + Glass */
@@ -201,7 +225,7 @@ Drawn: 5b, 6b, 6c, 8, 9b, 9c. Build these from the description:
 
 - **Scanner:** use `window.BarcodeDetector` when present (experimental; missing in several major browsers), else lazy-load the MIT `barcode-detector` polyfill (ZXing-C++ WebAssembly). Formats: `ean_13`, `ean_8`, `upc_a`, `upc_e`. Needs HTTPS and camera permission; debounce so one code = one lookup.
 - **Schema (`Food`):** add `barcode String? @unique`, `brand String?`, `servingSizeG Float?`, `servingLabel String?` ("3 biscuits"), `imageUrl String?`, `verified Boolean @default(false)`, `submittedById String?`; add `OPEN_FOOD_FACTS` and `LABEL_SCAN` to `FoodSource`.
-- **`GET /api/foods/barcode/:code`:** validate the check digit → look up `foods` → else call Open Food Facts API v3 server-side (User-Agent `FitLens/0.1 (contact email)`; limit is 15 product reads/min/IP, so cache every hit and miss in Postgres, misses for 24 h) → map `nutriments` per 100 g → return product or 404.
+- **`GET /api/foods/barcode/:code`:** validate the check digit → look up `foods` → else call Open Food Facts API v3 server-side (User-Agent `FITR8/0.1 (contact email)`; limit is 15 product reads/min/IP, so cache every hit and miss in Postgres, misses for 24 h) → map `nutriments` per 100 g → return product or 404.
 - **`POST /api/foods/label`:** body `{ photoKey, barcode, name? }` → vision model extracts per-100 g energy/protein/carbs/fat/sugar/sodium + serving size as JSON → run the kcal check (4P + 4C + 9F within 15% of energy) → return values for 7g. Counts as 1 photo scan.
 - **Save from 7g:** create `Food` with `source=LABEL_SCAN`, `verified=false`, linked to the barcode; visible to its submitter immediately and to everyone after review (admin flag for now).
 - **Quota:** barcode lookups never count toward the daily photo-scan limit.

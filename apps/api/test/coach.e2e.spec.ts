@@ -1,4 +1,4 @@
-import type { CoachStreamEvent } from "@fitlens/contracts";
+import type { CoachStreamEvent } from "@fitr8/contracts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createTestApp, onboardingPayload, type TestApp } from "./support/app.js";
 

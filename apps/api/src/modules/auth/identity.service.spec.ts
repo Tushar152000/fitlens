@@ -1,4 +1,4 @@
-import { Prisma } from "@fitlens/db";
+import { Prisma } from "@fitr8/db";
 import { describe, expect, it, vi } from "vitest";
 import type { PrismaService } from "../../infra/prisma/prisma.service.js";
 import type { UsersService } from "../users/users.service.js";

@@ -28,7 +28,7 @@ import { formatInt, MEAL_LABEL } from "@/lib/format";
 import { fromItems, scaleRow, setRowGrams, toConfirmPayload, totals, type Row } from "@/lib/meal-rows";
 import { refreshDay } from "@/lib/query";
 import { colors, fonts, radius } from "@/lib/theme";
-import type { MealDetailDto } from "@fitlens/contracts";
+import type { MealDetailDto } from "@fitr8/contracts";
 
 /** GET /api/meals/:id, with the one hint the screen reads from the model's raw output. */
 type MealDto = Omit<MealDetailDto, "aiRaw"> & { aiRaw: { hiddenFatLikely?: boolean } | null };

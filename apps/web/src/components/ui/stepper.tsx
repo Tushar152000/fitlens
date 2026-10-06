@@ -1,7 +1,7 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
-import { formatQty } from "@fitlens/domain/format";
+import { formatQty } from "@fitr8/domain/format";
 
 /** −/+ stepper with 44 px buttons on a sunken track. */
 export function Stepper({

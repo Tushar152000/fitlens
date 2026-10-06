@@ -46,7 +46,7 @@ describe("auth", () => {
     agent: Agent,
     identity: Record<string, unknown> = {},
     returnTo = "/today",
-    userAgent = "Mozilla/5.0 (FitLens e2e)",
+    userAgent = "Mozilla/5.0 (FITR8 e2e)",
   ) {
     const s = await startAt(agent, `/api/auth/google?returnTo=${encodeURIComponent(returnTo)}`);
     const code = t.google.issueCode({ ...identity, nonce: s.nonce }, s.challenge);

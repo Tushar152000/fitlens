@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { apiBaseUrl } from "@/lib/api-base";
 import { ApiError } from "@/lib/api-error";
-import type { MeDto, ProfileDto } from "@fitlens/contracts";
+import type { MeDto, ProfileDto } from "@fitr8/contracts";
 
 export { ApiError };
 
 /**
- * Calls @fitlens/api from a server component or server action as the signed-in user, by forwarding
+ * Calls @fitr8/api from a server component or server action as the signed-in user, by forwarding
  * the incoming request's cookie. Never cached. Redirects to /login on 401; otherwise throws ApiError
  * with the API's `{ error, details }` (status 0 when the API can't be reached).
  */
@@ -36,7 +36,7 @@ export async function serverApi<T>(
       cache: "no-store",
     });
   } catch {
-    throw new ApiError(0, "Couldn't reach FitLens. Try again in a moment.");
+    throw new ApiError(0, "Couldn't reach FITR8. Try again in a moment.");
   }
 
   // Outside any try/catch: redirect() works by throwing.

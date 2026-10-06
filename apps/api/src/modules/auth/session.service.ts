@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { Request } from "express";
-import type { SessionClient, SessionDto } from "@fitlens/contracts";
+import type { SessionClient, SessionDto } from "@fitr8/contracts";
 import { randomToken, sha256Hex } from "../../common/crypto.js";
 import { InjectEnv, type Env } from "../../config/config.module.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";

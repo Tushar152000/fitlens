@@ -1,4 +1,4 @@
-import type { CoachChatInput, CoachConversationView, CoachMessageView, CoachStreamEvent } from "@fitlens/contracts";
+import type { CoachChatInput, CoachConversationView, CoachMessageView, CoachStreamEvent } from "@fitr8/contracts";
 import { ArrowUp, Check, CircleAlert, LoaderCircle, RotateCw, Square, SquarePen } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
@@ -44,7 +44,7 @@ function upsertTool(tools: ToolChip[], e: Extract<CoachStreamEvent, { type: "too
   return tools.some((t) => t.id === e.id) ? tools.map((t) => (t.id === e.id ? next : t)) : [...tools, next];
 }
 
-/** Chat with the FitLens coach. Replies stream in; the thread is kept so reopening continues it. */
+/** Chat with the FITR8 coach. Replies stream in; the thread is kept so reopening continues it. */
 export default function CoachScreen() {
   const insets = useSafeAreaInsets();
   const [conversationId, setConversationId] = useState<string | null>(null);

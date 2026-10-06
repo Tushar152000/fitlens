@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import type { DetectedItem } from "@fitlens/contracts";
-import { scaleNutrition } from "@fitlens/domain/nutrition";
+import type { DetectedItem } from "@fitr8/contracts";
+import { scaleNutrition } from "@fitr8/domain/nutrition";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 
 const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");

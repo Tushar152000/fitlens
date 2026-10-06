@@ -1,4 +1,4 @@
-// FitLens data model. See PRD section 10.
+// FITR8 data model. See PRD section 10.
 
 generator client {
   provider            = "prisma-client"
@@ -144,7 +144,7 @@ enum AuthEventType {
 }
 
 /// A sign-in method linked to a user: one row per (provider, provider's stable user id).
-/// We keep no provider access/refresh tokens: FitLens never calls Google on the user's behalf.
+/// We keep no provider access/refresh tokens: FITR8 never calls Google on the user's behalf.
 model AuthIdentity {
   id           String       @id @default(cuid())
   userId       String

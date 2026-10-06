@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# FitLens web (Next.js standalone). Build from the repo root:  docker build -f apps/web/Dockerfile -t fitlens-web .
+# FITR8 web (Next.js standalone). Build from the repo root:  docker build -f apps/web/Dockerfile -t fitr8-web .
 # Runtime env: API_INTERNAL_URL (where this server reaches the API).
 ARG NODE_VERSION=22
 
@@ -9,7 +9,7 @@ WORKDIR /repo
 
 FROM base AS pruner
 COPY . .
-RUN npx -y turbo@2 prune @fitlens/web --docker
+RUN npx -y turbo@2 prune @fitr8/web --docker
 
 FROM base AS builder
 COPY --from=pruner /repo/out/json/ .
@@ -17,7 +17,7 @@ COPY .npmrc ./
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 COPY --from=pruner /repo/out/full/ .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm turbo run build --filter=@fitlens/web
+RUN pnpm turbo run build --filter=@fitr8/web
 
 FROM node:${NODE_VERSION}-alpine AS runner
 RUN apk add --no-cache libc6-compat tini

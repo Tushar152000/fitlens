@@ -1,9 +1,9 @@
 ---
-name: fitlens-feature
-description: Build or change a FitLens feature end to end (contract → domain rule → Nest module → e2e test → web/mobile UI) following docs/ARCHITECTURE.md. Use for any new endpoint, table, screen, or change to business rules in this monorepo.
+name: fitr8-feature
+description: Build or change a FITR8 feature end to end (contract → domain rule → Nest module → e2e test → web/mobile UI) following docs/ARCHITECTURE.md. Use for any new endpoint, table, screen, or change to business rules in this monorepo.
 ---
 
-# FitLens feature workflow
+# FITR8 feature workflow
 
 Read `docs/ARCHITECTURE.md` first; it is binding. UI work also follows `docs/DESIGN.md` exactly.
 Use Node 22 (`nvm use`) and pnpm (`corepack enable`). Run everything from the repo root.
@@ -65,7 +65,7 @@ export class WaterController {
 
 - Web server components: `serverApi<T>("/path")` from `apps/web/src/lib/server/api.ts`. Browser code: same-origin `/api/...` via `apps/web/src/lib/client/api.ts`.
 - Mobile: `api<T>("/api/path")` from `apps/mobile/src/lib/api.ts` (+ TanStack Query hooks in `src/lib/queries.ts`).
-- Import request types from `@fitlens/contracts`; never redeclare them.
+- Import request types from `@fitr8/contracts`; never redeclare them.
 
 ## 5. Done means
 

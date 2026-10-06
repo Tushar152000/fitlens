@@ -12,7 +12,7 @@ import type {
   Prescription,
   SnackOption,
   WeekPlan,
-} from "@fitlens/domain/training";
+} from "@fitr8/domain/training";
 import type { LabelRead } from "./ai.js";
 import type { MealTypeValue, OnboardingInput } from "./requests.js";
 

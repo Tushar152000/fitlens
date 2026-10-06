@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { MealTypeSchema } from "@fitlens/contracts";
+import { MealTypeSchema } from "@fitr8/contracts";
 import { z } from "zod";
 import { UsersService } from "../../users/users.service.js";
 import { DashboardService } from "../../progress/dashboard.service.js";

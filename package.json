@@ -1,5 +1,5 @@
 {
-  "name": "fitlens",
+  "name": "fitr8",
   "private": true,
   "packageManager": "pnpm@10.34.6",
   "engines": {
@@ -9,9 +9,9 @@
     "bootstrap": "node scripts/local.mjs bootstrap",
     "start:all": "node scripts/local.mjs all",
     "stop:all": "node scripts/local.mjs stop",
-    "dev": "node scripts/local.mjs preflight web api && turbo run dev --filter=@fitlens/api --filter=@fitlens/web",
-    "dev:api": "node scripts/local.mjs preflight api && turbo run dev --filter=@fitlens/api",
-    "dev:web": "node scripts/local.mjs free web && turbo run dev --filter=@fitlens/web",
+    "dev": "node scripts/local.mjs preflight web api && turbo run dev --filter=@fitr8/api --filter=@fitr8/web",
+    "dev:api": "node scripts/local.mjs preflight api && turbo run dev --filter=@fitr8/api",
+    "dev:web": "node scripts/local.mjs free web && turbo run dev --filter=@fitr8/web",
     "dev:mobile": "node scripts/local.mjs mobile",
     "dev:android": "node scripts/local.mjs mobile --android",
     "emulator": "node scripts/local.mjs emulator",
@@ -25,11 +25,11 @@
     "format:check": "prettier --check .",
     "infra:up": "docker compose up -d --wait postgres redis minio",
     "infra:down": "docker compose down",
-    "db:generate": "pnpm --filter @fitlens/db generate",
-    "db:migrate": "pnpm --filter @fitlens/db migrate",
-    "db:deploy": "pnpm --filter @fitlens/db deploy:migrations",
-    "db:seed": "pnpm --filter @fitlens/db seed",
-    "db:studio": "pnpm --filter @fitlens/db studio"
+    "db:generate": "pnpm --filter @fitr8/db generate",
+    "db:migrate": "pnpm --filter @fitr8/db migrate",
+    "db:deploy": "pnpm --filter @fitr8/db deploy:migrations",
+    "db:seed": "pnpm --filter @fitr8/db seed",
+    "db:studio": "pnpm --filter @fitr8/db studio"
   },
   "devDependencies": {
     "prettier": "^3.9.9",

@@ -4,9 +4,9 @@ import type {
   CoachConversationView,
   CoachMessageView,
   CoachStreamEvent,
-} from "@fitlens/contracts";
-import { startOfLocalDay } from "@fitlens/domain/dates";
-import type { Prisma } from "@fitlens/db";
+} from "@fitr8/contracts";
+import { startOfLocalDay } from "@fitr8/domain/dates";
+import type { Prisma } from "@fitr8/db";
 import { AppError, notFound } from "../../common/errors.js";
 import { InjectEnv, type Env } from "../../config/config.module.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";

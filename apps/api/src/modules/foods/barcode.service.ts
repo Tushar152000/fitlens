@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { normalizeBarcode } from "@fitlens/domain/barcode";
+import { normalizeBarcode } from "@fitr8/domain/barcode";
 import { AppError } from "../../common/errors.js";
 import { InjectEnv, type Env } from "../../config/config.module.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
@@ -156,7 +156,7 @@ export class BarcodeService {
   }
 
   private async fetchOff(code: string): Promise<Record<string, unknown> | null> {
-    const ua = `FitLens/0.1 (${this.env.OFF_CONTACT || "https://github.com/Tushar152000/fitlens"})`;
+    const ua = `FITR8/0.1 (${this.env.OFF_CONTACT || "https://github.com/Tushar152000/fitlens"})`;
     const res = await fetch(
       `https://world.openfoodfacts.org/api/v3/product/${code}?fields=${OFF_FIELDS}`,
       {

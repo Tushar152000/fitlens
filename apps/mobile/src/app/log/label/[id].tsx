@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { LabelScanDto } from "@fitlens/contracts";
+import type { LabelScanDto } from "@fitr8/contracts";
 import { ProductSkeleton } from "@/components/skeletons";
 import { router, useLocalSearchParams } from "expo-router";
 import { BadgeCheck, TriangleAlert } from "lucide-react-native";

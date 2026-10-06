@@ -73,9 +73,9 @@ The MVP onboarding is 3 steps plus a plan screen (`docs/DESIGN.md` §Onboarding,
 
 ### 3.1 Goals
 
-1. One API that web and mobile use the same way. Both import field schemas from `@fitlens/contracts`.
+1. One API that web and mobile use the same way. Both import field schemas from `@fitr8/contracts`.
 2. **Resumable:** answers are saved per step on the server, so a user can stop, reinstall or switch device and continue where they left off.
-3. **The server decides what's valid.** Every value is range-checked, every combination is checked when finishing, and numbers are computed only by `@fitlens/domain`.
+3. **The server decides what's valid.** Every value is range-checked, every combination is checked when finishing, and numbers are computed only by `@fitr8/domain`.
 4. **Safe to retry:** finishing twice, or two devices answering at once, never corrupts data.
 5. **Microservice-ready:** each module owns its tables, and onboarding only talks to other modules through their services.
 
@@ -161,7 +161,7 @@ Decisions inside the model:
 
 - **Age → `birthYear`:** the design asks for age, but a stored age goes stale. `birthYear = currentYear − age` keeps the age right as years pass, within a year (fine for BMR). That's less precise than a birth date, so it collects less personal data too.
 - **Weight belongs in `body_metrics`**, not the profile. It's a time series, and onboarding writes the first point. `goals.startWeightKg` snapshots it.
-- **Metric storage, user-chosen display:** clients convert using one shared function in `@fitlens/domain/units`, so web and mobile round the same way. The API accepts only metric.
+- **Metric storage, user-chosen display:** clients convert using one shared function in `@fitr8/domain/units`, so web and mobile round the same way. The API accepts only metric.
 - **`Decimal`** for body measurements, so 70.1 doesn't come back as 70.09999.
 - **Database constraints** back up the app checks: `CHECK` on ranges, a partial unique index for one active goal, `char(2)` country.
 
@@ -210,7 +210,7 @@ All routes need a session (cookie on web, bearer token in the app), are bound to
 - **A healthy goal weight** (loss and gain goals only): refused if it gives a BMI below 17 ("let's aim for a healthier target"). Goals that would raise BMI above 35 get a warning, not a refusal.
 - **Weekly rate options by goal:** loss −0.25/−0.5/−0.75/−1.0; gain +0.25/+0.5; RECOMPOSITION and HEALTHY_BODY are fixed at 0 (screen 9 skipped). The domain caps the result at **1% of body weight per week for loss and 0.5% for gain**, with calorie floors of 1200 (F) and 1500 (M). If a choice gets capped, the result says so (`warnings`).
 - **Changed answers:** if the goal changes after the weekly rate was saved and the rate no longer fits, the rate answer is cleared, so `nextStep` points back to screen 9.
-- **Never trust client maths:** BMR, TDEE, calories and macros come from `@fitlens/domain` at completion. Client-computed numbers are never accepted.
+- **Never trust client maths:** BMR, TDEE, calories and macros come from `@fitr8/domain` at completion. Client-computed numbers are never accepted.
 
 ### 3.7 Completion: retry and crash safety
 
@@ -218,7 +218,7 @@ All routes need a session (cookie on web, bearer token in the app), are bound to
 POST /complete
  1. Load draft (userId)        → none + profile exists → return the existing result (idempotent)
  2. Check draft.version == body.version
- 3. Validate all steps and cross-field rules (pure, in @fitlens/domain)
+ 3. Validate all steps and cross-field rules (pure, in @fitr8/domain)
  4. plan = domain.planFromRate(...)
  5. users.saveProfile(userId, …)          upsert by userId
  6. progress.recordWeighIn(userId, today) upsert by (userId, date)
@@ -242,7 +242,7 @@ Each write is idempotent, so if the process dies between 5 and 9, the client's r
 - **Concurrency:** `version` gives optimistic locking, so two devices can't silently overwrite each other.
 - **Errors:** short, kind, user-facing copy in `{ error, details }`, never stack traces. A 422 carries `{ step, field }` so clients can jump back to the right screen.
 
-### 3.9 Domain changes (`@fitlens/domain`)
+### 3.9 Domain changes (`@fitr8/domain`)
 
 - `planFromRate({ sex, age, heightCm, weightKg, activity, goal, goalWeightKg, weeklyRateKg })` → BMR, TDEE, kcal, macros, projected target date, applied rate and warnings. It reuses `bmr`, `tdee`, `macrosFor` and `LIMITS`.
 - Rules for GAIN_WEIGHT (surplus toward the goal weight) and HEALTHY_BODY (maintenance calories, balanced macros).

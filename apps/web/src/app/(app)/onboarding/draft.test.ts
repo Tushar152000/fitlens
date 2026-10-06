@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OnboardingSchema } from "@fitlens/contracts";
+import { OnboardingSchema } from "@fitr8/contracts";
 import { emptyDraft, toPayload, validateStep, type OnboardingDraft } from "./draft";
 
 const today = new Date("2026-09-24T00:00:00Z");

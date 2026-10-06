@@ -38,3 +38,6 @@ npm-debug.log*
 
 # Local dev server logs (pnpm start:all)
 .dev/
+
+# Prisma client generated from the wrong directory (the real one is packages/db/src/generated)
+/src/generated/

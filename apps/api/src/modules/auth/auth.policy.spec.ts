@@ -37,6 +37,21 @@ describe("safeReturnPath", () => {
   ])("falls back to /today for %j", (value) => {
     expect(safeReturnPath(value, ORIGIN)).toBe("/today");
   });
+
+  it("never resolves to another host, whatever it's given", () => {
+    for (const value of [
+      "/a",
+      "//evil.example",
+      "/\\evil.example",
+      "/\\/evil.example",
+      "///evil.example",
+      "/%2F%2Fevil.example",
+      "/\t/evil.example",
+      "https:evil.example",
+    ]) {
+      expect(new URL(safeReturnPath(value, ORIGIN), ORIGIN).host).toBe("fitlens.app");
+    }
+  });
 });
 
 describe("isAllowedAppRedirect", () => {

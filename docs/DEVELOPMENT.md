@@ -1,6 +1,6 @@
 # Local development
 
-Everything you need to run FitLens (API, web app, mobile app) on your machine. No accounts are needed: sign-in, AI and storage all work offline-style locally. Commands run from the repo root.
+Everything you need to run FITR8 (API, web app, mobile app) on your machine. No accounts are needed: sign-in, AI and storage all work offline-style locally. Commands run from the repo root.
 
 ## 1. One-time setup
 
@@ -127,7 +127,7 @@ On Linux, hardware acceleration needs KVM (`ls -l /dev/kvm` must be readable and
 | `✗ Node 22 is required` / Prisma errors about the Node version | Wrong Node in this terminal                                               | `nvm use`                                                                                                 |
 | `Port … is held by another user or a system service`           | Something outside your user owns the port; the scripts never kill it      | Free it, or for Metro set another `METRO_PORT` in `.env`                                                  |
 | `Docker is installed but not running`                          | Docker daemon stopped                                                     | Start Docker (Linux: `sudo systemctl start docker`)                                                       |
-| App says "Couldn't reach FitLens"                              | Phone not on the same Wi-Fi, laptop IP changed, or `pnpm dev` not running | Open `http://<LAN-IP>:3000` in the phone's browser to test; `pnpm bootstrap` updates the IP               |
+| App says "Couldn't reach FITR8"                                | Phone not on the same Wi-Fi, laptop IP changed, or `pnpm dev` not running | Open `http://<LAN-IP>:3000` in the phone's browser to test; `pnpm bootstrap` updates the IP               |
 | QR code won't open on the phone                                | Network blocks device-to-laptop traffic (guest/office Wi-Fi)              | `pnpm dev:mobile --tunnel` (tunnels Metro only; the API still needs the same network or a tunnel, see §4) |
 | `expo-notifications … removed from Expo Go`                    | Expo Go on Android can't load notifications                               | Handled: reminders are off in Expo Go on Android. Use a development build to test them                    |
 | Google: `redirect_uri_mismatch`                                | The OAuth client doesn't list the callback for this address               | Add it (§4)                                                                                               |

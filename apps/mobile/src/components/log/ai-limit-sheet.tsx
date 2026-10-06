@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import type { UsageDto } from "@fitlens/contracts";
+import type { UsageDto } from "@fitr8/contracts";
 import { Crown, Keyboard } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
@@ -50,7 +50,7 @@ export function AiLimitSheet({
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Crown size={20} color={colors.brandGlow} />
           <Text weight={700} color={colors.white}>
-            FitLens Pro
+            FITR8 Pro
           </Text>
         </View>
         <Text size={13} color="rgba(255,255,255,0.75)">

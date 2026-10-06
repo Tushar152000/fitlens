@@ -1,8 +1,8 @@
 import { requireViewer, serverApiOrNull } from "@/lib/server/api";
-import type { PlanDto } from "@fitlens/contracts";
+import type { PlanDto } from "@fitr8/contracts";
 import { OnboardingForm, type OnboardingDraft } from "./onboarding-form";
 
-export const metadata = { title: "Set up your plan — FitLens" };
+export const metadata = { title: "Set up your plan — FITR8" };
 
 const ymd = (d: string) => d.slice(0, 10);
 const str = (n: number | null | undefined) => (n == null ? "" : String(n));

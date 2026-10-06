@@ -2,7 +2,7 @@ import * as Crypto from "expo-crypto";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import type { AuthTokenDto, DevLoginDto } from "@fitlens/contracts";
+import type { AuthTokenDto, DevLoginDto } from "@fitr8/contracts";
 import { api, ApiError, setApiToken, setUnauthorizedHandler } from "./api";
 import { API_URL } from "./config";
 import { queryClient } from "./query";

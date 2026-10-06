@@ -1,4 +1,4 @@
-/** An error response from @fitlens/api: `{ error, details }` plus the HTTP status (0 = unreachable). */
+/** An error response from @fitr8/api: `{ error, details }` plus the HTTP status (0 = unreachable). */
 export class ApiError extends Error {
   constructor(
     public status: number,

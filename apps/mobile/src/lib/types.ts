@@ -1,5 +1,5 @@
 /**
- * Shapes of the FitLens API responses the app reads. They come from @fitlens/contracts (the API is
+ * Shapes of the FITR8 API responses the app reads. They come from @fitr8/contracts (the API is
  * type-checked against the same DTOs); the local names are kept as aliases.
  */
 import type {
@@ -12,7 +12,7 @@ import type {
   SnackPickDto,
   TodayWorkoutDto,
   WaterDayDto,
-} from "@fitlens/contracts";
+} from "@fitr8/contracts";
 import type { MealType } from "./format";
 
 export type {
@@ -29,7 +29,7 @@ export type {
   MealStatus,
   Prescription,
   Sex,
-} from "@fitlens/contracts";
+} from "@fitr8/contracts";
 export type { MealType };
 export type Energy = EnergyLevel;
 

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { HistoryDayDto, HistoryDto } from "@fitlens/contracts";
+import type { HistoryDayDto, HistoryDto } from "@fitr8/contracts";
 import { HistorySkeleton } from "@/components/skeletons";
 import { router } from "expo-router";
 import { useState } from "react";

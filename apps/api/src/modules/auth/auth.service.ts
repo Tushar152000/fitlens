@@ -6,8 +6,8 @@ import type {
   MobileTokenInput,
   ProvidersDto,
   SessionClient,
-} from "@fitlens/contracts";
-import { Prisma } from "@fitlens/db";
+} from "@fitr8/contracts";
+import { Prisma } from "@fitr8/db";
 import { randomToken, safeEqual, seal, sha256Hex, unseal } from "../../common/crypto.js";
 import { AppError } from "../../common/errors.js";
 import { InjectEnv, isDeployed, type Env } from "../../config/config.module.js";

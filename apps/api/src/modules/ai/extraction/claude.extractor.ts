@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { LabelReadSchema, MealAnalysisSchema } from "@fitlens/contracts";
+import { LabelReadSchema, MealAnalysisSchema } from "@fitr8/contracts";
 import type { ZodType } from "zod";
 import { FALLBACK_BETA } from "../anthropic.client.js";
 import { LABEL_SYSTEM_PROMPT, SYSTEM_PROMPT, photoUserPrompt, textUserPrompt } from "./prompts.js";

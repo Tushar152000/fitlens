@@ -8,9 +8,9 @@ import type {
   QuickAddInput,
   RecheckInput,
   UploadUrlInput,
-} from "@fitlens/contracts";
-import { parseDateOnly } from "@fitlens/domain/dates";
-import { sumMacros } from "@fitlens/domain/nutrition";
+} from "@fitr8/contracts";
+import { parseDateOnly } from "@fitr8/domain/dates";
+import { sumMacros } from "@fitr8/domain/nutrition";
 import { AppError, notFound } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { JobQueue, type EnqueueResult } from "../../infra/queue/job-queue.service.js";

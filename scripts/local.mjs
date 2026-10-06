@@ -250,7 +250,7 @@ function pnpm(args, opts = {}) {
 }
 
 function migrate() {
-  const res = pnpm(["--filter", "@fitlens/db", "exec", "prisma", "migrate", "deploy"], {
+  const res = pnpm(["--filter", "@fitr8/db", "exec", "prisma", "migrate", "deploy"], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   if (res.status !== 0) fail(`Database migrations failed:\n${res.stdout}\n${res.stderr}`);
@@ -282,7 +282,7 @@ function seedIfEmpty() {
     { cwd: ROOT, encoding: "utf8" },
   );
   if (count.status === 0 && Number(count.stdout.trim()) > 0) return;
-  const res = pnpm(["--filter", "@fitlens/db", "exec", "prisma", "db", "seed"], {
+  const res = pnpm(["--filter", "@fitr8/db", "exec", "prisma", "db", "seed"], {
     stdio: ["ignore", "pipe", "pipe"],
   });
   if (res.status !== 0) fail(`Seeding failed:\n${res.stdout}\n${res.stderr}`);
@@ -398,12 +398,12 @@ async function startMobile(extraArgs) {
     );
   }
   const build = pnpm(
-    ["turbo", "run", "build", "--filter=@fitlens/contracts", "--output-logs=errors-only"],
+    ["turbo", "run", "build", "--filter=@fitr8/contracts", "--output-logs=errors-only"],
     {
       stdio: "inherit",
     },
   );
-  if (build.status !== 0) fail("Building @fitlens/contracts failed");
+  if (build.status !== 0) fail("Building @fitr8/contracts failed");
   const args = portArg >= 0 ? extraArgs : ["--port", String(port), ...extraArgs];
   step(`Starting Expo on :${port}`);
   const execPath = process.env.npm_execpath;
@@ -411,9 +411,9 @@ async function startMobile(extraArgs) {
     execPath && /\.(c?js|mjs)$/.test(execPath)
       ? [
           process.execPath,
-          [execPath, "--filter", "@fitlens/mobile", "exec", "expo", "start", ...args],
+          [execPath, "--filter", "@fitr8/mobile", "exec", "expo", "start", ...args],
         ]
-      : [execPath || "pnpm", ["--filter", "@fitlens/mobile", "exec", "expo", "start", ...args]];
+      : [execPath || "pnpm", ["--filter", "@fitr8/mobile", "exec", "expo", "start", ...args]];
   const child = spawn(cmd, argv, { cwd: ROOT, stdio: "inherit", env: androidEnv() });
   for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => child.kill(sig));
   child.on("exit", (code, signal) => process.exit(code ?? (signal ? 130 : 0)));
@@ -496,8 +496,8 @@ async function startAll(extraArgs) {
     "turbo",
     "run",
     "dev",
-    "--filter=@fitlens/api",
-    "--filter=@fitlens/web",
+    "--filter=@fitr8/api",
+    "--filter=@fitr8/web",
     "--ui=stream",
   ];
   const [cmd, argv] =

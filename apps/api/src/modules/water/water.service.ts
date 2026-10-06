@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { waterTarget } from "@fitlens/domain/nutrition";
+import { waterTarget } from "@fitr8/domain/nutrition";
 import { AppError, notFound } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { WorkoutsService } from "../workouts/workouts.service.js";

@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { Prisma, type AuthProvider } from "@fitlens/db";
+import { Prisma, type AuthProvider } from "@fitr8/db";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { UsersService } from "../users/users.service.js";
 import type { OidcIdentity } from "./google/oidc.js";
@@ -16,7 +16,7 @@ const isUniqueViolation = (err: unknown) =>
   err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
 
 /**
- * Maps a verified provider identity to a FitLens user.
+ * Maps a verified provider identity to a FITR8 user.
  *
  * 1. Known (provider, subject) → that user. The subject never changes; the email can.
  * 2. Otherwise the provider must vouch for the email (email_verified), or we refuse: an unverified

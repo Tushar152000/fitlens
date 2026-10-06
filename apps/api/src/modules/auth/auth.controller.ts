@@ -12,7 +12,7 @@ import {
   type MobileStartQuery,
   type MobileTokenInput,
   type ProvidersDto,
-} from "@fitlens/contracts";
+} from "@fitr8/contracts";
 import { Public } from "../../common/auth/decorators.js";
 import { NoStoreInterceptor } from "../../common/http/no-store.interceptor.js";
 import { StrictRateLimit } from "../../common/http/rate-limit.js";

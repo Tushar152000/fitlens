@@ -1,4 +1,4 @@
-import type { CoachMessageView, CoachStreamEvent } from "@fitlens/contracts";
+import type { CoachMessageView, CoachStreamEvent } from "@fitr8/contracts";
 
 /** A tool the coach is using (or used) for a reply, shown as a small status chip. */
 export interface ToolChip {

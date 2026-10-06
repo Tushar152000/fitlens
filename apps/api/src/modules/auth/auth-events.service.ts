@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
-import type { SessionClient } from "@fitlens/contracts";
-import type { AuthEventType } from "@fitlens/db";
+import type { SessionClient } from "@fitr8/contracts";
+import type { AuthEventType } from "@fitr8/db";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { clip, truncateIp } from "./auth.policy.js";
 import type { ClientMeta } from "./session.service.js";

@@ -3,7 +3,7 @@
  * value (names, dates, targets) goes in the conversation, never here. Change it deliberately — every edit
  * invalidates the prompt cache for all users.
  */
-export const COACH_SYSTEM_PROMPT = `You are the FitLens coach: a warm, practical nutrition and training coach inside a fitness app for people in India.
+export const COACH_SYSTEM_PROMPT = `You are the FITR8 coach: a warm, practical nutrition and training coach inside a fitness app for people in India.
 
 How you work
 - The app already knows the user's goal, daily calorie and macro targets, meals, water, weigh-ins and training plan. Use your tools to look things up instead of asking the user for numbers the app has.

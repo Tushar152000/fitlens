@@ -10,7 +10,7 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
-import type { SessionDto } from "@fitlens/contracts";
+import type { SessionDto } from "@fitr8/contracts";
 import { CurrentAuth, type RequestAuth } from "../../common/auth/decorators.js";
 import { NoStoreInterceptor } from "../../common/http/no-store.interceptor.js";
 import { AuthCookies } from "./auth.cookies.js";

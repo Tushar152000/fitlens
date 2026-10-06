@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { ProvidersDto } from "@fitlens/contracts";
+import type { ProvidersDto } from "@fitr8/contracts";
 import { LogIn } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
@@ -45,7 +45,7 @@ export default function LoginScreen() {
           {error && <FieldError>{error}</FieldError>}
           <DevSignIn />
           <Text size={12} color={colors.ink3} center>
-            By continuing you agree to our Terms and Privacy Policy. FitLens gives general fitness guidance and is not
+            By continuing you agree to our Terms and Privacy Policy. FITR8 gives general fitness guidance and is not
             medical advice.
           </Text>
         </>

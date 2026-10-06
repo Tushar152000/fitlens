@@ -4,10 +4,10 @@ import type {
   EnergyLevel,
   SnackPickDto as SnackPick,
   WorkoutLogInput,
-} from "@fitlens/contracts";
-import type { Prisma } from "@fitlens/db";
-import { weekStart } from "@fitlens/domain/dates";
-import { ageFromBirthDate } from "@fitlens/domain/nutrition";
+} from "@fitr8/contracts";
+import type { Prisma } from "@fitr8/db";
+import { weekStart } from "@fitr8/domain/dates";
+import { ageFromBirthDate } from "@fitr8/domain/nutrition";
 import {
   adjustSession,
   buildWeek,
@@ -23,7 +23,7 @@ import {
   type PlanDay,
   type Prescription,
   type SetLog,
-} from "@fitlens/domain/training";
+} from "@fitr8/domain/training";
 import { AppError } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { UsualsService } from "../meals/usuals.service.js";
@@ -89,7 +89,7 @@ const SNACK_TEMPLATES: {
   },
 ];
 
-/** Weekly training plans (built by the @fitlens/domain engine), today's adjusted session, and set logging. */
+/** Weekly training plans (built by the @fitr8/domain engine), today's adjusted session, and set logging. */
 @Injectable()
 export class WorkoutsService {
   constructor(

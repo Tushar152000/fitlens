@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { ApiError, requireOnboardedViewer, serverApi } from "@/lib/server/api";
 import { ConfirmScreen, type MealDto } from "./confirm-screen";
 
-export const metadata = { title: "Confirm meal — FitLens" };
+export const metadata = { title: "Confirm meal — FITR8" };
 
 /** Screen 8: review the AI's items, adjust portions, save. Initial data is server-rendered; the client polls while analysing. */
 export default async function ConfirmMealPage({ params }: PageProps<"/log/[id]">) {

@@ -1,4 +1,4 @@
-import type { MealItemDto } from "@fitlens/contracts";
+import type { MealItemDto } from "@fitr8/contracts";
 
 /** Editable meal items on the confirm screen. Nutrition scales linearly with quantity. */
 export interface Row {

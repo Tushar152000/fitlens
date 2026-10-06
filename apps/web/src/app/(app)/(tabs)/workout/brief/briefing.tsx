@@ -8,9 +8,9 @@ import { StickyFooter } from "@/components/sticky-footer";
 import { Button, Segmented } from "@/components/ui";
 import { api } from "@/lib/client/api";
 import { cn } from "@/lib/cn";
-import { formatInt } from "@fitlens/domain/format";
-import type { TodayWorkoutDto } from "@fitlens/contracts";
-import type { Energy } from "@fitlens/domain/training";
+import { formatInt } from "@fitr8/domain/format";
+import type { TodayWorkoutDto } from "@fitr8/contracts";
+import type { Energy } from "@fitr8/domain/training";
 
 const weekday = (ymd: string) =>
   new Intl.DateTimeFormat("en-IN", { weekday: "long", timeZone: "UTC" }).format(new Date(ymd));

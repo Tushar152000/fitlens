@@ -1,5 +1,5 @@
 /** Copied from the web app (src/lib/format.ts). Keep the two in step. */
-import type { MealTypeValue } from "@fitlens/contracts";
+import type { MealTypeValue } from "@fitr8/contracts";
 
 export type MealType = MealTypeValue;
 

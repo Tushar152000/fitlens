@@ -1,4 +1,4 @@
-# FitLens architecture and engineering standards
+# FITR8 architecture and engineering standards
 
 This is the contract for every change, human or AI. When code and this file disagree, fix one of them in the same PR.
 
@@ -21,15 +21,15 @@ This is the contract for every change, human or AI. When code and this file disa
 
 ## 2. Repository layout
 
-| Path                 | What lives there                                                                                                                 | May depend on                                          |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `apps/api`           | NestJS service: HTTP adapters, application services, infrastructure adapters, jobs, the coach agent                              | `@fitlens/domain`, `@fitlens/contracts`, `@fitlens/db` |
-| `apps/web`           | Next.js 16 PWA (UI only)                                                                                                         | `@fitlens/domain` (formatting), `@fitlens/contracts`   |
-| `apps/mobile`        | Expo app (UI only)                                                                                                               | `@fitlens/contracts`                                   |
-| `packages/domain`    | Pure business rules: nutrition, training engine, dates, formatting, barcode/label maths. No I/O, no framework. 100% unit-tested. | `zod` only                                             |
-| `packages/contracts` | Zod request schemas, AI output schemas, coach stream events, shared DTO types                                                    | `zod`, `@fitlens/domain` (types only)                  |
-| `packages/db`        | Prisma schema, migrations, seed, generated client                                                                                | `@fitlens/domain` (seed only)                          |
-| `packages/tsconfig`  | Shared compiler settings                                                                                                         | —                                                      |
+| Path                 | What lives there                                                                                                                 | May depend on                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `apps/api`           | NestJS service: HTTP adapters, application services, infrastructure adapters, jobs, the coach agent                              | `@fitr8/domain`, `@fitr8/contracts`, `@fitr8/db` |
+| `apps/web`           | Next.js 16 PWA (UI only)                                                                                                         | `@fitr8/domain` (formatting), `@fitr8/contracts` |
+| `apps/mobile`        | Expo app (UI only)                                                                                                               | `@fitr8/contracts`                               |
+| `packages/domain`    | Pure business rules: nutrition, training engine, dates, formatting, barcode/label maths. No I/O, no framework. 100% unit-tested. | `zod` only                                       |
+| `packages/contracts` | Zod request schemas, AI output schemas, coach stream events, shared DTO types                                                    | `zod`, `@fitr8/domain` (types only)              |
+| `packages/db`        | Prisma schema, migrations, seed, generated client                                                                                | `@fitr8/domain` (seed only)                      |
+| `packages/tsconfig`  | Shared compiler settings                                                                                                         | —                                                |
 
 Dependency rules are one-way: `apps → packages`, `db → domain`, never `packages → apps`, never `web/mobile → db`.
 
@@ -48,27 +48,27 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 ```
 
 - **Controllers are thin.** Parse → call one service method → return. If a controller grows an `if` about business state, move it into the service.
-- **Services own rules and persistence.** They inject `PrismaService` and other modules' _exported services_. Pure calculations live in `@fitlens/domain` and are imported, never re-implemented.
+- **Services own rules and persistence.** They inject `PrismaService` and other modules' _exported services_. Pure calculations live in `@fitr8/domain` and are imported, never re-implemented.
 - **Infrastructure behind ports.** Storage (`StorageService`), queue (`JobQueue`), model access (`FOOD_EXTRACTOR`, `ANTHROPIC`) are injected. Swapping S3 for R2, Redis for SQS, or Claude for a mock never touches feature code.
 - **Errors.** Throw `AppError(status, message, details?)` (framework-free). `AllExceptionsFilter` renders `{ error, details }`, turns `ZodError` into 400, and hides internals behind a 500. Messages are user-facing copy: short, kind, actionable.
-- **Validation at the edge.** Every body/query goes through a schema from `@fitlens/contracts` (`@ZodBody(Schema)`). Services receive typed, trusted input.
+- **Validation at the edge.** Every body/query goes through a schema from `@fitr8/contracts` (`@ZodBody(Schema)`). Services receive typed, trusted input.
 - **Auth is global.** `AuthGuard` requires a session on every route; opt out with `@Public()` (health, OAuth). Get the caller with `@UserId()`. Every query that touches user data filters by `userId` — ownership checks are not optional.
 
 ### 3.2 Bounded contexts (modules)
 
-| Module     | Owns tables                                        | Routes                                             |
-| ---------- | -------------------------------------------------- | -------------------------------------------------- |
-| `auth`     | auth_identities, sessions, auth_codes, auth_events | `/auth/*`                                          |
-| `users`    | users                                              | `/me`, `/account`, `/export`, `/profile/reminders` |
-| `plan`     | profiles, goals, daily_targets                     | `/onboarding`, `/targets`, `/plan`, `/goal/option` |
-| `meals`    | meal_logs, meal_items, ai_calls                    | `/meals/*`, `/usage`                               |
-| `foods`    | foods, food_units, barcode_misses, label_scans     | `/foods/*`                                         |
-| `water`    | water_logs                                         | `/water/*`                                         |
-| `workouts` | exercises, workout_plans, workout_logs             | `/workouts/*`                                      |
-| `progress` | body_metrics, checkins                             | `/checkins`, `/progress`, `/history`, `/dashboard` |
-| `coach`    | coach_conversations, coach_messages                | `/coach/*`                                         |
-| `ai`       | — (model access)                                   | —                                                  |
-| `health`   | —                                                  | `/health`, `/health/live`                          |
+| Module     | Owns tables                                        | Routes                                                              |
+| ---------- | -------------------------------------------------- | ------------------------------------------------------------------- |
+| `auth`     | auth_identities, sessions, auth_codes, auth_events | `/auth/*`                                                           |
+| `users`    | users                                              | `/me`, `/account`, `/export`, `/profile/reminders`, `/profile/name` |
+| `plan`     | profiles, goals, daily_targets                     | `/onboarding`, `/targets`, `/plan`, `/goal/option`                  |
+| `meals`    | meal_logs, meal_items, ai_calls                    | `/meals/*`, `/usage`                                                |
+| `foods`    | foods, food_units, barcode_misses, label_scans     | `/foods/*`                                                          |
+| `water`    | water_logs                                         | `/water/*`                                                          |
+| `workouts` | exercises, workout_plans, workout_logs             | `/workouts/*`                                                       |
+| `progress` | body_metrics, checkins                             | `/checkins`, `/progress`, `/history`, `/dashboard`                  |
+| `coach`    | coach_conversations, coach_messages                | `/coach/*`                                                          |
+| `ai`       | — (model access)                                   | —                                                                   |
+| `health`   | —                                                  | `/health`, `/health/live`                                           |
 
 **Rule:** a module writes only its own tables. Reading another context's data goes through that module's exported service. This is what makes extraction into a separate service a mechanical change (see §6).
 
@@ -110,7 +110,7 @@ Google is the only sign-in method today. Web and app have the same features; onl
 ## 4. Design principles (apply everywhere)
 
 1. **SOLID, pragmatically.** One reason to change per class (controller = transport, service = use case, domain = rule). Depend on injected abstractions for anything with I/O. Extend by adding a module or tool, not by editing a switch.
-2. **Deterministic core, probabilistic edge.** Targets, training plans, adjustments and nutrition maths are pure, tested functions in `@fitlens/domain`. LLMs only _perceive_ (what food, how much) and _talk_ (coach). Their output is always schema-validated and shown to the user for confirmation.
+2. **Deterministic core, probabilistic edge.** Targets, training plans, adjustments and nutrition maths are pure, tested functions in `@fitr8/domain`. LLMs only _perceive_ (what food, how much) and _talk_ (coach). Their output is always schema-validated and shown to the user for confirmation.
 3. **One source of truth per fact.** Schemas in `contracts`, rules in `domain`, data in one module's tables. No copy-pasted types between apps — import them.
 4. **Explicit over clever.** Plain functions and classes, descriptive names, no metaprogramming beyond Nest's DI. A new developer should find any route in two hops: `module → controller → service`.
 5. **Fail loudly at boundaries, gracefully inside.** Validate input/config strictly; inside, a missing photo URL or a storage outage degrades one field, never a whole screen.

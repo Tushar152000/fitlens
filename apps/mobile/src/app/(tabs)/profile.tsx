@@ -22,7 +22,7 @@ import {
 import { queryClient } from "@/lib/query";
 import { colors, fonts, radius } from "@/lib/theme";
 import type { PlanResponse } from "@/lib/types-plan";
-import type { UsageDto } from "@fitlens/contracts";
+import type { UsageDto } from "@fitr8/contracts";
 
 const GOAL_LABEL = { FAT_LOSS: "Lose fat", MUSCLE_GAIN: "Build muscle", RECOMPOSITION: "Recomposition" } as const;
 const DIET_LABEL = { VEG: "Veg", NON_VEG: "Non-veg", EGGETARIAN: "Eggetarian", VEGAN: "Vegan" } as const;
@@ -178,7 +178,7 @@ export default function ProfileScreen() {
       <DangerZone onDeleted={signOut} />
 
       <Text size={12} color={colors.ink3} center>
-        {me.email} · FitLens gives general fitness guidance, not medical advice.
+        {me.email} · FITR8 gives general fitness guidance, not medical advice.
       </Text>
     </Screen>
   );
@@ -253,7 +253,7 @@ function Reminders({ lunch, dinner, water }: { lunch: boolean; dinner: boolean; 
       // Save the choice anyway: it takes effect in the installed app.
       setError("Water reminders need the installed app. Expo Go on Android can't show them.");
     } else if (key === "water" && value && !(await ensureNotificationPermission())) {
-      setError("Allow notifications for FitLens in your phone's Settings to get water reminders.");
+      setError("Allow notifications for FITR8 in your phone's Settings to get water reminders.");
       return;
     }
     setState((s) => ({ ...s, [key]: value }));
@@ -360,17 +360,17 @@ function ExportRow() {
       const csv = await apiText("/api/export");
       if (Platform.OS === "web") {
         const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-        Object.assign(document.createElement("a"), { href: url, download: "fitlens-export.csv" }).click();
+        Object.assign(document.createElement("a"), { href: url, download: "fitr8-export.csv" }).click();
         return;
       }
-      const file = new File(Paths.cache, "fitlens-export.csv");
+      const file = new File(Paths.cache, "fitr8-export.csv");
       if (file.exists) file.delete();
       file.create();
       file.write(csv);
       await Sharing.shareAsync(file.uri, {
         mimeType: "text/csv",
         UTI: "public.comma-separated-values-text",
-        dialogTitle: "Export FitLens data",
+        dialogTitle: "Export FITR8 data",
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't export. Try again.");

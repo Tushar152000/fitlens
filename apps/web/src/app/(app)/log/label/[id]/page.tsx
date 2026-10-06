@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import { MEAL_TYPES, type MealType } from "@fitlens/domain/format";
+import { MEAL_TYPES, type MealType } from "@fitr8/domain/format";
 import { ApiError, requireOnboardedViewer, serverApi } from "@/lib/server/api";
-import type { LabelScanDto } from "@fitlens/contracts";
+import type { LabelScanDto } from "@fitr8/contracts";
 import { CheckLabel } from "./check-label";
 
-export const metadata = { title: "Check label — FitLens" };
+export const metadata = { title: "Check label — FITR8" };
 
 /** Design 7g: check the values the AI read, then save and add. */
 export default async function CheckLabelPage({

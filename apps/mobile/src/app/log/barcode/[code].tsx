@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { BarcodeProductDto, FoodDto } from "@fitlens/contracts";
+import type { BarcodeProductDto, FoodDto } from "@fitr8/contracts";
 import { ProductSkeleton } from "@/components/skeletons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";

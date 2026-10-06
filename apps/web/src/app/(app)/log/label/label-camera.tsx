@@ -10,7 +10,7 @@ import { compressImage } from "@/lib/client/image";
 import { uploadPhoto } from "@/lib/client/upload";
 import { useCamera } from "@/lib/client/use-camera";
 import { cn } from "@/lib/cn";
-import type { MealType } from "@fitlens/domain/format";
+import type { MealType } from "@fitr8/domain/format";
 
 /** Labels have small print, so keep more pixels than a plate photo. */
 const LABEL_MAX_SIDE = 1600;

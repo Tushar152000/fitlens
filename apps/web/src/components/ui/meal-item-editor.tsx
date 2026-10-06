@@ -3,7 +3,7 @@
 import { Pencil, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { formatInt, formatPortion, sentenceCase, unitStep } from "@fitlens/domain/format";
+import { formatInt, formatPortion, sentenceCase, unitStep } from "@fitr8/domain/format";
 import { Stepper } from "./stepper";
 
 export const LOW_CONFIDENCE = 0.6;

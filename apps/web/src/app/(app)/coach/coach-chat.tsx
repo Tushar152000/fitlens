@@ -1,6 +1,6 @@
 "use client";
 
-import type { CoachConversationSummary, CoachConversationView } from "@fitlens/contracts";
+import type { CoachConversationSummary, CoachConversationView } from "@fitr8/contracts";
 import {
   ArrowUp,
   Check,
