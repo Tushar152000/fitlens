@@ -1,11 +1,8 @@
 import { ArrowRight, CircleCheck } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  onboardingButton,
-  OnboardingShell,
-  type ShellEstimate,
-} from "@/components/onboarding/shell";
+import { onboardingButton } from "@/components/onboarding/button-styles";
+import { OnboardingShell, type ShellEstimate } from "@/components/onboarding/shell";
 import {
   dateLabel,
   estimateLine,

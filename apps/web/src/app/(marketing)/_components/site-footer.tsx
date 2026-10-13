@@ -1,13 +1,14 @@
 import Image from "next/image";
+import Link from "next/link";
 import { CONTACT_EMAIL } from "./faq";
 
-// Link targets and social profiles aren't decided yet, so these render as plain text / icons.
-const COMPANY_LINKS = [
-  "About us",
-  "Reviews",
-  "Privacy Policy",
-  "Pricing and Refund Policy",
-  "Terms & Conditions",
+// Pages not built yet stay plain text; social profiles aren't decided yet (icons only).
+const COMPANY_LINKS: { label: string; href?: string }[] = [
+  { label: "About us" },
+  { label: "Reviews", href: "/#stories" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Pricing and Refund Policy" },
+  { label: "Terms of Use", href: "/terms" },
 ];
 const SOCIALS = [
   { icon: "/landing/social-linkedin.svg", label: "LinkedIn" },
@@ -44,10 +45,17 @@ export function SiteFooter() {
             <h2 className="mb-3.5 text-[13px] font-semibold tracking-[0.08em] text-fitr8-lilac uppercase">
               Who are we
             </h2>
-            {/* Plain text until these pages exist. */}
             <ul className="flex flex-col gap-2.5">
               {COMPANY_LINKS.map((l) => (
-                <li key={l}>{l}</li>
+                <li key={l.label}>
+                  {l.href ? (
+                    <Link href={l.href} className="hover:text-white hover:underline">
+                      {l.label}
+                    </Link>
+                  ) : (
+                    l.label
+                  )}
+                </li>
               ))}
             </ul>
           </div>

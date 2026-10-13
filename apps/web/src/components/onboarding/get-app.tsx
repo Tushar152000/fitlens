@@ -1,6 +1,6 @@
 import { Smartphone } from "lucide-react";
 import Image from "next/image";
-import { onboardingButton } from "./shell";
+import { onboardingButton } from "./button-styles";
 
 /** The app's deep link (apps/mobile app.json "scheme"); opens Today when the app is installed. */
 export const APP_LINK = "fitlens://today";

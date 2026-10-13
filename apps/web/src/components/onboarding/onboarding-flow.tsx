@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { DevLogin } from "@/components/dev-login";
 import { api, ApiError } from "@/lib/client/api";
-import { cn } from "@/lib/cn";
 import {
   emptyDraft,
   toPayload,
@@ -26,7 +25,9 @@ import {
 import { formatInt } from "@fitr8/domain/format";
 import type { ProvidersDto } from "@fitr8/contracts";
 import { PlanBuilding } from "./plan-building";
-import { onboardingButton, OnboardingShell } from "./shell";
+import { GoogleMark } from "@/components/google-mark";
+import { googleButton, onboardingButton } from "./button-styles";
+import { OnboardingShell } from "./shell";
 import { estimateLine, RAIL, SETUP_STEPS, type OnboardingMode } from "./steps-meta";
 import { AboutStep, GoalStep, NameStep, TrainingStep } from "./steps";
 
@@ -345,7 +346,7 @@ function Flow({
             lead="Sign in so your plan, meals and progress are kept safe, and waiting for you in the app."
           />
           <SignInCard
-            providers={providers ?? { google: true, dev: false }}
+            providers={providers ?? { google: true, apple: false, dev: false }}
             kcal={est?.kcal ?? null}
             days={draft.trainingDaysPerWeek}
             where={draft.equipment}
@@ -416,10 +417,7 @@ function SignInCard({
       {providers.google && (
         <a
           href={`/api/auth/google?returnTo=${encodeURIComponent(returnTo)}`}
-          className={cn(
-            onboardingButton,
-            "bg-white text-fitr8-ink shadow-[inset_0_0_0_1px_var(--color-line-strong),6px_6px_0_var(--color-fitr8-deep)] hover:bg-white hover:shadow-[inset_0_0_0_1px_var(--color-line-strong),8px_8px_0_var(--color-fitr8-deep)]",
-          )}
+          className={googleButton}
         >
           <GoogleMark />
           Continue with Google
@@ -427,32 +425,16 @@ function SignInCard({
       )}
       {providers.dev && <DevLogin next={returnTo} />}
       <p className="text-center text-xs text-ink-3">
-        We only use Google to sign you in. By continuing you agree to the Terms and Privacy Policy.
-        FITR8 gives general fitness guidance, not medical advice.
+        We only use Google to sign you in. By continuing you agree to the{" "}
+        <Link href="/terms" className="font-semibold text-fitr8 hover:underline">
+          Terms
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="font-semibold text-fitr8 hover:underline">
+          Privacy Policy
+        </Link>
+        . FITR8 gives general fitness guidance, not medical advice.
       </p>
     </div>
-  );
-}
-
-export function GoogleMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
-      <path
-        fill="#4285F4"
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.78.43 3.45 1.18 4.94l3.66-2.84z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A10.96 10.96 0 0 0 12 1 11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38z"
-      />
-    </svg>
   );
 }
