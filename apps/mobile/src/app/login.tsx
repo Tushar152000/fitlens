@@ -1,10 +1,14 @@
+import { useQuery } from "@tanstack/react-query";
+import type { ProvidersDto } from "@fitr8/contracts";
+import { LogIn } from "lucide-react-native";
 import { useState } from "react";
-import { useWindowDimensions, View } from "react-native";
+import { StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { HeroPlate } from "@/components/hero-plate";
 import { Button, FieldError, Logo, Screen, Text } from "@/components/ui";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { colors } from "@/lib/theme";
+import { colors, fonts, radius } from "@/lib/theme";
 
 /** Screen 1: welcome + sign-in. Google opens in the system browser and hands a code back to the app. */
 export default function LoginScreen() {
@@ -39,8 +43,9 @@ export default function LoginScreen() {
             </View>
           </Button>
           {error && <FieldError>{error}</FieldError>}
+          <DevSignIn />
           <Text size={12} color={colors.ink3} center>
-            By continuing you agree to our Terms and Privacy Policy. FitLens gives general fitness guidance and is not
+            By continuing you agree to our Terms and Privacy Policy. FITR8 gives general fitness guidance and is not
             medical advice.
           </Text>
         </>
@@ -58,6 +63,73 @@ export default function LoginScreen() {
     </Screen>
   );
 }
+
+/**
+ * Local development only: the API offers email sign-in when it isn't deployed, so the app works on a
+ * phone without Google (whose redirect can't reach a laptop's localhost). Hidden everywhere else.
+ */
+function DevSignIn() {
+  const { devSignIn } = useAuth();
+  const providers = useQuery({
+    queryKey: ["auth-providers"],
+    queryFn: () => api<ProvidersDto>("/api/auth/providers"),
+    staleTime: Infinity,
+    retry: false,
+  });
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!providers.data?.dev) return null;
+
+  async function submit() {
+    setBusy(true);
+    setError(null);
+    try {
+      await devSignIn(email.trim());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't sign in. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <View style={{ gap: 12 }}>
+      <Text variant="label">Developer sign-in</Text>
+      <TextInput
+        accessibilityLabel="Email"
+        value={email}
+        onChangeText={setEmail}
+        onSubmitEditing={submit}
+        placeholder="you@example.com"
+        placeholderTextColor="rgba(107,110,118,0.6)"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoComplete="email"
+        style={styles.input}
+      />
+      <Button variant="secondary" icon={LogIn} onPress={submit} loading={busy} disabled={!email.trim()}>
+        Sign in with email (dev)
+      </Button>
+      {error && <FieldError>{error}</FieldError>}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  input: {
+    height: 54,
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
+    borderRadius: radius.input,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 16,
+    fontFamily: fonts.sans500,
+    fontSize: 16,
+    color: colors.ink,
+  },
+});
 
 function GoogleMark() {
   return (

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { UsualDto } from "@fitlens/contracts";
+import type { UsualDto } from "@fitr8/contracts";
 import { router, useLocalSearchParams } from "expo-router";
 import { ChevronRight, Info, Repeat, X } from "lucide-react-native";
 import { useState } from "react";

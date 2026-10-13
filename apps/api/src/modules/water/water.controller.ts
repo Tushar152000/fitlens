@@ -1,5 +1,5 @@
 import { Controller, Delete, Get, HttpCode, Param, Post } from "@nestjs/common";
-import { WaterAddSchema, type WaterAddInput, type WaterDayDto } from "@fitlens/contracts";
+import { WaterAddSchema, type WaterAddInput, type WaterDayDto } from "@fitr8/contracts";
 import { UserId } from "../../common/auth/decorators.js";
 import { ZodBody } from "../../common/http/zod.js";
 import { wire } from "../../common/http/wire.js";

@@ -9,14 +9,8 @@ import { StickyFooter } from "@/components/sticky-footer";
 import { Button, Chip } from "@/components/ui";
 import { api } from "@/lib/client/api";
 import { queueMeal } from "@/lib/client/offline-queue";
-import type { UsualDto } from "@fitlens/contracts";
-import {
-  formatInt,
-  MEAL_LABEL,
-  MEAL_TYPES,
-  mealTitle,
-  type MealType,
-} from "@fitlens/domain/format";
+import type { UsualDto } from "@fitr8/contracts";
+import { formatInt, MEAL_LABEL, MEAL_TYPES, mealTitle, type MealType } from "@fitr8/domain/format";
 import { ModeTabs } from "../mode-tabs";
 
 export type Usual = UsualDto;

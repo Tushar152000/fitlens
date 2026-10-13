@@ -3,11 +3,11 @@ import { buttonClass } from "@/components/ui";
 import { Logo } from "@/components/logo";
 import { apiBaseUrl } from "@/lib/api-base";
 import { currentUser } from "@/lib/server/api";
-import type { ProvidersDto } from "@fitlens/contracts";
+import type { ProvidersDto } from "@fitr8/contracts";
 import { DevLogin } from "./dev-login";
 import { HeroPlate } from "./hero-plate";
 
-export const metadata = { title: "Sign in — FitLens" };
+export const metadata = { title: "Sign in — FITR8" };
 
 /** Which sign-in methods the API offers. If it can't be reached, still show Google. */
 async function providers(): Promise<ProvidersDto> {
@@ -22,7 +22,9 @@ async function providers(): Promise<ProvidersDto> {
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const [me, available, sp] = await Promise.all([currentUser(), providers(), searchParams]);
-  if (me) redirect("/today");
+  // Where to land after sign-in (e.g. the /welcome flow). Same-site paths only: no "//" or "/\", which browsers resolve to another host.
+  const next = typeof sp.next === "string" && /^\/(?![/\\])/.test(sp.next) ? sp.next : "/today";
+  if (me) redirect(next);
   // The API sends users back here with a short, user-facing reason (e.g. "Sign-in was cancelled").
   const error = typeof sp.error === "string" ? sp.error.slice(0, 200) : null;
 
@@ -49,16 +51,19 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         )}
 
         {available.google && (
-          <a href="/api/auth/google?returnTo=/today" className={buttonClass("strong")}>
+          <a
+            href={`/api/auth/google?returnTo=${encodeURIComponent(next)}`}
+            className={buttonClass("strong")}
+          >
             <GoogleMark />
             Continue with Google
           </a>
         )}
 
-        {available.dev && <DevLogin />}
+        {available.dev && <DevLogin next={next} />}
 
         <p className="mt-2 text-center text-[12px] text-ink-3">
-          By continuing you agree to our Terms and Privacy Policy. FitLens gives general fitness
+          By continuing you agree to our Terms and Privacy Policy. FITR8 gives general fitness
           guidance and is not medical advice.
         </p>
       </div>

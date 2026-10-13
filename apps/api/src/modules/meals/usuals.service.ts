@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { MealTypeValue } from "@fitlens/contracts";
+import type { MealTypeValue } from "@fitr8/contracts";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { UsersService } from "../users/users.service.js";
 

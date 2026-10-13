@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { MealRow } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { formatInt, formatTime, MEAL_LABEL, type MealType } from "@fitlens/domain/format";
+import { formatInt, formatTime, MEAL_LABEL, type MealType } from "@fitr8/domain/format";
 import { requireOnboardedViewer, serverApi } from "@/lib/server/api";
-import type { HistoryDayDto, HistoryDto } from "@fitlens/contracts";
+import type { HistoryDayDto, HistoryDto } from "@fitr8/contracts";
 
-export const metadata = { title: "History — FitLens" };
+export const metadata = { title: "History — FITR8" };
 
 const dayLabel = (ymd: string, opts: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("en-IN", { ...opts, timeZone: "UTC" }).format(new Date(ymd));

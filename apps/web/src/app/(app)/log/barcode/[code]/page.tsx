@@ -1,9 +1,9 @@
-import { MEAL_TYPES, mealTypeForHour, type MealType } from "@fitlens/domain/format";
+import { MEAL_TYPES, mealTypeForHour, type MealType } from "@fitr8/domain/format";
 import { ApiError, requireOnboardedViewer, serverApi } from "@/lib/server/api";
-import type { BarcodeProductDto } from "@fitlens/contracts";
+import type { BarcodeProductDto } from "@fitr8/contracts";
 import { NotFoundScreen, ProductScreen } from "./product-screens";
 
-export const metadata = { title: "Product — FitLens" };
+export const metadata = { title: "Product — FITR8" };
 
 /** Design 7d (found) and 7e (not found) for one barcode. */
 export default async function ProductPage({

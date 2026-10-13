@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import type { GoalOptionInput, OnboardingInput } from "@fitlens/contracts";
-import { localDate, parseDateOnly } from "@fitlens/domain/dates";
-import { bodyFatNavy } from "@fitlens/domain/nutrition";
+import type { GoalOptionInput, OnboardingInput } from "@fitr8/contracts";
+import { localDate, parseDateOnly } from "@fitr8/domain/dates";
+import { bodyFatNavy } from "@fitr8/domain/nutrition";
 import { AppError } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { UsersService } from "../users/users.service.js";

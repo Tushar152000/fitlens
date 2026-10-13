@@ -1,173 +1,123 @@
-import { Body, Controller, Get, HttpCode, Post, Query, Req, Res } from "@nestjs/common";
+import { Controller, Get, HttpCode, Post, Req, Res, UseInterceptors } from "@nestjs/common";
 import type { Request, Response } from "express";
-import { randomBytes } from "node:crypto";
-import type { DevLoginDto, MobileTokenDto, ProvidersDto } from "@fitlens/contracts";
-import { z } from "zod";
+import {
+  DevLoginSchema,
+  GoogleStartQuerySchema,
+  MobileStartQuerySchema,
+  MobileTokenSchema,
+  type AuthTokenDto,
+  type DevLoginDto,
+  type DevLoginInput,
+  type GoogleStartQuery,
+  type MobileStartQuery,
+  type MobileTokenInput,
+  type ProvidersDto,
+} from "@fitr8/contracts";
 import { Public } from "../../common/auth/decorators.js";
-import { signPayload, verifyPayload } from "../../common/crypto.js";
-import { AppError } from "../../common/errors.js";
-import { ZodPipe } from "../../common/http/zod.js";
-import { InjectEnv, type Env } from "../../config/config.module.js";
-import { PrismaService } from "../../infra/prisma/prisma.service.js";
-import { GoogleOAuthService } from "./google-oauth.service.js";
-import { isAllowedRedirect, isChallenge, redeemCode, signCode } from "./mobile-handoff.js";
-import { MOBILE_SESSION_DAYS, SessionService } from "./session.service.js";
+import { NoStoreInterceptor } from "../../common/http/no-store.interceptor.js";
+import { StrictRateLimit } from "../../common/http/rate-limit.js";
+import { ZodBody, ZodQuery } from "../../common/http/zod.js";
+import { AuthCookies } from "./auth.cookies.js";
+import { AuthService, type CallbackQuery } from "./auth.service.js";
+import { clientMeta } from "./session.service.js";
 
-const STATE_COOKIE = "fitlens_oauth";
-const STATE_TTL_MS = 10 * 60 * 1000;
+const str = (v: unknown) => (typeof v === "string" ? v : undefined);
 
-interface OAuthState {
-  /** Must equal the state cookie: binds the callback to the browser that started it (CSRF). */
-  n: string;
-  /** Web: where to land after sign-in (a same-site path). */
-  r?: string;
-  /** App hand-off: the PKCE challenge and the app redirect. */
-  m?: { c: string; r: string };
-}
-
-const TokenBody = z.object({
-  code: z.string().min(1).max(1000),
-  verifier: z.string().min(43).max(128),
-});
-const DevLoginBody = z.object({ email: z.string().email(), name: z.string().max(80).optional() });
-
-/** Only same-site paths, so the sign-in flow can't be used as an open redirect. */
-const safePath = (p: unknown) => (typeof p === "string" && /^\/(?!\/)/.test(p) ? p : "/today");
-
+/**
+ * Signing in and out. Transport only: AuthService owns the flow; this class moves cookies, bodies
+ * and redirects. Public (no session needed), rate limited per IP, never cached.
+ */
 @Public()
-@Controller()
+@StrictRateLimit()
+@UseInterceptors(NoStoreInterceptor)
+@Controller("auth")
 export class AuthController {
   constructor(
-    private readonly google: GoogleOAuthService,
-    private readonly sessions: SessionService,
-    private readonly prisma: PrismaService,
-    @InjectEnv() private readonly env: Env,
+    private readonly auth: AuthService,
+    private readonly cookies: AuthCookies,
   ) {}
 
-  /** Web sign-in: `<a href="/api/auth/google?returnTo=/today">`. */
-  @Get("auth/google")
-  startGoogle(@Query("returnTo") returnTo: string | undefined, @Res() res: Response) {
-    res.redirect(this.googleRedirect(res, { r: safePath(returnTo) }));
+  /** Which sign-in buttons the login screen shows. */
+  @Get("providers")
+  providers(): ProvidersDto {
+    return this.auth.providers();
   }
 
-  @Get("auth/callback/google")
+  /** Web: `<a href="/api/auth/google?returnTo=/today">` → Google → back to `returnTo`, signed in. */
+  @Get("google")
+  startGoogle(@ZodQuery(GoogleStartQuerySchema) query: GoogleStartQuery, @Res() res: Response) {
+    const started = this.auth.startWeb(query.returnTo);
+    this.cookies.setSignInState(res, started.state);
+    res.redirect(started.location);
+  }
+
+  /**
+   * App, step 1 (system browser): `?challenge=S256(verifier)&redirect=fitlens://auth` → Google →
+   * `fitlens://auth?code=…` (or `?error=…`).
+   */
+  @Get("mobile/start")
+  startMobile(@ZodQuery(MobileStartQuerySchema) query: MobileStartQuery, @Res() res: Response) {
+    const started = this.auth.startMobile(query);
+    this.cookies.setSignInState(res, started.state);
+    res.redirect(started.location);
+  }
+
+  /** Google's redirect back, for both flows. The path is the redirect URI registered with Google. */
+  @Get("callback/google")
   async googleCallback(@Req() req: Request, @Res() res: Response) {
-    const { code, state, error } = req.query as Record<string, string | undefined>;
-    const verified = state ? verifyPayload<OAuthState>(this.env.AUTH_SECRET, state) : null;
-    const nonce = (req.cookies as Record<string, string | undefined>)[STATE_COOKIE];
-    res.clearCookie(STATE_COOKIE, { path: "/api/auth" });
-
-    const fail = (message: string) => {
-      const url = new URL("/login", this.env.PUBLIC_URL);
-      url.searchParams.set("error", message);
-      res.redirect(url.href);
+    const query: CallbackQuery = {
+      code: str(req.query.code),
+      state: str(req.query.state),
+      error: str(req.query.error),
     };
-    if (error) return fail("Sign-in was cancelled");
-    if (!code || !verified?.ok || verified.payload.n !== nonce)
-      return fail("Sign-in expired, try again");
-
-    let userId: string;
-    try {
-      userId = await this.google.signIn(code);
-    } catch (err) {
-      return fail(err instanceof AppError ? err.message : "Google sign-in failed");
+    const sealedState = this.cookies.signInState(req);
+    this.cookies.clearSignInState(res);
+    const existing = this.cookies.sessionToken(req);
+    const outcome = await this.auth.completeGoogle(
+      query,
+      sealedState,
+      existing?.source === "cookie" ? existing.token : null,
+      clientMeta(req),
+    );
+    if (outcome.kind === "web") {
+      this.cookies.setSession(res, outcome.session.token, outcome.session.absoluteExpiresAt);
     }
-
-    const { m, r } = verified.payload;
-    if (m) {
-      const back = new URL(m.r);
-      back.searchParams.set("code", signCode(this.env.AUTH_SECRET, userId, m.c));
-      return res.redirect(back.href);
-    }
-    await this.sessions.startWebSession(res, userId);
-    res.redirect(new URL(safePath(r), this.env.PUBLIC_URL).href);
+    res.redirect(outcome.location);
   }
 
-  /** Web sign-out. */
-  @Post("auth/signout")
+  /** App, step 2: the one-time code + PKCE verifier → a bearer session token. */
+  @Post("mobile/token")
+  @HttpCode(200)
+  token(
+    @ZodBody(MobileTokenSchema) body: MobileTokenInput,
+    @Req() req: Request,
+  ): Promise<AuthTokenDto> {
+    return this.auth.redeemAppCode(body, clientMeta(req));
+  }
+
+  /** Ends this session (cookie or bearer). Always 204, signed in or not, and clears the cookie. */
+  @Post("signout")
   @HttpCode(204)
   async signOut(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const token = this.sessions.tokenFrom(req);
-    if (token) await this.sessions.revoke(token);
-    this.sessions.clearWebCookies(res);
+    const found = this.cookies.sessionToken(req);
+    await this.auth.signOut(
+      found?.token ?? null,
+      found?.source === "bearer" ? "MOBILE" : "WEB",
+      clientMeta(req),
+    );
+    this.cookies.clearSession(res);
   }
 
-  /** Step 1 of the app hand-off, opened in the phone's browser (see mobile-handoff.ts). */
-  @Get("mobile/start")
-  async mobileStart(@Req() req: Request, @Res() res: Response) {
-    const challenge = String(req.query.challenge ?? "");
-    const redirect = String(req.query.redirect ?? "");
-    if (!isChallenge(challenge) || !isAllowedRedirect(redirect)) {
-      throw new AppError(400, "Invalid sign-in request");
-    }
-    // Already signed in on this browser: skip Google.
-    const token = this.sessions.tokenFrom(req);
-    const userId = token ? await this.sessions.resolve(token) : null;
-    if (userId) {
-      const back = new URL(redirect);
-      back.searchParams.set("code", signCode(this.env.AUTH_SECRET, userId, challenge));
-      return res.redirect(back.href);
-    }
-    res.redirect(this.googleRedirect(res, { m: { c: challenge, r: redirect } }));
-  }
-
-  /** Step 2 of the app hand-off: trades the code + PKCE verifier for a bearer token. */
-  @Post("mobile/token")
-  async mobileToken(
-    @Body(new ZodPipe(TokenBody)) body: z.infer<typeof TokenBody>,
-  ): Promise<MobileTokenDto> {
-    const userId = redeemCode(this.env.AUTH_SECRET, body.code, body.verifier);
-    const { token, expires } = await this.sessions.create(userId, MOBILE_SESSION_DAYS);
-    return { token, expires: expires.toISOString() };
-  }
-
-  /** Ends the app's session: deletes the bearer token's row. */
-  @Post("mobile/signout")
-  @HttpCode(204)
-  async mobileSignOut(@Req() req: Request) {
-    const token = this.sessions.tokenFrom(req);
-    if (token) await this.sessions.revoke(token);
-  }
-
-  /** Local development only: sign in by email without Google. Sets the web cookie and returns a bearer token. */
-  @Post("auth/dev")
+  /** Local development and tests: sign in by email. Sets the web cookie and returns the same session's token. */
+  @Post("dev")
+  @HttpCode(200)
   async devLogin(
-    @Body(new ZodPipe(DevLoginBody)) body: z.infer<typeof DevLoginBody>,
+    @ZodBody(DevLoginSchema) body: DevLoginInput,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<DevLoginDto> {
-    if (!this.env.AUTH_DEV_LOGIN || this.env.NODE_ENV === "production")
-      throw new AppError(404, "Not found");
-    const email = body.email.toLowerCase();
-    const user = await this.prisma.user.upsert({
-      where: { email },
-      create: { email, name: body.name ?? email.split("@")[0] },
-      update: {},
-    });
-    await this.sessions.startWebSession(res, user.id);
-    const { token, expires } = await this.sessions.create(user.id, MOBILE_SESSION_DAYS);
-    return { userId: user.id, token, expires: expires.toISOString() };
-  }
-
-  /** Which sign-in methods the login screen should offer. */
-  @Get("auth/providers")
-  providers(): ProvidersDto {
-    return {
-      google: this.google.enabled,
-      dev: this.env.AUTH_DEV_LOGIN && this.env.NODE_ENV !== "production",
-    };
-  }
-
-  private googleRedirect(res: Response, state: Omit<OAuthState, "n">): string {
-    const n = randomBytes(16).toString("base64url");
-    res.cookie(STATE_COOKIE, n, {
-      httpOnly: true,
-      secure: this.env.PUBLIC_URL.startsWith("https://"),
-      sameSite: "lax",
-      path: "/api/auth",
-      maxAge: STATE_TTL_MS,
-    });
-    return this.google.authorizeUrl(
-      signPayload(this.env.AUTH_SECRET, { ...state, n }, STATE_TTL_MS),
-    );
+    const { userId, session } = await this.auth.devLogin(body, clientMeta(req));
+    this.cookies.setSession(res, session.token, session.absoluteExpiresAt);
+    return { userId, token: session.token, expiresAt: session.expiresAt.toISOString() };
   }
 }

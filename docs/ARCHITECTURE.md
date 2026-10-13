@@ -1,4 +1,4 @@
-# FitLens architecture and engineering standards
+# FITR8 architecture and engineering standards
 
 This is the contract for every change, human or AI. When code and this file disagree, fix one of them in the same PR.
 
@@ -21,15 +21,15 @@ This is the contract for every change, human or AI. When code and this file disa
 
 ## 2. Repository layout
 
-| Path                 | What lives there                                                                                                                 | May depend on                                          |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `apps/api`           | NestJS service: HTTP adapters, application services, infrastructure adapters, jobs, the coach agent                              | `@fitlens/domain`, `@fitlens/contracts`, `@fitlens/db` |
-| `apps/web`           | Next.js 16 PWA (UI only)                                                                                                         | `@fitlens/domain` (formatting), `@fitlens/contracts`   |
-| `apps/mobile`        | Expo app (UI only)                                                                                                               | `@fitlens/contracts`                                   |
-| `packages/domain`    | Pure business rules: nutrition, training engine, dates, formatting, barcode/label maths. No I/O, no framework. 100% unit-tested. | `zod` only                                             |
-| `packages/contracts` | Zod request schemas, AI output schemas, coach stream events, shared DTO types                                                    | `zod`, `@fitlens/domain` (types only)                  |
-| `packages/db`        | Prisma schema, migrations, seed, generated client                                                                                | `@fitlens/domain` (seed only)                          |
-| `packages/tsconfig`  | Shared compiler settings                                                                                                         | —                                                      |
+| Path                 | What lives there                                                                                                                 | May depend on                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `apps/api`           | NestJS service: HTTP adapters, application services, infrastructure adapters, jobs, the coach agent                              | `@fitr8/domain`, `@fitr8/contracts`, `@fitr8/db` |
+| `apps/web`           | Next.js 16 PWA (UI only)                                                                                                         | `@fitr8/domain` (formatting), `@fitr8/contracts` |
+| `apps/mobile`        | Expo app (UI only)                                                                                                               | `@fitr8/contracts`                               |
+| `packages/domain`    | Pure business rules: nutrition, training engine, dates, formatting, barcode/label maths. No I/O, no framework. 100% unit-tested. | `zod` only                                       |
+| `packages/contracts` | Zod request schemas, AI output schemas, coach stream events, shared DTO types                                                    | `zod`, `@fitr8/domain` (types only)              |
+| `packages/db`        | Prisma schema, migrations, seed, generated client                                                                                | `@fitr8/domain` (seed only)                      |
+| `packages/tsconfig`  | Shared compiler settings                                                                                                         | —                                                |
 
 Dependency rules are one-way: `apps → packages`, `db → domain`, never `packages → apps`, never `web/mobile → db`.
 
@@ -48,27 +48,27 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 ```
 
 - **Controllers are thin.** Parse → call one service method → return. If a controller grows an `if` about business state, move it into the service.
-- **Services own rules and persistence.** They inject `PrismaService` and other modules' _exported services_. Pure calculations live in `@fitlens/domain` and are imported, never re-implemented.
+- **Services own rules and persistence.** They inject `PrismaService` and other modules' _exported services_. Pure calculations live in `@fitr8/domain` and are imported, never re-implemented.
 - **Infrastructure behind ports.** Storage (`StorageService`), queue (`JobQueue`), model access (`FOOD_EXTRACTOR`, `ANTHROPIC`) are injected. Swapping S3 for R2, Redis for SQS, or Claude for a mock never touches feature code.
 - **Errors.** Throw `AppError(status, message, details?)` (framework-free). `AllExceptionsFilter` renders `{ error, details }`, turns `ZodError` into 400, and hides internals behind a 500. Messages are user-facing copy: short, kind, actionable.
-- **Validation at the edge.** Every body/query goes through a schema from `@fitlens/contracts` (`@ZodBody(Schema)`). Services receive typed, trusted input.
+- **Validation at the edge.** Every body/query goes through a schema from `@fitr8/contracts` (`@ZodBody(Schema)`). Services receive typed, trusted input.
 - **Auth is global.** `AuthGuard` requires a session on every route; opt out with `@Public()` (health, OAuth). Get the caller with `@UserId()`. Every query that touches user data filters by `userId` — ownership checks are not optional.
 
 ### 3.2 Bounded contexts (modules)
 
-| Module     | Owns tables                                    | Routes                                             |
-| ---------- | ---------------------------------------------- | -------------------------------------------------- |
-| `auth`     | sessions, accounts, verification_tokens        | `/auth/*`, `/mobile/*`                             |
-| `users`    | users                                          | `/me`, `/account`, `/export`, `/profile/reminders` |
-| `plan`     | profiles, goals, daily_targets                 | `/onboarding`, `/targets`, `/plan`, `/goal/option` |
-| `meals`    | meal_logs, meal_items, ai_calls                | `/meals/*`, `/usage`                               |
-| `foods`    | foods, food_units, barcode_misses, label_scans | `/foods/*`                                         |
-| `water`    | water_logs                                     | `/water/*`                                         |
-| `workouts` | exercises, workout_plans, workout_logs         | `/workouts/*`                                      |
-| `progress` | body_metrics, checkins                         | `/checkins`, `/progress`, `/history`, `/dashboard` |
-| `coach`    | coach_conversations, coach_messages            | `/coach/*`                                         |
-| `ai`       | — (model access)                               | —                                                  |
-| `health`   | —                                              | `/health`, `/health/live`                          |
+| Module     | Owns tables                                        | Routes                                                              |
+| ---------- | -------------------------------------------------- | ------------------------------------------------------------------- |
+| `auth`     | auth_identities, sessions, auth_codes, auth_events | `/auth/*`                                                           |
+| `users`    | users                                              | `/me`, `/account`, `/export`, `/profile/reminders`, `/profile/name` |
+| `plan`     | profiles, goals, daily_targets                     | `/onboarding`, `/targets`, `/plan`, `/goal/option`                  |
+| `meals`    | meal_logs, meal_items, ai_calls                    | `/meals/*`, `/usage`                                                |
+| `foods`    | foods, food_units, barcode_misses, label_scans     | `/foods/*`                                                          |
+| `water`    | water_logs                                         | `/water/*`                                                          |
+| `workouts` | exercises, workout_plans, workout_logs             | `/workouts/*`                                                       |
+| `progress` | body_metrics, checkins                             | `/checkins`, `/progress`, `/history`, `/dashboard`                  |
+| `coach`    | coach_conversations, coach_messages                | `/coach/*`                                                          |
+| `ai`       | — (model access)                                   | —                                                                   |
+| `health`   | —                                                  | `/health`, `/health/live`                                           |
 
 **Rule:** a module writes only its own tables. Reading another context's data goes through that module's exported service. This is what makes extraction into a separate service a mechanical change (see §6).
 
@@ -89,16 +89,28 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 
 ### 3.5 Cross-cutting
 
-- **Config:** all env vars are declared and validated in `src/config/env.ts`; the process refuses to boot on invalid config. Read config only via `@InjectEnv()`.
+- **Config:** all env vars are declared and validated in `src/config/env.ts`; the process refuses to boot on invalid config. Read config only via `@InjectEnv()`. `APP_ENV` (`local | test | staging | production`) decides environment-dependent defaults and rules; branch on `isDeployed(env)`, never on `NODE_ENV` (which only says how the code was built). Local setup is `pnpm bootstrap` (`scripts/local.mjs`).
 - **Logging:** structured JSON (pino) with a request id (`x-request-id` in and out); cookies and auth headers are never logged.
-- **Security:** helmet, httpOnly SameSite=Lax session cookie, PKCE hand-off for the app, signed OAuth state bound to a nonce cookie, same-site-only redirects, per-IP throttling plus per-user AI quotas, signed short-lived storage URLs, per-user storage keys verified server-side.
+- **Security:** helmet, the auth design in §3.6, per-IP throttling (stricter on sign-in) plus per-user AI quotas, signed short-lived storage URLs, per-user storage keys verified server-side.
 - **Health:** `/api/health/live` (process up) for liveness, `/api/health` (DB + Redis) for readiness.
 - **Shutdown:** SIGTERM closes the HTTP server, lets queue workers finish in-flight jobs, then disconnects Prisma/Redis.
+
+### 3.6 Authentication (modules/auth)
+
+Google is the only sign-in method today. Web and app have the same features; only the transport of the session differs.
+
+- **Sessions are opaque, database-backed and revocable.** A 256-bit random token; the `sessions` row stores only its SHA-256, so the table can't be replayed. Web carries it in an httpOnly, SameSite=Lax cookie (`__Host-fitlens_session` over https); the app sends `Authorization: Bearer`. Idle expiry slides (30 days web, 90 app, touched at most once a day so authentication is one indexed read) under a hard 365-day cap. Signing out, revoking a device or deleting the account deletes rows, effective immediately. Not JWTs, because those can't be revoked before they expire.
+- **Google flow (both clients):** authorization code with PKCE S256, a `state` and an OIDC `nonce`. Those three, plus where to go next, are sealed (AES-256-GCM, key derived from `AUTH_SECRET` per purpose) in a 10-minute cookie scoped to `/api/auth`. The callback checks state against the cookie, redeems the code with the verifier, verifies the ID token (signature via Google's JWKS, issuer, audience, expiry), then the nonce. Google sits behind the `OidcProvider` port (`GOOGLE_OIDC`); e2e tests inject a fake.
+- **Identity linking:** by provider subject (`auth_identities`), never by email alone. A new subject links to an existing user only when Google says the email is verified and that user has no other Google identity; otherwise a new user is created (through `UsersService`, which owns `users`). Concurrent first sign-ins retry on the unique constraint.
+- **App hand-off:** `/auth/mobile/start` always goes through Google (no "already signed in" shortcut a hostile app could exploit). The callback redirects to the app's scheme (`fitlens://`, plus `exp://` outside production) with a one-time code stored hashed in `auth_codes`, bound to the app's PKCE challenge, valid 2 minutes. `/auth/mobile/token` deletes the code before checking it, so it works once.
+- **Request protection:** guards run rate limit → `OriginGuard` → `AuthGuard`. `OriginGuard` rejects state-changing requests that carry the session cookie unless `Origin` is ours or `Sec-Fetch-Site` is same-origin (bearer requests are exempt). Sign-in routes are limited to `AUTH_RATE_LIMIT`/min/IP and never cached. Redirect targets are same-origin paths only.
+- **Audit and housekeeping:** `auth_events` records sign-ins, failures (with a reason code), sign-outs and revocations, with truncated IP and user agent; kept 90 days. Worker processes delete expired sessions, codes and old events hourly.
+- **Extraction:** `SessionService.authenticate(token)` is the only place a token becomes a user. Splitting auth out means exposing it as token introspection (or issuing short-lived JWTs at a gateway); feature modules only ever see `@UserId()`.
 
 ## 4. Design principles (apply everywhere)
 
 1. **SOLID, pragmatically.** One reason to change per class (controller = transport, service = use case, domain = rule). Depend on injected abstractions for anything with I/O. Extend by adding a module or tool, not by editing a switch.
-2. **Deterministic core, probabilistic edge.** Targets, training plans, adjustments and nutrition maths are pure, tested functions in `@fitlens/domain`. LLMs only _perceive_ (what food, how much) and _talk_ (coach). Their output is always schema-validated and shown to the user for confirmation.
+2. **Deterministic core, probabilistic edge.** Targets, training plans, adjustments and nutrition maths are pure, tested functions in `@fitr8/domain`. LLMs only _perceive_ (what food, how much) and _talk_ (coach). Their output is always schema-validated and shown to the user for confirmation.
 3. **One source of truth per fact.** Schemas in `contracts`, rules in `domain`, data in one module's tables. No copy-pasted types between apps — import them.
 4. **Explicit over clever.** Plain functions and classes, descriptive names, no metaprogramming beyond Nest's DI. A new developer should find any route in two hops: `module → controller → service`.
 5. **Fail loudly at boundaries, gracefully inside.** Validate input/config strictly; inside, a missing photo URL or a storage outage degrades one field, never a whole screen.

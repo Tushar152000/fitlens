@@ -1,7 +1,7 @@
 import { apiBaseUrl } from "@/lib/api-base";
 
 /**
- * Transport only: pipes POST /api/coach/chat to @fitlens/api and streams the reply back unchanged.
+ * Transport only: pipes POST /api/coach/chat to @fitr8/api and streams the reply back unchanged.
  *
  * Every other /api path goes through src/proxy.ts. This one is a route handler because Next gzips
  * proxied responses, and gzip holds small server-sent events back until its buffer fills. Here the
@@ -13,7 +13,16 @@ export async function POST(request: Request) {
     "content-type": request.headers.get("content-type") ?? "application/json",
     accept: "text/event-stream",
   });
-  for (const name of ["cookie", "authorization", "x-forwarded-for", "x-request-id", "user-agent"]) {
+  // origin + sec-fetch-site let the API's cross-site request check see where the request came from.
+  for (const name of [
+    "cookie",
+    "authorization",
+    "origin",
+    "sec-fetch-site",
+    "x-forwarded-for",
+    "x-request-id",
+    "user-agent",
+  ]) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
   }

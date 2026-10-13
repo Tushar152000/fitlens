@@ -1,9 +1,9 @@
-import { MEAL_TYPES, mealTypeForHour, type MealType } from "@fitlens/domain/format";
+import { MEAL_TYPES, mealTypeForHour, type MealType } from "@fitr8/domain/format";
 import { requireOnboardedViewer, serverApiOrNull } from "@/lib/server/api";
-import type { UsualsDto } from "@fitlens/contracts";
+import type { UsualsDto } from "@fitr8/contracts";
 import { TypeMealScreen } from "./type-meal-screen";
 
-export const metadata = { title: "Type a meal — FitLens" };
+export const metadata = { title: "Type a meal — FITR8" };
 
 /** Design 7b: type what you ate, or relog a usual with one tap. Typing never uses a photo scan. */
 export default async function TypeMealPage({ searchParams }: PageProps<"/log/type">) {

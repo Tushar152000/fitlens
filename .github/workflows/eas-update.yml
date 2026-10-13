@@ -31,7 +31,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm turbo run build --filter=@fitlens/contracts
+      - run: pnpm turbo run build --filter=@fitr8/contracts
 
       - name: Publish update
         working-directory: apps/mobile

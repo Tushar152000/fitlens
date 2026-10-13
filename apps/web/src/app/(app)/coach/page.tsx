@@ -1,8 +1,8 @@
-import type { CoachConversationSummary, CoachConversationView } from "@fitlens/contracts";
+import type { CoachConversationSummary, CoachConversationView } from "@fitr8/contracts";
 import { requireOnboardedViewer, serverApiOrNull } from "@/lib/server/api";
 import { CoachChat } from "./coach-chat";
 
-export const metadata = { title: "Coach — FitLens" };
+export const metadata = { title: "Coach — FITR8" };
 
 /**
  * Coach chat. Opens the most recent conversation (or `?c=<id>`); `?new=1` starts a fresh one.

@@ -57,10 +57,13 @@ jobs:
         run: pnpm format:check
 
       - name: Prisma schema
-        run: pnpm --filter @fitlens/db exec prisma validate
+        run: pnpm --filter @fitr8/db exec prisma validate
 
       - name: Lint, typecheck, test, build (all workspaces)
         run: pnpm turbo run lint typecheck test build --cache-dir=.turbo
+
+      - name: Repo scripts (local bootstrap helpers)
+        run: pnpm test:scripts
 
   docker:
     name: Docker images build

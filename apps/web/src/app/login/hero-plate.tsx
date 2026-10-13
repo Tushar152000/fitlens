@@ -12,8 +12,8 @@ export function HeroPlate({ className }: { className?: string }) {
     <div className={cn("relative mx-auto aspect-square w-full max-w-[320px]", className)}>
       <svg viewBox="0 0 200 200" className="size-full" aria-hidden>
         <circle cx="100" cy="100" r="92" fill="#FFFFFF" />
-        <circle cx="100" cy="100" r="92" fill="none" stroke="#E2DDD2" strokeWidth="2" />
-        <circle cx="100" cy="100" r="76" fill="none" stroke="#F0EBE1" strokeWidth="2" />
+        <circle cx="100" cy="100" r="92" fill="none" stroke="#E3E3EA" strokeWidth="2" />
+        <circle cx="100" cy="100" r="76" fill="none" stroke="#ECECF2" strokeWidth="2" />
 
         {/* rotis */}
         <circle cx="70" cy="66" r="30" fill="#E9C58E" />
@@ -23,14 +23,14 @@ export function HeroPlate({ className }: { className?: string }) {
         <circle cx="70" cy="80" r="2.5" fill="#C98F4A" opacity=".45" />
 
         {/* dal katori */}
-        <circle cx="138" cy="86" r="26" fill="#D9D3C7" />
+        <circle cx="138" cy="86" r="26" fill="#D4D4DE" />
         <circle cx="138" cy="86" r="21" fill="#E3A13B" />
         <circle cx="132" cy="80" r="3" fill="#2F6B4F" opacity=".7" />
-        <circle cx="144" cy="90" r="2" fill="#C2410C" opacity=".6" />
+        <circle cx="144" cy="90" r="2" fill="#8116E0" opacity=".6" />
 
         {/* rice */}
         <ellipse cx="96" cy="140" rx="34" ry="22" fill="#FBF7EE" />
-        <ellipse cx="96" cy="140" rx="34" ry="22" fill="none" stroke="#E2DDD2" strokeWidth="1.5" />
+        <ellipse cx="96" cy="140" rx="34" ry="22" fill="none" stroke="#E3E3EA" strokeWidth="1.5" />
         {[
           [84, 134],
           [98, 130],
@@ -38,12 +38,12 @@ export function HeroPlate({ className }: { className?: string }) {
           [90, 148],
           [104, 150],
         ].map(([x, y]) => (
-          <circle key={`${x}-${y}`} cx={x} cy={y} r="1.6" fill="#6B6E76" opacity=".45" />
+          <circle key={`${x}-${y}`} cx={x} cy={y} r="1.6" fill="#6B6D7A" opacity=".45" />
         ))}
 
         {/* sabzi */}
         <circle cx="146" cy="138" r="14" fill="#2F6B4F" opacity=".85" />
-        <circle cx="142" cy="134" r="4" fill="#E8772E" />
+        <circle cx="142" cy="134" r="4" fill="#A855F7" />
       </svg>
 
       {CHIPS.map((c) => (

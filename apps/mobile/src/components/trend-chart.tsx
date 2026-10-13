@@ -1,5 +1,5 @@
 import Svg, { Circle, Line, Polyline, Text as SvgText } from "react-native-svg";
-import type { ProgressDto } from "@fitlens/contracts";
+import type { ProgressDto } from "@fitr8/contracts";
 import { colors, fonts } from "@/lib/theme";
 
 export type Progress = ProgressDto;

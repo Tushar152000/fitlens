@@ -1,9 +1,9 @@
-import { EnergySchema } from "@fitlens/contracts";
+import { EnergySchema } from "@fitr8/contracts";
 import { requireOnboardedViewer, serverApi } from "@/lib/server/api";
-import type { TodayWorkoutDto } from "@fitlens/contracts";
+import type { TodayWorkoutDto } from "@fitr8/contracts";
 import { WorkoutSession } from "./workout-session";
 
-export const metadata = { title: "Workout — FitLens" };
+export const metadata = { title: "Workout — FITR8" };
 
 /** Screen 10: today's session from the coach engine, with the energy check from 10a applied. */
 export default async function WorkoutPage({ searchParams }: PageProps<"/workout">) {

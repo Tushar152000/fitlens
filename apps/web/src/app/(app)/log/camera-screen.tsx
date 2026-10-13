@@ -11,7 +11,7 @@ import { api, ApiError } from "@/lib/client/api";
 import { compressImage } from "@/lib/client/image";
 import { uploadPhoto } from "@/lib/client/upload";
 import { useCamera } from "@/lib/client/use-camera";
-import { MEAL_LABEL, MEAL_TYPES, type MealType } from "@fitlens/domain/format";
+import { MEAL_LABEL, MEAL_TYPES, type MealType } from "@fitr8/domain/format";
 import { ModeTabs } from "./mode-tabs";
 
 type Phase = "idle" | "uploading" | "analysing";

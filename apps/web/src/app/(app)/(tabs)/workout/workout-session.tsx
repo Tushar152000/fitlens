@@ -14,8 +14,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui";
 import { api } from "@/lib/client/api";
 import { cn } from "@/lib/cn";
-import type { TodayWorkoutDto } from "@fitlens/contracts";
-import type { Energy } from "@fitlens/domain/training";
+import type { TodayWorkoutDto } from "@fitr8/contracts";
+import type { Energy } from "@fitr8/domain/training";
 
 type SetState = { kg: string; reps: string; done: boolean };
 

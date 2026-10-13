@@ -7,8 +7,8 @@ import {
   type DashboardDto,
   type HistoryDto,
   type ProgressDto,
-} from "@fitlens/contracts";
-import { parseDateOnly } from "@fitlens/domain/dates";
+} from "@fitr8/contracts";
+import { parseDateOnly } from "@fitr8/domain/dates";
 import { UserId } from "../../common/auth/decorators.js";
 import { ZodBody } from "../../common/http/zod.js";
 import { wire } from "../../common/http/wire.js";

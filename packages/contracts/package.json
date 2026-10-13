@@ -1,5 +1,5 @@
 {
-  "name": "@fitlens/contracts",
+  "name": "@fitr8/contracts",
   "version": "0.0.0",
   "private": true,
   "description": "Zod request/response schemas shared by the API and every client.",
@@ -21,11 +21,11 @@
     "lint": "oxlint src"
   },
   "dependencies": {
-    "@fitlens/domain": "workspace:*",
+    "@fitr8/domain": "workspace:*",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@fitlens/tsconfig": "workspace:*",
+    "@fitr8/tsconfig": "workspace:*",
     "@types/node": "^22.10.0",
     "oxlint": "^1.58.0",
     "typescript": "^5.9.3"

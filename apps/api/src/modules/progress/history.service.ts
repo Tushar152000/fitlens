@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import type { HistoryDayDto } from "@fitlens/contracts";
-import { mealTitle } from "@fitlens/domain/format";
+import type { HistoryDayDto } from "@fitr8/contracts";
+import { mealTitle } from "@fitr8/domain/format";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 
 const DAY = 86_400_000;

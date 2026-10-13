@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { localDate } from "@fitlens/domain/dates";
-import { sumMacros } from "@fitlens/domain/nutrition";
+import { localDate } from "@fitr8/domain/dates";
+import { sumMacros } from "@fitr8/domain/nutrition";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { StorageService } from "../../infra/storage/storage.service.js";
 import { TargetsService } from "../plan/targets.service.js";

@@ -8,7 +8,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Injectable, Logger, type OnApplicationBootstrap } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import { InjectEnv, type Env } from "../../config/config.module.js";
+import { InjectEnv, isDeployed, type Env } from "../../config/config.module.js";
 
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"] as const;
 export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -36,9 +36,9 @@ export class StorageService implements OnApplicationBootstrap {
     });
   }
 
-  /** Local MinIO starts empty: create the bucket outside production so `pnpm dev` just works. */
+  /** Local MinIO starts empty: create the bucket when not deployed so `pnpm dev` just works. */
   async onApplicationBootstrap() {
-    if (this.env.NODE_ENV === "production" || !this.env.S3_ENDPOINT) return;
+    if (isDeployed(this.env) || !this.env.S3_ENDPOINT) return;
     try {
       await this.s3.send(new HeadBucketCommand({ Bucket: this.bucket }));
     } catch {

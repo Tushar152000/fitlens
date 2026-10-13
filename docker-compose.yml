@@ -41,6 +41,9 @@ services:
     environment:
       APP_ROLE: api
       NODE_ENV: production
+      # A production build on your machine: local rules (dev sign-in, http, no Google needed).
+      APP_ENV: local
+      PUBLIC_URL: http://localhost:3000
       DATABASE_URL: postgresql://fitlens:fitlens@postgres:5432/fitlens?schema=public
       REDIS_URL: redis://redis:6379
       S3_ENDPOINT: http://minio:9000
@@ -57,6 +60,7 @@ services:
     environment:
       APP_ROLE: worker
       NODE_ENV: production
+      APP_ENV: local
       DATABASE_URL: postgresql://fitlens:fitlens@postgres:5432/fitlens?schema=public
       REDIS_URL: redis://redis:6379
       S3_ENDPOINT: http://minio:9000

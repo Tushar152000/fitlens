@@ -7,7 +7,7 @@ import { useState } from "react";
 import { StickyFooter } from "@/components/sticky-footer";
 import { Button, Segmented, Stepper } from "@/components/ui";
 import { api } from "@/lib/client/api";
-import { formatInt, formatQty, MEAL_LABEL, type MealType } from "@fitlens/domain/format";
+import { formatInt, formatQty, MEAL_LABEL, type MealType } from "@fitr8/domain/format";
 
 export interface ProductDto {
   id: string;

@@ -1,5 +1,5 @@
 /** Copied from the web app (src/app/(app)/onboarding/draft.ts). Keep the two in step. */
-import type { OnboardingInput } from "@fitlens/contracts";
+import type { OnboardingInput } from "@fitr8/contracts";
 
 /** Body of POST /api/onboarding, inferred from the server's OnboardingSchema. */
 export type { OnboardingInput };

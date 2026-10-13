@@ -1,5 +1,5 @@
 /** Copied from the web app (src/app/(app)/log/[id]/rows.ts). Keep the two in step. */
-import type { ConfirmMealInput, MealItemDto } from "@fitlens/contracts";
+import type { ConfirmMealInput, MealItemDto } from "@fitr8/contracts";
 
 /** Editable meal items on the confirm screen. Nutrition scales linearly with quantity. */
 export interface Row {

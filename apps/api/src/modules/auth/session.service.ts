@@ -1,18 +1,45 @@
 import { Injectable } from "@nestjs/common";
-import type { Request, Response } from "express";
-import { randomBytes } from "node:crypto";
+import type { Request } from "express";
+import type { SessionClient, SessionDto } from "@fitr8/contracts";
+import { randomToken, sha256Hex } from "../../common/crypto.js";
 import { InjectEnv, type Env } from "../../config/config.module.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
+import { clip, initialExpiry, isSessionLive, slideExpiry, truncateIp } from "./auth.policy.js";
 
-/** Web session cookie. The Auth.js names are still read so people signed in before the move stay signed in. */
-export const SESSION_COOKIE = "fitlens_session";
-const LEGACY_COOKIES = ["__Secure-authjs.session-token", "authjs.session-token"];
-export const MOBILE_SESSION_DAYS = 90;
+/** Who is calling, for the device list and audit log. */
+export interface ClientMeta {
+  ip?: string | null;
+  userAgent?: string | null;
+}
+
+export const clientMeta = (req: Request): ClientMeta => ({
+  ip: req.ip ?? req.socket?.remoteAddress ?? null,
+  userAgent: req.headers["user-agent"] ?? null,
+});
+
+/** An authenticated request's identity. */
+export interface AuthContext {
+  userId: string;
+  sessionId: string;
+}
+
+export interface IssuedSession {
+  /** The bearer secret. Returned once, never stored. */
+  token: string;
+  sessionId: string;
+  expiresAt: Date;
+  absoluteExpiresAt: Date;
+}
 
 /**
- * Opaque, database-backed sessions (the `sessions` table). One mechanism for both clients:
- * web carries the token in an httpOnly cookie, the app in `Authorization: Bearer`.
- * Revocation is a row delete, which is why we don't use stateless JWTs here.
+ * Opaque, database-backed sessions: one mechanism for both clients (web cookie, app bearer token).
+ *
+ * Why not JWTs: a session must end the moment the user signs out, revokes a device or deletes the
+ * account. A row delete does that; a self-contained token would stay valid until it expired.
+ * Only SHA-256(token) is stored, so reading the table doesn't let anyone sign in.
+ *
+ * `authenticate` is the seam for extracting auth into its own service later: other services would
+ * call it over the network (token introspection) instead of in-process.
  */
 @Injectable()
 export class SessionService {
@@ -21,47 +48,117 @@ export class SessionService {
     @InjectEnv() private readonly env: Env,
   ) {}
 
-  tokenFrom(req: Request): string | null {
-    const bearer = req.headers.authorization?.match(/^Bearer\s+(\S+)$/i)?.[1];
-    if (bearer) return bearer;
-    const cookies = (req.cookies ?? {}) as Record<string, string | undefined>;
-    for (const name of [SESSION_COOKIE, ...LEGACY_COOKIES]) {
-      if (cookies[name]) return cookies[name]!;
-    }
-    return null;
+  private idleDays(client: SessionClient): number {
+    return client === "MOBILE" ? this.env.MOBILE_SESSION_DAYS : this.env.SESSION_DAYS;
   }
 
-  async resolve(token: string): Promise<string | null> {
+  async create(
+    userId: string,
+    client: SessionClient,
+    meta: ClientMeta,
+    now = new Date(),
+  ): Promise<IssuedSession> {
+    const token = randomToken();
+    const { expiresAt, absoluteExpiresAt } = initialExpiry(
+      now,
+      this.idleDays(client),
+      this.env.SESSION_MAX_DAYS,
+    );
+    const session = await this.prisma.session.create({
+      data: {
+        tokenHash: sha256Hex(token),
+        userId,
+        client,
+        userAgent: clip(meta.userAgent, 256),
+        ip: truncateIp(meta.ip),
+        createdAt: now,
+        lastSeenAt: now,
+        expiresAt,
+        absoluteExpiresAt,
+      },
+      select: { id: true },
+    });
+    return { token, sessionId: session.id, expiresAt, absoluteExpiresAt };
+  }
+
+  /**
+   * The session behind a token, or null when unknown or expired. Slides the idle expiry forward at
+   * most once a day, so the hot path is a single indexed read.
+   */
+  async authenticate(token: string, now = new Date()): Promise<AuthContext | null> {
+    if (!token || token.length > 512) return null;
     const session = await this.prisma.session.findUnique({
-      where: { sessionToken: token },
-      select: { userId: true, expires: true },
+      where: { tokenHash: sha256Hex(token) },
+      select: {
+        id: true,
+        userId: true,
+        client: true,
+        lastSeenAt: true,
+        expiresAt: true,
+        absoluteExpiresAt: true,
+      },
     });
-    return session && session.expires > new Date() ? session.userId : null;
+    if (!session || !isSessionLive(session, now)) return null;
+    const touch = slideExpiry(session, now, this.idleDays(session.client));
+    if (touch) {
+      // updateMany: a concurrent sign-out may have deleted the row; that's fine, not an error.
+      await this.prisma.session.updateMany({ where: { id: session.id }, data: touch });
+    }
+    return { userId: session.userId, sessionId: session.id };
   }
 
-  async create(userId: string, days: number) {
-    const sessionToken = randomBytes(32).toString("base64url");
-    const expires = new Date(Date.now() + days * 86_400_000);
-    await this.prisma.session.create({ data: { sessionToken, userId, expires } });
-    return { token: sessionToken, expires };
-  }
-
-  async revoke(token: string) {
-    await this.prisma.session.deleteMany({ where: { sessionToken: token } });
-  }
-
-  async startWebSession(res: Response, userId: string) {
-    const { token, expires } = await this.create(userId, this.env.SESSION_DAYS);
-    res.cookie(SESSION_COOKIE, token, {
-      httpOnly: true,
-      secure: this.env.PUBLIC_URL.startsWith("https://"),
-      sameSite: "lax",
-      path: "/",
-      expires,
+  /** Ends the session behind a token. Returns its owner, or null if there was none. */
+  async revokeToken(token: string): Promise<AuthContext | null> {
+    const session = await this.prisma.session.findUnique({
+      where: { tokenHash: sha256Hex(token) },
+      select: { id: true, userId: true },
     });
+    if (!session) return null;
+    await this.prisma.session.deleteMany({ where: { id: session.id } });
+    return { userId: session.userId, sessionId: session.id };
   }
 
-  clearWebCookies(res: Response) {
-    for (const name of [SESSION_COOKIE, ...LEGACY_COOKIES]) res.clearCookie(name, { path: "/" });
+  /** Ends one of the user's sessions. False when it isn't theirs or doesn't exist (→ 404). */
+  async revokeById(userId: string, sessionId: string): Promise<boolean> {
+    const { count } = await this.prisma.session.deleteMany({ where: { id: sessionId, userId } });
+    return count > 0;
+  }
+
+  /** Ends every session the user has (all devices). Returns how many. */
+  async revokeAll(userId: string): Promise<number> {
+    const { count } = await this.prisma.session.deleteMany({ where: { userId } });
+    return count;
+  }
+
+  /** The user's live sessions, most recently used first. */
+  async list(userId: string, currentSessionId: string, now = new Date()): Promise<SessionDto[]> {
+    const sessions = await this.prisma.session.findMany({
+      where: { userId, expiresAt: { gt: now }, absoluteExpiresAt: { gt: now } },
+      orderBy: { lastSeenAt: "desc" },
+      select: {
+        id: true,
+        client: true,
+        userAgent: true,
+        ip: true,
+        createdAt: true,
+        lastSeenAt: true,
+        expiresAt: true,
+      },
+    });
+    return sessions.map((s) => ({
+      ...s,
+      createdAt: s.createdAt.toISOString(),
+      lastSeenAt: s.lastSeenAt.toISOString(),
+      expiresAt: s.expiresAt.toISOString(),
+      current: s.id === currentSessionId,
+    }));
+  }
+
+  /** Housekeeping: drop sessions past either expiry. */
+  async deleteExpired(now = new Date()): Promise<number> {
+    const { count } = await this.prisma.session.deleteMany({
+      where: { OR: [{ expiresAt: { lte: now } }, { absoluteExpiresAt: { lte: now } }] },
+    });
+    return count;
   }
 }
