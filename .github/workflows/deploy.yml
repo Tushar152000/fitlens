@@ -109,7 +109,7 @@ jobs:
           --set-cloudsql-instances=${{ vars.GCP_SQL_CONNECTION }}
           --startup-probe=httpGet.path=/api/health/live,periodSeconds=2,failureThreshold=15
           --liveness-probe=httpGet.path=/api/health/live,periodSeconds=30
-          --update-env-vars=APP_ROLE=api,PUBLIC_URL=${{ vars.PUBLIC_URL }},DATABASE_POOL_MAX=5,AI_PROVIDER=anthropic,S3_REGION=auto,S3_BUCKET=${{ vars.S3_BUCKET }},S3_FORCE_PATH_STYLE=true
+          --update-env-vars=APP_ENV=production,APP_ROLE=api,PUBLIC_URL=${{ vars.PUBLIC_URL }},DATABASE_POOL_MAX=5,AI_PROVIDER=anthropic,S3_REGION=auto,S3_BUCKET=${{ vars.S3_BUCKET }},S3_FORCE_PATH_STYLE=true
           --update-secrets=DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,AUTH_GOOGLE_ID=AUTH_GOOGLE_ID:latest,AUTH_GOOGLE_SECRET=AUTH_GOOGLE_SECRET:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,S3_ENDPOINT=S3_ENDPOINT:latest,S3_ACCESS_KEY_ID=S3_ACCESS_KEY_ID:latest,S3_SECRET_ACCESS_KEY=S3_SECRET_ACCESS_KEY:latest
       - name: Smoke test
         run: |

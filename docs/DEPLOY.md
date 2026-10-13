@@ -1,4 +1,4 @@
-# Deploying FitLens
+# Deploying FITR8
 
 The backend runs on **Google Cloud** (`asia-south1`, Mumbai). CI builds and ships everything from this repo.
 
@@ -70,16 +70,19 @@ The Deploy workflow sets these on every rollout (see `.github/workflows/deploy.y
 
 | Variable                                                                   | Value                                                          |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `APP_ENV`                                                                  | `production`: enables the strict checks below                  |
 | `APP_ROLE`                                                                 | `api`                                                          |
 | `PUBLIC_URL`                                                               | repo variable `PUBLIC_URL` (the web origin)                    |
 | `DATABASE_URL`                                                             | secret; `…@localhost/fitlens?host=/cloudsql/<connection name>` |
 | `DATABASE_POOL_MAX`                                                        | `5` (× 3 instances stays under `db-f1-micro`'s 25 connections) |
-| `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ANTHROPIC_API_KEY` | secrets                                                        |
+| `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ANTHROPIC_API_KEY` | secrets (Google credentials are required in production)        |
 | `AI_PROVIDER`                                                              | `anthropic`                                                    |
 | `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`                  | secrets (R2)                                                   |
 | `S3_REGION=auto`, `S3_BUCKET` (repo variable), `S3_FORCE_PATH_STYLE=true`  | R2                                                             |
 
-Everything else in `apps/api/src/config/env.ts` keeps its default. Override it in the Cloud Run console (Edit & deploy new revision → Variables). The workflow only updates the variables above, so console-only ones such as `AI_DAILY_LIMIT`, `COACH_DAILY_LIMIT`, `CORS_ORIGINS` and `OFF_CONTACT` survive deploys. Never set `AUTH_DEV_LOGIN` in production (the API refuses to boot with it).
+Everything else in `apps/api/src/config/env.ts` keeps its default. Override it in the Cloud Run console (Edit & deploy new revision → Variables). The workflow only updates the variables above, so console-only ones such as `AI_DAILY_LIMIT`, `COACH_DAILY_LIMIT`, `SESSION_DAYS` / `MOBILE_SESSION_DAYS` / `SESSION_MAX_DAYS` (default 30, 90, 365), `AUTH_RATE_LIMIT` (default 20), `CORS_ORIGINS` and `OFF_CONTACT` survive deploys. Full list with comments: `.env.production.example`. Use a separate `AUTH_SECRET`, Google OAuth client and database per environment.
+
+With `APP_ENV=staging` or `production` the API refuses to boot with `AUTH_DEV_LOGIN` on, without Google credentials, or with a non-https `PUBLIC_URL`, and never reads a `.env` file.
 
 Health: startup and liveness probes hit `GET /api/health/live`; `GET /api/health` also checks the database.
 
@@ -87,13 +90,13 @@ Health: startup and liveness probes hit `GET /api/health/live`; `GET /api/health
 
 ## 5. Web
 
-**Vercel:** import the repo, root directory `apps/web`, framework Next.js; install command `pnpm install --frozen-lockfile`, build command `cd ../.. && pnpm turbo run build --filter=@fitlens/web`. Env: `API_INTERNAL_URL=https://<api-host>` (the API's own URL; browsers never call it directly).
+**Vercel:** import the repo, root directory `apps/web`, framework Next.js; install command `pnpm install --frozen-lockfile`, build command `cd ../.. && pnpm turbo run build --filter=@fitr8/web`. Env: `API_INTERNAL_URL=https://<api-host>` (the API's own URL; browsers never call it directly).
 
 **Container:** run `ghcr.io/<repo>/web:latest` with `API_INTERNAL_URL`, port 3000; set `WEB_DEPLOY_HOOK_URL`.
 
 ## 6. Google sign-in
 
-Authorised redirect URI: `https://YOUR-WEB-ORIGIN/api/auth/callback/google` (unchanged from the Auth.js setup). While the consent screen is in Testing only listed test users can sign in; publishing needs no verification for name/email/photo scopes.
+Authorised redirect URI: `https://YOUR-WEB-ORIGIN/api/auth/callback/google` (the same URI serves web and app sign-in). While the consent screen is in Testing only listed test users can sign in; publishing needs no verification for name/email/photo scopes.
 
 ## 7. Release flow
 
