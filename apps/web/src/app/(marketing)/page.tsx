@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Faq } from "./_components/faq";
 import { Features, TrackBand } from "./_components/features";
 import { Hero } from "./_components/hero";
+import { SiteHeader } from "./_components/site-header";
 import { SiteFooter } from "./_components/site-footer";
 import { Stats } from "./_components/stats";
 import { Testimonials } from "./_components/testimonials";
@@ -16,6 +17,7 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <>
+      <SiteHeader />
       <main>
         <Hero />
         <TrackBand />

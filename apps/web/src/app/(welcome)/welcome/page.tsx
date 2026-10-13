@@ -47,6 +47,12 @@ export default function WelcomePage() {
       <Link href="/welcome/name" className={`${primaryPill} mt-[73px] w-full max-w-[357px]`}>
         Continue
       </Link>
+      <p className="mt-5 text-[15px] text-fitr8-ink/70">
+        Already have an account?{" "}
+        <Link href="/login" className="font-semibold text-fitr8 underline-offset-4 hover:underline">
+          Log in
+        </Link>
+      </p>
     </main>
   );
 }

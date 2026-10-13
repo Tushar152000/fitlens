@@ -26,7 +26,7 @@ const FAQS = [
 /** Figma 3823:2176: title + "Still have questions" card on the left, accordion on the right. */
 export function Faq() {
   return (
-    <section className="flex justify-center px-4 pt-[62px] pb-[62px]">
+    <section id="faq" className="flex scroll-mt-16 justify-center px-4 pt-[62px] pb-[62px]">
       {/* Figma places this 898 px block at x 245, i.e. 26 px left of centre. */}
       <div className="flex w-full max-w-[898px] flex-col gap-10 md:flex-row md:items-center md:gap-[38px] lg:mr-[52px]">
         <div className="flex w-full flex-col gap-10 md:w-[341px] md:shrink-0 md:gap-[165px]">

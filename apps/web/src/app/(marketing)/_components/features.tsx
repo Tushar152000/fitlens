@@ -100,7 +100,7 @@ const FEATURES: Feature[] = [
 /** Figma 3806:1779 heading + 3808:1808: five 877 px cards, 20 px apart, alternating sides. */
 export function Features() {
   return (
-    <section className="px-6 pt-[58px] pb-[84px] lg:px-[120px]">
+    <section id="features" className="scroll-mt-16 px-6 pt-[58px] pb-[84px] lg:px-[120px]">
       <h2 className="text-center text-[30px] leading-[1.1] font-semibold sm:text-[38px]">
         Staying fit just got easier.
       </h2>

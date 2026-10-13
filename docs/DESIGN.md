@@ -40,6 +40,7 @@ and fonts. Everything behind sign-in uses the app tokens below, which share the 
 - **Tokens:** `--color-fitr8*` in `apps/web/src/app/globals.css` (brand purple `#8116E0`). Fonts:
   Inter, Playfair Display (testimonial), Roboto Bold (pill labels), loaded only by the `(marketing)`
   and `(welcome)` layouts.
+- **Navbar** (not in Figma): `SiteHeader`, fixed. Transparent at the top with the wordmark at Figma's hero position (the hero keeps an empty 22 px row for it), solid `fitr8` purple with a shadow once scrolled. Features / Results / FAQ anchors (md+), "Log in" (outline pill → `/login`) and "Start for free" (white pill → `/welcome`, sm+). `/welcome` also links "Already have an account? Log in".
 - **Wordmark:** `Fitr8Wordmark`. Figma sets it in Rostex; until that font is licensed into the repo it
   falls back to Inter ExtraBold.
 - **Assets:** `apps/web/public/landing/` and `public/welcome/`, exported from Figma.

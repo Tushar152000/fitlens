@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Fitr8Wordmark } from "@/components/fitr8-wordmark";
 
 /**
  * Figma 3803:1747 + backdrop. On desktop the frame is 1440 × 690: a 214 px purple strip, then the
@@ -62,7 +61,8 @@ export function Hero() {
 
         <div className="relative flex items-center gap-[223px] px-6 pt-[50px] pb-16 lg:pb-0 lg:pl-[15.42%]">
           <div className="flex w-full max-w-[539px] flex-col gap-[68px]">
-            <Fitr8Wordmark />
+            {/* The fixed SiteHeader draws the wordmark here; this keeps Figma's 22 px row + 68 px gap. */}
+            <div aria-hidden className="h-[22px]" />
 
             <div className="flex flex-col gap-8">
               <h1 className="flex flex-col items-start gap-[11px] text-[34px] leading-[1.1] font-bold text-white sm:text-[48px]">

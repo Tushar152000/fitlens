@@ -90,9 +90,10 @@ export function Testimonials() {
 
   return (
     <section
+      id="results"
       aria-roledescription="carousel"
       aria-label="What FITR8 users say"
-      className="flex flex-col items-center justify-center gap-12 bg-gradient-to-b from-fitr8 to-fitr8-lilac px-4 py-16 lg:h-[798px] lg:p-[10px]"
+      className="flex scroll-mt-16 flex-col items-center justify-center gap-12 bg-gradient-to-b from-fitr8 to-fitr8-lilac px-4 py-16 lg:h-[798px] lg:p-[10px]"
       // Keyboard focus pauses too; a mouse click on a dot or photo shouldn't freeze it.
       onFocus={(e) => e.target.matches(":focus-visible") && setPaused(true)}
       onBlur={() => setPaused(false)}
