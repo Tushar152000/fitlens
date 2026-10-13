@@ -13,13 +13,13 @@ const TABS = [
   { href: "/profile", label: "Profile", icon: UserRound },
 ] as const;
 
-/** Five columns with a raised camera button in the middle. Fixed to the bottom of the 480 px column. */
+/** Five columns with a raised camera button in the middle. Fixed to the bottom of the 480 px column; desktop uses SideNav instead. */
 export function TabBar() {
   const pathname = usePathname();
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-surface pb-safe"
+      className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[480px] border-t border-line bg-surface pb-safe lg:hidden"
     >
       <ul className="grid h-[84px] grid-cols-5 items-start pt-2">
         {TABS.map((tab) => {

@@ -1,95 +1,102 @@
 import { redirect } from "next/navigation";
-import { buttonClass } from "@/components/ui";
-import { Logo } from "@/components/logo";
-import { apiBaseUrl } from "@/lib/api-base";
+import Link from "next/link";
+import { DevLogin } from "@/components/dev-login";
+import { BareMark, LogoMark } from "@/components/logo";
+import { GoogleMark } from "@/components/onboarding/onboarding-flow";
+import { onboardingButton } from "@/components/onboarding/shell";
+import { cn } from "@/lib/cn";
+import { marketingFontVars } from "@/lib/fitr8-fonts";
 import { currentUser } from "@/lib/server/api";
-import type { ProvidersDto } from "@fitr8/contracts";
-import { DevLogin } from "./dev-login";
+import { signInProviders } from "@/lib/server/providers";
 import { HeroPlate } from "./hero-plate";
 
-export const metadata = { title: "Sign in — FITR8" };
+export const metadata = { title: "Log in — FITR8" };
 
-/** Which sign-in methods the API offers. If it can't be reached, still show Google. */
-async function providers(): Promise<ProvidersDto> {
-  try {
-    const res = await fetch(`${apiBaseUrl()}/api/auth/providers`, { cache: "no-store" });
-    if (res.ok) return (await res.json()) as ProvidersDto;
-  } catch {
-    // fall through
-  }
-  return { google: true, dev: false };
-}
-
+/** Returning users. New users start at /welcome (the onboarding flow ends with sign-in). */
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
-  const [me, available, sp] = await Promise.all([currentUser(), providers(), searchParams]);
-  // Where to land after sign-in (e.g. the /welcome flow). Same-site paths only: no "//" or "/\", which browsers resolve to another host.
-  const next = typeof sp.next === "string" && /^\/(?![/\\])/.test(sp.next) ? sp.next : "/today";
+  const [me, available, sp] = await Promise.all([currentUser(), signInProviders(), searchParams]);
+  // Where to land after sign-in. Same-site paths only: no "//" or "/\", which browsers resolve to another host.
+  const next = typeof sp.next === "string" && /^\/(?![/\\])/.test(sp.next) ? sp.next : "/home";
   if (me) redirect(next);
   // The API sends users back here with a short, user-facing reason (e.g. "Sign-in was cancelled").
   const error = typeof sp.error === "string" ? sp.error.slice(0, 200) : null;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col px-6 pt-10 pb-8">
-      <Logo size={30} />
-
-      <HeroPlate className="my-8" />
-
-      <h1 className="display text-[40px] leading-none">Snap your meal. Hit your goal.</h1>
-      <p className="mt-3 text-ink-2">
-        Take a photo of your thali. We find the foods and portions, you confirm, and calories and
-        macros are logged against targets built for your goal.
-      </p>
-
-      <div className="mt-auto flex flex-col gap-3 pt-8">
-        {error && (
-          <p
-            role="alert"
-            className="rounded-input bg-caution-soft px-4 py-3 text-[13px] font-semibold text-caution-text"
-          >
-            {error}
+    <div
+      className={`${marketingFontVars} min-h-dvh bg-fitr8-soft font-jakarta text-fitr8-ink antialiased lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]`}
+    >
+      <aside className="relative hidden flex-col justify-between overflow-hidden bg-fitr8 p-12 text-white lg:flex">
+        <BareMark className="pointer-events-none absolute -right-24 -bottom-20 w-[420px] opacity-[0.07]" />
+        <Link href="/" className="flex items-center gap-2.5 self-start" aria-label="FITR8 home">
+          <BareMark className="w-[26px]" />
+          <span className="text-[22px] font-extrabold tracking-[-0.02em]">FITR8</span>
+        </Link>
+        <div className="relative">
+          <h2 className="max-w-[12em] text-[48px] leading-[1.08] font-semibold tracking-[-0.03em] text-balance">
+            Snap your meal. Hit your goal.
+          </h2>
+          <p className="mt-4 max-w-[30em] text-lg text-white/80">
+            Take a photo of your thali. We find the foods and portions, you confirm, and calories
+            and macros are logged against targets built for your goal.
           </p>
-        )}
-
-        {available.google && (
-          <a
-            href={`/api/auth/google?returnTo=${encodeURIComponent(next)}`}
-            className={buttonClass("strong")}
-          >
-            <GoogleMark />
-            Continue with Google
-          </a>
-        )}
-
-        {available.dev && <DevLogin next={next} />}
-
-        <p className="mt-2 text-center text-[12px] text-ink-3">
-          By continuing you agree to our Terms and Privacy Policy. FITR8 gives general fitness
-          guidance and is not medical advice.
+        </div>
+        <p className="relative text-sm text-white/70">
+          General fitness guidance, not medical advice.
         </p>
-      </div>
-    </main>
-  );
-}
+      </aside>
 
-function GoogleMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
-      <path
-        fill="#4285F4"
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.84 14.1A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.44.34-2.1V7.06H2.18A11 11 0 0 0 1 12c0 1.78.43 3.45 1.18 4.94l3.66-2.84z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A10.96 10.96 0 0 0 12 1 11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38z"
-      />
-    </svg>
+      <main className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col justify-center px-6 py-10">
+        <Link
+          href="/"
+          className="flex items-center gap-2 self-start lg:hidden"
+          aria-label="FITR8 home"
+        >
+          <LogoMark size={30} />
+          <span className="text-[19px] font-extrabold tracking-[-0.02em]">
+            FIT<span className="text-fitr8">R8</span>
+          </span>
+        </Link>
+        <HeroPlate className="my-8 lg:hidden" />
+
+        <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.025em]">
+          Welcome back
+        </h1>
+        <p className="mt-2 text-ink-2">Log in to see today’s target, meals and workout.</p>
+
+        <div className="mt-8 flex flex-col gap-3">
+          {error && (
+            <p
+              role="alert"
+              className="rounded-input bg-caution-soft px-4 py-3 text-[13px] font-semibold text-caution-text"
+            >
+              {error}
+            </p>
+          )}
+          {available.google && (
+            <a
+              href={`/api/auth/google?returnTo=${encodeURIComponent(next)}`}
+              className={cn(
+                onboardingButton,
+                "bg-white text-fitr8-ink shadow-[inset_0_0_0_1px_var(--color-line-strong),6px_6px_0_var(--color-fitr8-deep)] hover:bg-white hover:shadow-[inset_0_0_0_1px_var(--color-line-strong),8px_8px_0_var(--color-fitr8-deep)]",
+              )}
+            >
+              <GoogleMark />
+              Continue with Google
+            </a>
+          )}
+          {available.dev && <DevLogin next={next} />}
+          <p className="mt-3 text-center text-sm text-ink-2">
+            New to FITR8?{" "}
+            <Link href="/welcome" className="font-semibold text-fitr8 hover:underline">
+              Build your free plan
+            </Link>
+          </p>
+          <p className="text-center text-xs text-ink-3">
+            By continuing you agree to our Terms and Privacy Policy. FITR8 gives general fitness
+            guidance and is not medical advice.
+          </p>
+        </div>
+      </main>
+    </div>
   );
 }

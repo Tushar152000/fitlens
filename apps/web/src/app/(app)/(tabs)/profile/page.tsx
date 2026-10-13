@@ -86,86 +86,90 @@ export default async function ProfilePage() {
         </div>
       </header>
 
-      <section
-        className="flex flex-col gap-3 rounded-card bg-ink p-5 text-white"
-        aria-label="Current goal"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[13px] font-semibold text-white/70">Current goal</p>
-            <p className="display text-[24px] leading-tight">
-              {goal ? GOAL_LABEL[goal.type] : "—"}
-            </p>
-            <p className="text-[13px] text-white/75">{goalLine}</p>
+      {/* Desktop flows the cards into two balanced columns, keeping the phone order. */}
+      <div className="flex flex-col gap-5 lg:block lg:columns-2 lg:gap-6 lg:[&>*]:mb-6 lg:[&>*]:break-inside-avoid">
+        <section
+          className="flex flex-col gap-3 rounded-card bg-ink p-5 text-white"
+          aria-label="Current goal"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[13px] font-semibold text-white/70">Current goal</p>
+              <p className="display text-[24px] leading-tight">
+                {goal ? GOAL_LABEL[goal.type] : "—"}
+              </p>
+              <p className="text-[13px] text-white/75">{goalLine}</p>
+            </div>
+            <Link
+              href="/onboarding"
+              className="flex min-h-11 items-center gap-1.5 rounded-full bg-white/10 px-3 text-[13px] font-semibold hover:bg-white/15"
+            >
+              <Pencil className="size-4" aria-hidden />
+              Edit
+            </Link>
           </div>
+          {target && (
+            <p className="border-t border-white/15 pt-3 text-[13px] text-white/75 tabular-nums">
+              <span className="font-bold text-white">{formatInt(target.kcal)} kcal</span> a day · P{" "}
+              {target.proteinG} g · C {target.carbsG} g · F {target.fatG} g
+            </p>
+          )}
+        </section>
+
+        <Group title="Body">
+          <Row label="Height" value={`${profile.heightCm} cm`} />
+          <Row
+            label="Weight"
+            value={metric ? `${metric.weightKg} kg` : "—"}
+            sub={metric ? `on ${date(metric.date)}` : undefined}
+          />
+          <Row
+            label="Body fat"
+            value={metric?.bodyFatPct != null ? `${Math.round(metric.bodyFatPct * 10) / 10}%` : "—"}
+          />
+          <Row label="Activity" value={ACTIVITY_LABEL[profile.activityLevel]} />
+        </Group>
+
+        <Group title="Food and training">
+          <Row label="Diet" value={DIET_LABEL[profile.dietType]} />
+          <Row label="Where I train" value={WHERE_LABEL[profile.equipment]} />
+          <Row
+            label="Sessions"
+            value={`${profile.trainingDaysPerWeek} a week · ${profile.sessionMinutes} min`}
+          />
           <Link
             href="/onboarding"
-            className="flex min-h-11 items-center gap-1.5 rounded-full bg-white/10 px-3 text-[13px] font-semibold hover:bg-white/15"
+            className="flex min-h-12 items-center justify-between rounded-b-card px-4 font-semibold transition-colors hover:bg-sunken"
           >
-            <Pencil className="size-4" aria-hidden />
-            Edit
+            Edit body and training
+            <ChevronRight className="size-5 text-ink-3" aria-hidden />
           </Link>
+        </Group>
+
+        <Group title="Reminders">
+          <Reminders lunch={profile.remindLunch} dinner={profile.remindDinner} />
+        </Group>
+
+        <PlanCard usage={usage} />
+
+        <Group title="Your data">
+          <a
+            href="/api/export"
+            className="flex min-h-12 items-center justify-between rounded-card px-4 font-semibold transition-colors hover:bg-sunken"
+          >
+            <span className="flex items-center gap-2">
+              <Download className="size-5 text-ink-2" aria-hidden />
+              Export as CSV
+            </span>
+            <ChevronRight className="size-5 text-ink-3" aria-hidden />
+          </a>
+        </Group>
+
+        <div className="flex flex-col gap-5">
+          <SignOutButton />
+          <DangerZone />
         </div>
-        {target && (
-          <p className="border-t border-white/15 pt-3 text-[13px] text-white/75 tabular-nums">
-            <span className="font-bold text-white">{formatInt(target.kcal)} kcal</span> a day · P{" "}
-            {target.proteinG} g · C {target.carbsG} g · F {target.fatG} g
-          </p>
-        )}
-      </section>
-
-      <Group title="Body">
-        <Row label="Height" value={`${profile.heightCm} cm`} />
-        <Row
-          label="Weight"
-          value={metric ? `${metric.weightKg} kg` : "—"}
-          sub={metric ? `on ${date(metric.date)}` : undefined}
-        />
-        <Row
-          label="Body fat"
-          value={metric?.bodyFatPct != null ? `${Math.round(metric.bodyFatPct * 10) / 10}%` : "—"}
-        />
-        <Row label="Activity" value={ACTIVITY_LABEL[profile.activityLevel]} />
-      </Group>
-
-      <Group title="Food and training">
-        <Row label="Diet" value={DIET_LABEL[profile.dietType]} />
-        <Row label="Where I train" value={WHERE_LABEL[profile.equipment]} />
-        <Row
-          label="Sessions"
-          value={`${profile.trainingDaysPerWeek} a week · ${profile.sessionMinutes} min`}
-        />
-        <Link
-          href="/onboarding"
-          className="flex min-h-12 items-center justify-between px-4 font-semibold"
-        >
-          Edit body and training
-          <ChevronRight className="size-5 text-ink-3" aria-hidden />
-        </Link>
-      </Group>
-
-      <Group title="Reminders">
-        <Reminders lunch={profile.remindLunch} dinner={profile.remindDinner} />
-      </Group>
-
-      <PlanCard usage={usage} />
-
-      <Group title="Your data">
-        <a
-          href="/api/export"
-          className="flex min-h-12 items-center justify-between px-4 font-semibold"
-        >
-          <span className="flex items-center gap-2">
-            <Download className="size-5 text-ink-2" aria-hidden />
-            Export as CSV
-          </span>
-          <ChevronRight className="size-5 text-ink-3" aria-hidden />
-        </a>
-      </Group>
-
-      <SignOutButton />
-
-      <DangerZone />
+      </div>
 
       <p className="text-center text-[12px] text-ink-3">
         {email} · FITR8 gives general fitness guidance, not medical advice.

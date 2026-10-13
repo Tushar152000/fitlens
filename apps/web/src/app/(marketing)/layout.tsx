@@ -1,8 +1,12 @@
-import { fitr8FontVars } from "@/lib/fitr8-fonts";
+import { marketingFontVars } from "@/lib/fitr8-fonts";
 
-/** Public FITR8 marketing pages: full-width, desktop-first, no session required. */
+/** Public FITR8 marketing pages: full-width, no session required. Design: docs/WEBSITE.md. */
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`${fitr8FontVars} min-h-dvh bg-white font-inter text-black`}>{children}</div>
+    <div
+      className={`${marketingFontVars} min-h-dvh bg-fitr8-soft font-jakarta text-fitr8-ink antialiased`}
+    >
+      {children}
+    </div>
   );
 }

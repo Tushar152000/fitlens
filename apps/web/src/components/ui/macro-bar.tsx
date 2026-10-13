@@ -42,7 +42,7 @@ export function MacroBar({
       >
         <div
           className={cn(
-            "h-full rounded-full transition-[width] duration-200 ease-out",
+            "h-full animate-bar-in rounded-full transition-[width] duration-200 ease-out",
             // Over target fills ink, never red (design 6c).
             eaten > target && target > 0 ? "bg-ink" : FILL[macro],
           )}

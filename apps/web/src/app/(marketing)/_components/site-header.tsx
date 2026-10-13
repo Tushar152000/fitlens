@@ -2,23 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Fitr8Wordmark } from "@/components/fitr8-wordmark";
-
-const LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#results", label: "Results" },
-  { href: "#faq", label: "FAQ" },
-];
+import { BareMark } from "@/components/logo";
+import { cn } from "@/lib/cn";
 
 /**
- * Landing navbar (not in the Figma frame). At the top it is transparent and its wordmark sits exactly
- * where Figma puts the hero's (y 50, same left edge); once the page scrolls it turns solid purple so it
- * stays readable over the white sections.
+ * Sticky top bar: purple over the hero, white once scrolled. Logo, Log in and Start for free;
+ * the section links live in the bottom dock (SectionDock).
  */
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
+
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -26,46 +21,51 @@ export function SiteHeader() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-[background-color,box-shadow,padding] duration-200 ${
-        scrolled ? "bg-fitr8 py-3 shadow-[0_2px_16px_rgba(0,0,0,0.18)]" : "pt-[41px] pb-3"
-      }`}
+      className={cn(
+        "sticky top-0 z-50 transition-[background-color,color,box-shadow] duration-200",
+        scrolled
+          ? "bg-white/90 text-fitr8-ink shadow-[0_1px_0_var(--color-line)] backdrop-blur-md"
+          : "bg-fitr8 text-white",
+      )}
     >
-      <nav
-        aria-label="Main"
-        className="mx-auto flex max-w-[1440px] items-center justify-between gap-6 px-6 lg:px-[15.42%]"
-      >
-        <Link href="/" aria-label="FITR8 home" className="shrink-0">
-          <Fitr8Wordmark />
+      <div className="mx-auto flex h-[72px] max-w-[1300px] items-center gap-6 px-4 sm:px-6 lg:px-10">
+        <Link href="/" aria-label="FITR8 home" className="flex items-center gap-2.5">
+          <span
+            className={cn(
+              "grid size-[34px] place-items-center rounded-lg transition-colors",
+              scrolled ? "bg-fitr8 text-white" : "text-white",
+            )}
+          >
+            <BareMark className={scrolled ? "w-[19px]" : "w-[26px]"} />
+          </span>
+          <span className="text-[24px] font-extrabold tracking-[-0.02em]">
+            FIT<span className={scrolled ? "text-fitr8" : undefined}>R8</span>
+          </span>
         </Link>
 
-        <ul className="hidden items-center gap-8 md:flex">
-          {LINKS.map((l) => (
-            <li key={l.href}>
-              <a
-                href={l.href}
-                className="text-[15px] font-medium text-white/85 transition-colors hover:text-white"
-              >
-                {l.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-
-        <div className="flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-2.5">
           <Link
             href="/login"
-            className="flex h-10 items-center rounded-full border border-white/80 px-5 font-roboto text-[14px] font-bold tracking-[0.1px] text-white uppercase transition-colors hover:bg-white/10"
+            className={cn(
+              "flex h-11 items-center rounded-full px-3.5 text-[15px] font-semibold transition-colors sm:px-5",
+              scrolled
+                ? "shadow-[inset_0_0_0_1.5px_var(--color-line)] hover:bg-fitr8-soft"
+                : "shadow-[inset_0_0_0_1.5px_rgb(255_255_255/0.7)] hover:bg-white/10",
+            )}
           >
             Log in
           </Link>
           <Link
             href="/welcome"
-            className="hidden h-10 items-center rounded-full bg-white px-5 font-roboto text-[14px] font-bold tracking-[0.1px] text-fitr8 uppercase sm:flex"
+            className={cn(
+              "hidden h-11 items-center rounded-full px-5 text-[15px] font-semibold shadow-hard-sm transition-[transform,box-shadow] duration-150 hover:-translate-0.5 hover:shadow-hard active:translate-0.5 active:shadow-hard-press min-[360px]:flex",
+              scrolled ? "bg-fitr8 text-white" : "bg-white text-fitr8",
+            )}
           >
             Start for free
           </Link>
         </div>
-      </nav>
+      </div>
     </header>
   );
 }
