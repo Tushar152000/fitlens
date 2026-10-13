@@ -9,5 +9,5 @@ export async function signInProviders(): Promise<ProvidersDto> {
   } catch {
     // fall through
   }
-  return { google: true, dev: false };
+  return { google: true, apple: false, dev: false };
 }

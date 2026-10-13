@@ -128,6 +128,7 @@ model User {
 
 enum AuthProvider {
   GOOGLE
+  APPLE
 }
 
 enum SessionClient {
@@ -153,6 +154,9 @@ model AuthIdentity {
   subject      String
   /// Email the provider reported at the last sign-in (for support; `users.email` is the account's).
   email        String?
+  /// Apple only: the refresh token, sealed with AUTH_SECRET, so deleting the account can revoke
+  /// Sign in with Apple (App Store guideline 5.1.1(v)). Null when it couldn't be fetched.
+  refreshTokenSealed String?
   createdAt    DateTime     @default(now())
   lastSignInAt DateTime     @default(now())
 

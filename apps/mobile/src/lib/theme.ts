@@ -1,29 +1,29 @@
-/** "Warm Athletic" tokens from docs/DESIGN.md. Keep in step with src/app/globals.css on the web. */
+/** FITR8 tokens from docs/DESIGN.md. Keep in step with apps/web/src/app/globals.css. */
 export const colors = {
-  ground: "#f6f3ec",
+  ground: "#f6f6f8",
   surface: "#ffffff",
-  sunken: "#f3efe7",
-  track: "#f0ebe1",
-  line: "#e2ddd2",
-  lineStrong: "#d9d3c7",
-  ink: "#17181c",
-  ink2: "#4a4d55",
-  ink3: "#6b6e76",
-  brand: "#c2410c",
-  brandHover: "#9a3412",
-  brandGlow: "#e8772e",
+  sunken: "#f0f0f5",
+  track: "#ececf2",
+  line: "#e3e3ea",
+  lineStrong: "#d4d4de",
+  ink: "#151724",
+  ink2: "#4a4c5a",
+  ink3: "#6b6d7a",
+  brand: "#8116e0",
+  brandHover: "#6a0fbd",
+  brandGlow: "#a855f7",
   protein: "#2f6b4f",
   proteinSoft: "#ddebe3",
   carbs: "#e3a13b",
   carbsText: "#9a6212",
-  fat: "#6d4fb0",
+  fat: "#c0396b",
   caution: "#e8a15c",
   cautionSoft: "#fdebd3",
   cautionText: "#8a3c08",
   water: "#2f6f9f", // water card and bar; text-safe on ground and surface
   waterSoft: "#dde9f2",
-  chip: "#eae5da",
-  dash: "#c9c2b4",
+  chip: "#ebebf1",
+  dash: "#c4c4d0",
   white: "#ffffff",
 } as const;
 
@@ -46,6 +46,6 @@ export const fonts = {
 
 /** Flat design: the camera FAB is the only real shadow; `seg` lifts the selected segment. */
 export const shadows = {
-  fab: { boxShadow: "0 6px 16px rgba(194, 65, 12, 0.35)" },
-  seg: { boxShadow: "0 1px 2px rgba(23, 24, 28, 0.12)" },
+  fab: { boxShadow: "0 6px 16px rgba(129, 22, 224, 0.35)" },
+  seg: { boxShadow: "0 1px 2px rgba(21, 23, 36, 0.12)" },
 } as const;

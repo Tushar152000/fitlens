@@ -94,17 +94,24 @@ Health: startup and liveness probes hit `GET /api/health/live`; `GET /api/health
 
 **Container:** run `ghcr.io/<repo>/web:latest` with `API_INTERNAL_URL`, port 3000; set `WEB_DEPLOY_HOOK_URL`.
 
-## 6. Google sign-in
+## 6. Sign in with Apple (iOS app)
+
+Set `APPLE_CLIENT_ID=com.fitr8.app`, `APPLE_TEAM_ID`, `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY` (the
+`.p8` contents, from Secret Manager) on the Cloud Run service in the console; the Deploy workflow
+leaves them alone. With `APPLE_CLIENT_ID` set, production refuses to boot without the other three:
+account deletion revokes Apple sign-ins. Full steps: [STORE.md §2](STORE.md).
+
+## 7. Google sign-in
 
 Authorised redirect URI: `https://YOUR-WEB-ORIGIN/api/auth/callback/google` (the same URI serves web and app sign-in). While the consent screen is in Testing only listed test users can sign in; publishing needs no verification for name/email/photo scopes.
 
-## 7. Release flow
+## 8. Release flow
 
 Push to `main` → CI (lint, typecheck, tests, image builds) → Deploy workflow: API and migrate images pushed to Artifact Registry → `fitlens-migrate` job runs `prisma migrate deploy` → `fitlens-api` rolls out and is smoke-tested → web image and hook. Migrations run before the new code starts, so write them backwards-compatible (add columns nullable/defaulted first, drop in a later release). Roll back with `gcloud run services update-traffic fitlens-api --to-revisions=<previous>=100`.
 
 Mobile: pushes touching `apps/mobile` or `packages/contracts` publish an EAS update to the `preview` channel; store builds with `cd apps/mobile && eas build --profile production`.
 
-## 8. Check
+## 9. Check
 
 - `https://<web>/api/health` → `{"status":"ok","db":"ok","redis":"ok"|"disabled"}`
 - Sign in, onboard, snap a meal, scan a barcode, ask the coach "how am I doing today?".

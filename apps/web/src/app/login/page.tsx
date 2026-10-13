@@ -2,9 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { DevLogin } from "@/components/dev-login";
 import { BareMark, LogoMark } from "@/components/logo";
-import { GoogleMark } from "@/components/onboarding/onboarding-flow";
-import { onboardingButton } from "@/components/onboarding/shell";
-import { cn } from "@/lib/cn";
+import { GoogleMark } from "@/components/google-mark";
+import { googleButton } from "@/components/onboarding/button-styles";
 import { marketingFontVars } from "@/lib/fitr8-fonts";
 import { currentUser } from "@/lib/server/api";
 import { signInProviders } from "@/lib/server/providers";
@@ -75,10 +74,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           {available.google && (
             <a
               href={`/api/auth/google?returnTo=${encodeURIComponent(next)}`}
-              className={cn(
-                onboardingButton,
-                "bg-white text-fitr8-ink shadow-[inset_0_0_0_1px_var(--color-line-strong),6px_6px_0_var(--color-fitr8-deep)] hover:bg-white hover:shadow-[inset_0_0_0_1px_var(--color-line-strong),8px_8px_0_var(--color-fitr8-deep)]",
-              )}
+              className={googleButton}
             >
               <GoogleMark />
               Continue with Google
@@ -92,8 +88,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             </Link>
           </p>
           <p className="text-center text-xs text-ink-3">
-            By continuing you agree to our Terms and Privacy Policy. FITR8 gives general fitness
-            guidance and is not medical advice.
+            By continuing you agree to our{" "}
+            <Link href="/terms" className="font-semibold text-fitr8 hover:underline">
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="font-semibold text-fitr8 hover:underline">
+              Privacy Policy
+            </Link>
+            . FITR8 gives general fitness guidance and is not medical advice.
           </p>
         </div>
       </main>

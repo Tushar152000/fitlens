@@ -8,7 +8,8 @@
     "scheme": "fitlens",
     "userInterfaceStyle": "light",
     "ios": {
-      "bundleIdentifier": "com.tusharchauhan.fitlens",
+      "bundleIdentifier": "com.fitr8.app",
+      "usesAppleSignIn": true,
       "supportsTablet": false,
       "icon": "./assets/images/icon.png",
       "config": {
@@ -16,9 +17,9 @@
       }
     },
     "android": {
-      "package": "com.tusharchauhan.fitlens",
+      "package": "com.fitr8.app",
       "adaptiveIcon": {
-        "backgroundColor": "#17181C",
+        "backgroundColor": "#8116E0",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -35,16 +36,18 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F6F3EC",
+          "backgroundColor": "#F6F6F8",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 96
         }
       ],
       "expo-secure-store",
+      "expo-apple-authentication",
       [
         "expo-camera",
         {
           "cameraPermission": "FITR8 uses the camera to photograph your meals, barcodes and nutrition labels.",
+          "microphonePermission": false,
           "recordAudioAndroid": false
         }
       ],
@@ -60,7 +63,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/android-icon-monochrome.png",
-          "color": "#C2410C"
+          "color": "#8116E0"
         }
       ]
     ],

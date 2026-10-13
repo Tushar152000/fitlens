@@ -4,12 +4,14 @@ import cookieParser from "cookie-parser";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { applyTestEnv } from "./env.js";
+import { FakeApple } from "./fake-apple.js";
 import { FakeGoogle } from "./fake-google.js";
 
 applyTestEnv();
 const { AppModule } = await import("../../src/app.module.js");
 const { PrismaService } = await import("../../src/infra/prisma/prisma.service.js");
 const { GOOGLE_OIDC } = await import("../../src/modules/auth/google/oidc.js");
+const { APPLE_ID } = await import("../../src/modules/auth/apple/apple-id.js");
 
 export interface TestApp {
   app: INestApplication;
@@ -19,6 +21,8 @@ export interface TestApp {
   browser: () => ReturnType<typeof request.agent>;
   /** Google, as far as the API can tell. */
   google: FakeGoogle;
+  /** Sign in with Apple, as far as the API can tell. */
+  apple: FakeApple;
   /** A fresh signed-in user. Requests made through the returned agent carry the session cookie. */
   signIn: (
     name?: string,
@@ -34,6 +38,7 @@ export interface TestAppOptions {
 /** Boots the real AppModule (same middleware as main.ts) against the test database, with a fake Google. */
 export async function createTestApp(options: TestAppOptions = {}): Promise<TestApp> {
   const google = new FakeGoogle();
+  const apple = new FakeApple();
   const saved = { ...process.env };
   Object.assign(process.env, options.env);
   let moduleRef;
@@ -41,6 +46,8 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(GOOGLE_OIDC)
       .useValue(google)
+      .overrideProvider(APPLE_ID)
+      .useValue(apple)
       .compile();
   } finally {
     process.env = saved;
@@ -58,6 +65,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     http: () => request(server),
     browser: () => request.agent(server),
     google,
+    apple,
     async signIn(name = "Test User") {
       const agent = request.agent(server);
       const res = await agent

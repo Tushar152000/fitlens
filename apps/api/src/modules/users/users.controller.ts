@@ -11,11 +11,15 @@ import {
 import { UserId } from "../../common/auth/decorators.js";
 import { ZodBody } from "../../common/http/zod.js";
 import { wire } from "../../common/http/wire.js";
+import { AuthService } from "../auth/auth.service.js";
 import { UsersService } from "./users.service.js";
 
 @Controller()
 export class UsersController {
-  constructor(private readonly users: UsersService) {}
+  constructor(
+    private readonly users: UsersService,
+    private readonly auth: AuthService,
+  ) {}
 
   /** Who is signed in, and whether onboarding is done. The app's first call after sign-in. */
   @Get("me")
@@ -59,6 +63,8 @@ export class UsersController {
   @Delete("account")
   @HttpCode(204)
   async deleteAccount(@UserId() userId: string) {
+    // Apple requires revoking Sign in with Apple when the account goes (guideline 5.1.1(v)).
+    await this.auth.revokeAppleSignIn(userId);
     await this.users.deleteAccount(userId);
   }
 }

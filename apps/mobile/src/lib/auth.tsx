@@ -1,3 +1,4 @@
+import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
@@ -14,6 +15,8 @@ type AuthState = { status: "loading"; me: null } | { status: "signedOut"; me: nu
 
 type AuthContextValue = AuthState & {
   signIn: () => Promise<void>;
+  /** iOS: the system Sign in with Apple sheet. Resolves quietly if the user cancels. */
+  appleSignIn: () => Promise<void>;
   /** Local development only (the API offers it when not deployed): email sign-in, no Google. */
   devSignIn: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -94,6 +97,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await load();
   }, [load]);
 
+  const appleSignIn = useCallback(async () => {
+    // Apple puts SHA-256(nonce) in the identity token; the API checks it against the raw value.
+    const nonce = `${Crypto.randomUUID()}${Crypto.randomUUID()}`.replace(/-/g, "");
+    const hashed = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, nonce);
+    let credential: AppleAuthentication.AppleAuthenticationCredential;
+    try {
+      credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashed,
+      });
+    } catch (err) {
+      if ((err as { code?: string }).code === "ERR_REQUEST_CANCELED") return;
+      throw new Error("Apple sign-in didn't finish. Try again.");
+    }
+    if (!credential.identityToken) throw new Error("Apple sign-in didn't finish. Try again.");
+    const { token } = await api<AuthTokenDto>("/api/auth/apple", {
+      json: {
+        identityToken: credential.identityToken,
+        authorizationCode: credential.authorizationCode ?? undefined,
+        nonce,
+        // Apple shares the name only on the very first sign-in.
+        fullName: credential.fullName
+          ? { givenName: credential.fullName.givenName, familyName: credential.fullName.familyName }
+          : undefined,
+      },
+    });
+    setApiToken(token);
+    await writeToken(token);
+    await load();
+  }, [load]);
+
   const devSignIn = useCallback(
     async (email: string) => {
       const { token } = await api<DevLoginDto>("/api/auth/dev", { json: { email } });
@@ -110,8 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clear]);
 
   const value = useMemo(
-    () => ({ ...state, signIn, devSignIn, signOut, refresh: load }),
-    [state, signIn, devSignIn, signOut, load],
+    () => ({ ...state, signIn, appleSignIn, devSignIn, signOut, refresh: load }),
+    [state, signIn, appleSignIn, devSignIn, signOut, load],
   );
   return <AuthContext value={value}>{children}</AuthContext>;
 }

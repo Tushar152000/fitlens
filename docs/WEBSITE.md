@@ -47,7 +47,7 @@ that comes next. App screens and tokens live in [DESIGN.md](DESIGN.md); architec
 | 8   | Results               | `testimonials.tsx`                    | One quote at a time (light-weight sans), initial avatar, arrows, dots, 7 s autoplay that restarts after a manual change.                                                                                                                                                                                                                  |
 | 9   | FAQ                   | `faq.tsx`                             | Sticky title + "Still have questions?" card (email with a Copy button; falls back to selecting the text). Accordion, one open at a time, animated height.                                                                                                                                                                                 |
 | 10  | Final CTA             | `final-cta.tsx`                       | "Your next meal is a good place to start." + Start for free + QR.                                                                                                                                                                                                                                                                         |
-| 11  | Footer                | `site-footer.tsx`                     | Wordmark, line, social icons, company links (plain text until pages exist), contact, legal line.                                                                                                                                                                                                                                          |
+| 11  | Footer                | `site-footer.tsx`                     | Wordmark, line, social icons, company links (Privacy Policy → `/privacy`, Terms of Use → `/terms`, Reviews → results; the rest plain text until the pages exist), contact, legal line.                                                                                                                                                    |
 
 ### Calculator rules
 
@@ -73,6 +73,13 @@ target **1,836 kcal** (2,448 − 612, the 25% cap), P 148 g · C 197 g · F 51 g
   `aria-hidden`.
 - No horizontal scroll at 390 px. Below 560 px chips drop their kcal and the result card sits under
   the photo.
+
+### Legal pages
+
+`/privacy` and `/terms` (`(marketing)/privacy`, `/terms`, shared `LegalPage`) are linked from the
+footer, onboarding's sign-in step, `/login` and the app's login and Profile screens. The privacy
+policy states only what the code does (see docs/STORE.md §7); update both when data handling
+changes.
 
 ### Before launch
 

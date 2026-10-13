@@ -245,7 +245,3 @@ function EstimateCard({ estimate }: { estimate: ShellEstimate | null }) {
     </div>
   );
 }
-
-/** Primary onboarding button: full-width brand pill with the hard offset shadow, fixed 54 px tall. */
-export const onboardingButton =
-  "inline-flex h-[54px] w-full shrink-0 items-center justify-center gap-2 rounded-full bg-fitr8 px-6 font-semibold text-white shadow-hard transition-[transform,box-shadow,background-color] duration-150 hover:-translate-0.5 hover:bg-brand-hover hover:shadow-hard-hover active:translate-1 active:shadow-hard-press disabled:translate-0 disabled:opacity-70 disabled:shadow-hard";
