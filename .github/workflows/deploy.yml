@@ -4,9 +4,9 @@ name: Deploy
 # API → Google Cloud Run (asia-south1). One-time setup: infra/gcp/setup.sh, which creates everything and sets
 # these repository variables (Settings → Secrets and variables → Actions → Variables):
 #   GCP_PROJECT_ID, GCP_REGION, GCP_WIF_PROVIDER, GCP_DEPLOYER_SA, GCP_RUNTIME_SA, GCP_SQL_CONNECTION,
-#   S3_BUCKET, PUBLIC_URL
+#   S3_BUCKET, PUBLIC_URL, AI_PROVIDER (openai | anthropic; default openai)
 # GitHub signs in to Google with OIDC (Workload Identity Federation); there are no service account keys.
-# App secrets (database, auth, Anthropic, Cloudflare R2) live only in Secret Manager and are mounted by name:
+# App secrets (database, auth, AI key, Cloudflare R2) live only in Secret Manager and are mounted by name:
 # nothing secret is stored in GitHub or printed in logs. Extra env set in the Cloud Run console
 # (AI_DAILY_LIMIT, CORS_ORIGINS, OFF_CONTACT…) survives deploys: this workflow only updates what it lists.
 #   secrets.WEB_DEPLOY_HOOK_URL  optional: deploy hook for the web image (skip if web is on Vercel)
@@ -109,8 +109,8 @@ jobs:
           --set-cloudsql-instances=${{ vars.GCP_SQL_CONNECTION }}
           --startup-probe=httpGet.path=/api/health/live,periodSeconds=2,failureThreshold=15
           --liveness-probe=httpGet.path=/api/health/live,periodSeconds=30
-          --update-env-vars=APP_ENV=production,APP_ROLE=api,PUBLIC_URL=${{ vars.PUBLIC_URL }},DATABASE_POOL_MAX=5,AI_PROVIDER=anthropic,S3_REGION=auto,S3_BUCKET=${{ vars.S3_BUCKET }},S3_FORCE_PATH_STYLE=true
-          --update-secrets=DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,AUTH_GOOGLE_ID=AUTH_GOOGLE_ID:latest,AUTH_GOOGLE_SECRET=AUTH_GOOGLE_SECRET:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,S3_ENDPOINT=S3_ENDPOINT:latest,S3_ACCESS_KEY_ID=S3_ACCESS_KEY_ID:latest,S3_SECRET_ACCESS_KEY=S3_SECRET_ACCESS_KEY:latest
+          --update-env-vars=APP_ENV=production,APP_ROLE=api,PUBLIC_URL=${{ vars.PUBLIC_URL }},DATABASE_POOL_MAX=5,AI_PROVIDER=${{ vars.AI_PROVIDER || 'openai' }},S3_REGION=auto,S3_BUCKET=${{ vars.S3_BUCKET }},S3_FORCE_PATH_STYLE=true
+          --update-secrets=DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,AUTH_GOOGLE_ID=AUTH_GOOGLE_ID:latest,AUTH_GOOGLE_SECRET=AUTH_GOOGLE_SECRET:latest,${{ vars.AI_PROVIDER == 'anthropic' && 'ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest' || 'OPENAI_API_KEY=OPENAI_API_KEY:latest' }},S3_ENDPOINT=S3_ENDPOINT:latest,S3_ACCESS_KEY_ID=S3_ACCESS_KEY_ID:latest,S3_SECRET_ACCESS_KEY=S3_SECRET_ACCESS_KEY:latest
       - name: Smoke test
         run: |
           url="$(gcloud run services describe fitlens-api --project=${{ vars.GCP_PROJECT_ID }} --region=${{ vars.GCP_REGION }} --format='value(status.url)')"

@@ -109,15 +109,15 @@ On Linux, hardware acceleration needs KVM (`ls -l /dev/kvm` must be readable and
 
 ## 6. Common tasks
 
-| Task                                              | Command                                                       |
-| ------------------------------------------------- | ------------------------------------------------------------- |
-| Run every check CI runs                           | `pnpm check` (needs Docker for the e2e tests)                 |
-| Format                                            | `pnpm format`                                                 |
-| New migration after editing `schema.prisma`       | `pnpm db:migrate -- --name <change>`                          |
-| Re-seed foods and exercises                       | `pnpm db:seed`                                                |
-| Browse the database                               | `pnpm db:studio`                                              |
-| Reset the local database (**deletes local data**) | `pnpm stop:all && docker compose down -v && pnpm bootstrap`   |
-| Real AI instead of mock                           | `.env`: `AI_PROVIDER="anthropic"` and `ANTHROPIC_API_KEY="…"` |
+| Task                                              | Command                                                                                            |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Run every check CI runs                           | `pnpm check` (needs Docker for the e2e tests)                                                      |
+| Format                                            | `pnpm format`                                                                                      |
+| New migration after editing `schema.prisma`       | `pnpm db:migrate -- --name <change>`                                                               |
+| Re-seed foods and exercises                       | `pnpm db:seed`                                                                                     |
+| Browse the database                               | `pnpm db:studio`                                                                                   |
+| Reset the local database (**deletes local data**) | `pnpm stop:all && docker compose down -v && pnpm bootstrap`                                        |
+| Real AI instead of mock                           | `.env`: `AI_PROVIDER="openai"` and `OPENAI_API_KEY="…"` (or `"anthropic"` and `ANTHROPIC_API_KEY`) |
 
 ## 7. Troubleshooting
 

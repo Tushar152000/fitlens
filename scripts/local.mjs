@@ -424,7 +424,8 @@ async function startMobile(extraArgs) {
 function summary() {
   const env = readEnv();
   const google = env.get("AUTH_GOOGLE_ID") && env.get("AUTH_GOOGLE_SECRET");
-  const ai = env.get("AI_PROVIDER") === "anthropic" ? "Claude" : "mock (no API key needed)";
+  const ai =
+    { anthropic: "Claude", openai: "OpenAI" }[env.get("AI_PROVIDER")] ?? "mock (no API key needed)";
   console.log(`
 ${green("Local environment ready.")} ${dim("(APP_ENV=local)")}
 

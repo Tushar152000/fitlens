@@ -9,7 +9,7 @@ This is the contract for every change, human or AI. When code and this file disa
   browser ──►│  apps/web    │  /api  │              │──► PostgreSQL (Prisma)
              │  Next.js PWA │───────►│  apps/api    │──► Redis (BullMQ jobs, locks)
              └──────────────┘ proxy  │  NestJS      │──► S3 / R2 / MinIO (photos)
-  phone ────────────────────────────►│  one service │──► Claude (extraction + coach agent)
+  phone ────────────────────────────►│  one service │──► Claude or OpenAI (extraction + coach agent)
              apps/mobile (Expo)      └──────────────┘
                                         ▲ same image, APP_ROLE=worker
                                         └── queue consumers (meal analysis …)
@@ -49,7 +49,7 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 
 - **Controllers are thin.** Parse → call one service method → return. If a controller grows an `if` about business state, move it into the service.
 - **Services own rules and persistence.** They inject `PrismaService` and other modules' _exported services_. Pure calculations live in `@fitr8/domain` and are imported, never re-implemented.
-- **Infrastructure behind ports.** Storage (`StorageService`), queue (`JobQueue`), model access (`FOOD_EXTRACTOR`, `ANTHROPIC`) are injected. Swapping S3 for R2, Redis for SQS, or Claude for a mock never touches feature code.
+- **Infrastructure behind ports.** Storage (`StorageService`), queue (`JobQueue`), model access (`FOOD_EXTRACTOR`, `ANTHROPIC`, `OPENAI`, the coach's `MODEL_GATEWAY`) are injected. Swapping S3 for R2, Redis for SQS, or Claude for OpenAI or a mock never touches feature code.
 - **Errors.** Throw `AppError(status, message, details?)` (framework-free). `AllExceptionsFilter` renders `{ error, details }`, turns `ZodError` into 400, and hides internals behind a 500. Messages are user-facing copy: short, kind, actionable.
 - **Validation at the edge.** Every body/query goes through a schema from `@fitr8/contracts` (`@ZodBody(Schema)`). Services receive typed, trusted input.
 - **Auth is global.** `AuthGuard` requires a session on every route; opt out with `@Public()` (health, OAuth). Get the caller with `@UserId()`. Every query that touches user data filters by `userId` — ownership checks are not optional.
@@ -78,7 +78,7 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 
 ### 3.4 The coach agent (Claude agent loop)
 
-`modules/coach` runs a manual, streaming tool-use loop (`agent/agent-loop.ts`) over tools defined in `coach/tools/*`:
+`modules/coach` runs a manual, streaming tool-use loop (`agent/agent-loop.ts`) over tools defined in `coach/tools/*`. The transcript is stored in Claude's message shape; `AI_PROVIDER` picks the gateway (`claude.gateway.ts`, or `openai.gateway.ts`, which translates each request to the OpenAI Responses API and the reply back; Claude-only blocks such as thinking and compaction are skipped there, and caching is OpenAI's automatic prefix cache):
 
 - **Tools are the only way the model touches data.** Each tool is a Zod-typed function that calls an application service with the signed-in user's id bound server-side; the model can never choose whose data it sees. Writes are small and reversible (log water, log a weigh-in, draft a meal for the user to confirm) — the model never confirms a meal or changes targets.
 - **Numbers come from tools, not the model.** The system prompt forbids inventing calories or macros.

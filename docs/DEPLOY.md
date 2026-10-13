@@ -47,7 +47,7 @@ PROJECT_ID=fitlens-prod BILLING_ACCOUNT=XXXXXX-XXXXXX-XXXXXX \
 [`infra/gcp/setup.sh`](../infra/gcp/setup.sh) is idempotent (re-run it any time). It never changes your active gcloud config. It:
 
 - enables the APIs; creates Artifact Registry and Cloud SQL (instance, `fitlens` database and user);
-- stores secrets in Secret Manager: `DATABASE_URL` (Cloud SQL socket form) and `AUTH_SECRET` (both generated), and asks with hidden input for `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ANTHROPIC_API_KEY`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (R2). Values are piped straight into Secret Manager, never echoed or written to disk, and never stored in GitHub;
+- stores secrets in Secret Manager: `DATABASE_URL` (Cloud SQL socket form) and `AUTH_SECRET` (both generated), and asks with hidden input for `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `OPENAI_API_KEY` (or `ANTHROPIC_API_KEY` with `AI_PROVIDER=anthropic`), `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (R2). Values are piped straight into Secret Manager, never echoed or written to disk, and never stored in GitHub;
 - creates two service accounts: `fitlens-api` runs the service (Cloud SQL client, reads those secrets), `fitlens-deployer` is what GitHub Actions becomes through Workload Identity Federation (only `main` of this repo; no JSON keys);
 - sets the GitHub repository variables the Deploy workflow reads (with `gh`, or prints them). None of them are secret;
 - ends with a list of any secrets still missing (run it from a terminal to enter them).
@@ -68,17 +68,17 @@ The run summary prints the API URL (`https://fitlens-api-….run.app`); point th
 
 The Deploy workflow sets these on every rollout (see `.github/workflows/deploy.yml`):
 
-| Variable                                                                   | Value                                                          |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `APP_ENV`                                                                  | `production`: enables the strict checks below                  |
-| `APP_ROLE`                                                                 | `api`                                                          |
-| `PUBLIC_URL`                                                               | repo variable `PUBLIC_URL` (the web origin)                    |
-| `DATABASE_URL`                                                             | secret; `…@localhost/fitlens?host=/cloudsql/<connection name>` |
-| `DATABASE_POOL_MAX`                                                        | `5` (× 3 instances stays under `db-f1-micro`'s 25 connections) |
-| `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ANTHROPIC_API_KEY` | secrets (Google credentials are required in production)        |
-| `AI_PROVIDER`                                                              | `anthropic`                                                    |
-| `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`                  | secrets (R2)                                                   |
-| `S3_REGION=auto`, `S3_BUCKET` (repo variable), `S3_FORCE_PATH_STYLE=true`  | R2                                                             |
+| Variable                                                                  | Value                                                                                                       |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `APP_ENV`                                                                 | `production`: enables the strict checks below                                                               |
+| `APP_ROLE`                                                                | `api`                                                                                                       |
+| `PUBLIC_URL`                                                              | repo variable `PUBLIC_URL` (the web origin)                                                                 |
+| `DATABASE_URL`                                                            | secret; `…@localhost/fitlens?host=/cloudsql/<connection name>`                                              |
+| `DATABASE_POOL_MAX`                                                       | `5` (× 3 instances stays under `db-f1-micro`'s 25 connections)                                              |
+| `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `OPENAI_API_KEY`   | secrets (Google credentials are required in production)                                                     |
+| `AI_PROVIDER`                                                             | repo variable `AI_PROVIDER` (`openai` by default, or `anthropic`, which mounts `ANTHROPIC_API_KEY` instead) |
+| `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`                 | secrets (R2)                                                                                                |
+| `S3_REGION=auto`, `S3_BUCKET` (repo variable), `S3_FORCE_PATH_STYLE=true` | R2                                                                                                          |
 
 Everything else in `apps/api/src/config/env.ts` keeps its default. Override it in the Cloud Run console (Edit & deploy new revision → Variables). The workflow only updates the variables above, so console-only ones such as `AI_DAILY_LIMIT`, `COACH_DAILY_LIMIT`, `SESSION_DAYS` / `MOBILE_SESSION_DAYS` / `SESSION_MAX_DAYS` (default 30, 90, 365), `AUTH_RATE_LIMIT` (default 20), `CORS_ORIGINS` and `OFF_CONTACT` survive deploys. Full list with comments: `.env.production.example`. Use a separate `AUTH_SECRET`, Google OAuth client and database per environment.
 

@@ -1,5 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { BetaMessage, BetaMessageParam, ModelGateway } from "./model-gateway.js";
+import {
+  ModelRequestError,
+  type BetaMessage,
+  type BetaMessageParam,
+  type ModelGateway,
+} from "./model-gateway.js";
 import { serializeToolResult, toApiTools, type AgentTool } from "./tool.js";
 
 export type AgentEvent =
@@ -90,12 +95,11 @@ export async function runAgent(input: AgentRunInput): Promise<AgentOutcome> {
       if (signal.aborted) return { status: "aborted" };
       // With eager input streaming, unparseable tool JSON rejects the stream. Re-issue the same turn;
       // API errors (auth, rate limit after SDK retries, 5xx) are real failures and propagate.
-      if (!(error instanceof Anthropic.APIError) && jsonRetries++ < MAX_JSON_RETRIES) {
+      if (!isRequestError(error) && jsonRetries++ < MAX_JSON_RETRIES) {
         iteration--;
         continue;
       }
-      if (!(error instanceof Anthropic.APIError))
-        return { status: "failed", reason: "invalid_tool_json" };
+      if (!isRequestError(error)) return { status: "failed", reason: "invalid_tool_json" };
       throw error;
     }
     jsonRetries = 0;
@@ -151,6 +155,9 @@ export async function runAgent(input: AgentRunInput): Promise<AgentOutcome> {
   }
   return { status: "completed" };
 }
+
+const isRequestError = (error: unknown) =>
+  error instanceof Anthropic.APIError || error instanceof ModelRequestError;
 
 async function runTool(
   tools: Map<string, AgentTool<unknown>>,

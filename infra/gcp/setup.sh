@@ -10,10 +10,11 @@
 #
 # Secrets you supply are read with hidden input and piped straight into Secret Manager: never echoed, never
 # written to disk, never passed as command arguments. They can also come from env vars of the same name:
-# AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, ANTHROPIC_API_KEY, S3_ENDPOINT, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY.
+# AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, OPENAI_API_KEY (or ANTHROPIC_API_KEY), S3_ENDPOINT, S3_ACCESS_KEY_ID,
+# S3_SECRET_ACCESS_KEY.
 #
 # Optional overrides: REGION (asia-south1), GITHUB_REPO, SQL_TIER (db-f1-micro), BUCKET (R2 bucket name,
-# fitlens-meals), BILLING_ACCOUNT, YES=1 (skip the confirmation).
+# fitlens-meals), BILLING_ACCOUNT, YES=1 (skip the confirmation), AI_PROVIDER (openai | anthropic; openai).
 set -euo pipefail
 
 : "${PROJECT_ID:?set PROJECT_ID, e.g. fitlens-prod}"
@@ -23,6 +24,7 @@ GITHUB_REPO="${GITHUB_REPO:-Tushar152000/fitlens}"
 SQL_INSTANCE="${SQL_INSTANCE:-fitlens-db}"
 SQL_TIER="${SQL_TIER:-db-f1-micro}"
 BUCKET="${BUCKET:-fitlens-meals}"
+AI_PROVIDER="${AI_PROVIDER:-openai}"
 AR_REPO=fitlens
 WIF_POOL=github
 WIF_PROVIDER=fitlens-repo
@@ -132,10 +134,16 @@ step "App secrets"
 secret_exists AUTH_SECRET && echo "secret AUTH_SECRET exists" || put_secret AUTH_SECRET "$(openssl rand -base64 33)"
 ask_secret AUTH_GOOGLE_ID "Google OAuth client ID"
 ask_secret AUTH_GOOGLE_SECRET "Google OAuth client secret"
-ask_secret ANTHROPIC_API_KEY "Anthropic API key"
+if [ "$AI_PROVIDER" = anthropic ]; then
+  AI_KEY=ANTHROPIC_API_KEY
+  ask_secret ANTHROPIC_API_KEY "Anthropic API key (sk-ant-...)"
+else
+  AI_KEY=OPENAI_API_KEY
+  ask_secret OPENAI_API_KEY "OpenAI API key (sk-...)"
+fi
 
 step "IAM"
-SECRETS=(DATABASE_URL AUTH_SECRET AUTH_GOOGLE_ID AUTH_GOOGLE_SECRET ANTHROPIC_API_KEY S3_ENDPOINT S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY)
+SECRETS=(DATABASE_URL AUTH_SECRET AUTH_GOOGLE_ID AUTH_GOOGLE_SECRET "$AI_KEY" S3_ENDPOINT S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY)
 for s in "${SECRETS[@]}"; do
   secret_exists "$s" || continue
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:$RUNTIME_SA" \
@@ -178,6 +186,7 @@ VARS=(
   "GCP_SQL_CONNECTION=$SQL_CONNECTION"
   "S3_BUCKET=$BUCKET"
   "PUBLIC_URL=$PUBLIC_URL"
+  "AI_PROVIDER=$AI_PROVIDER"
 )
 if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
   for v in "${VARS[@]}"; do gh variable set "${v%%=*}" --repo "$GITHUB_REPO" --body "${v#*=}"; done

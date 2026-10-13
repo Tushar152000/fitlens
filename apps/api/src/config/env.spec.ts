@@ -50,6 +50,25 @@ describe("parseEnv", () => {
     });
   });
 
+  it("picks model defaults from the AI provider, and requires that provider's key", () => {
+    expect(parseEnv({ ...base, AI_PROVIDER: "openai", OPENAI_API_KEY: "sk-x" })).toMatchObject({
+      AI_EXTRACTION_MODEL: "gpt-6.1-sol",
+      AI_COACH_MODEL: "gpt-6.1-sol",
+    });
+    expect(
+      parseEnv({ ...base, AI_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "sk-ant-x" }).AI_COACH_MODEL,
+    ).toBe("claude-opus-5-5");
+    expect(
+      parseEnv({
+        ...base,
+        AI_PROVIDER: "openai",
+        OPENAI_API_KEY: "k",
+        AI_COACH_MODEL: "gpt-6-luna",
+      }).AI_COACH_MODEL,
+    ).toBe("gpt-6-luna");
+    expect(() => parseEnv({ ...base, AI_PROVIDER: "openai" })).toThrow(/OPENAI_API_KEY/);
+  });
+
   it("lets a developer turn dev sign-in off locally", () => {
     expect(parseEnv({ ...base, AUTH_DEV_LOGIN: "false" }).AUTH_DEV_LOGIN).toBe(false);
   });

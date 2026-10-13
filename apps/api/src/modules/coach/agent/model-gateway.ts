@@ -26,4 +26,12 @@ export interface ModelGateway {
   createTurn(request: ModelTurnRequest, options: ModelTurnOptions): Promise<BetaMessage>;
 }
 
+/**
+ * A failed model request from a non-Anthropic gateway (auth, rate limit after retries, 5xx). The agent
+ * loop propagates these like Anthropic.APIError instead of retrying them as malformed tool JSON.
+ */
+export class ModelRequestError extends Error {
+  override readonly name = "ModelRequestError";
+}
+
 export const MODEL_GATEWAY = Symbol("COACH_MODEL_GATEWAY");

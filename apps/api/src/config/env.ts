@@ -38,6 +38,13 @@ export function resolveAppEnv(source: { APP_ENV?: string; NODE_ENV?: string }): 
 export const isDeployed = (env: { APP_ENV: AppEnv }) =>
   env.APP_ENV === "staging" || env.APP_ENV === "production";
 
+/** Extraction and coach model when AI_EXTRACTION_MODEL / AI_COACH_MODEL are unset. */
+const DEFAULT_MODELS = {
+  mock: "mock",
+  anthropic: "claude-opus-5-5",
+  openai: "gpt-6.1-sol",
+} as const;
+
 /** Every setting the service reads. Parsed once at boot; the process refuses to start on bad config. */
 export const EnvSchema = z
   .object({
@@ -89,12 +96,13 @@ export const EnvSchema = z
     S3_FORCE_PATH_STYLE: flag,
 
     /** `mock` returns canned detections and a scripted coach so the whole app runs without an API key. */
-    AI_PROVIDER: z.enum(["mock", "anthropic"]).default("mock"),
+    AI_PROVIDER: z.enum(["mock", "anthropic", "openai"]).default("mock"),
     ANTHROPIC_API_KEY: optional,
-    /** Model for photo/text/label extraction. */
-    AI_EXTRACTION_MODEL: z.string().default("claude-opus-5-5"),
-    /** Model for the coach agent loop. */
-    AI_COACH_MODEL: z.string().default("claude-opus-5-5"),
+    OPENAI_API_KEY: optional,
+    /** Model for photo/text/label extraction. Default depends on AI_PROVIDER (DEFAULT_MODELS). */
+    AI_EXTRACTION_MODEL: optional,
+    /** Model for the coach agent loop. Default depends on AI_PROVIDER (DEFAULT_MODELS). */
+    AI_COACH_MODEL: optional,
     AI_COACH_EFFORT: z.enum(["low", "medium", "high", "xhigh", "max"]).default("medium"),
     /** Free photo scans per user per local day (typed meals and not-food photos never count). */
     AI_DAILY_LIMIT: z.coerce.number().int().positive().default(3),
@@ -110,6 +118,8 @@ export const EnvSchema = z
       ...env,
       APP_ENV,
       AUTH_DEV_LOGIN: env.AUTH_DEV_LOGIN ?? (APP_ENV === "local" || APP_ENV === "test"),
+      AI_EXTRACTION_MODEL: env.AI_EXTRACTION_MODEL ?? DEFAULT_MODELS[env.AI_PROVIDER],
+      AI_COACH_MODEL: env.AI_COACH_MODEL ?? DEFAULT_MODELS[env.AI_PROVIDER],
     };
   })
   .superRefine((env, ctx) => {
@@ -118,6 +128,13 @@ export const EnvSchema = z
         code: "custom",
         path: ["ANTHROPIC_API_KEY"],
         message: "required when AI_PROVIDER=anthropic",
+      });
+    }
+    if (env.AI_PROVIDER === "openai" && !env.OPENAI_API_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["OPENAI_API_KEY"],
+        message: "required when AI_PROVIDER=openai",
       });
     }
     if (isDeployed(env)) {
