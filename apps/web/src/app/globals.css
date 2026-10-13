@@ -22,6 +22,8 @@
   --color-caution: #e8a15c; /* low-confidence card border */
   --color-caution-soft: #fdebd3; /* low-confidence tag bg */
   --color-caution-text: #8a3c08;
+  --color-water: #2f6f9f; /* water bar, icon, + chips text (>= 4.5:1 on ground and surface) */
+  --color-water-soft: #dde9f2; /* water chips, pressed state */
   --color-chip: #ebebf1; /* idle chip, segmented track */
   --color-dash: #c4c4d0;
 
@@ -42,11 +44,26 @@
   --color-fitr8-soft: #f6f6f8; /* feature + FAQ cards */
   --color-fitr8-footer: #101010;
   --color-fitr8-footer-text: #cbcddf;
+  --color-fitr8-lilac-soft: #f3e8ff; /* features stage, stories band, selected rows */
+
+  /* The landing page's signature: a hard deep-purple offset, only on things you can press or try. */
+  --shadow-hard-sm: 4px 4px 0 var(--color-fitr8-deep);
+  --shadow-hard: 6px 6px 0 var(--color-fitr8-deep);
+  --shadow-hard-hover: 8px 8px 0 var(--color-fitr8-deep);
+  --shadow-hard-press: 2px 2px 0 var(--color-fitr8-deep);
+  --shadow-hard-lg: 10px 10px 0 var(--color-fitr8-deep);
 
   --shadow-fab: 0 6px 16px rgb(129 22 224 / 0.35);
   --shadow-seg: 0 1px 2px rgb(21 23 36 / 0.12);
 
   --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  /* Entrance motion; the reduced-motion rule below cuts these to an instant. */
+  --animate-page-in: page-in 240ms var(--ease-out) both;
+  --animate-ring-in: ring-in 700ms var(--ease-out) both;
+  --animate-bar-in: bar-in 600ms var(--ease-out) both;
+  --animate-bar-grow: bar-grow 500ms var(--ease-out) both;
+  --animate-pop: pop 220ms var(--ease-out);
 }
 
 /* `inline`: the next/font variables are only set on the (marketing) and (welcome) layouts, so the
@@ -55,6 +72,7 @@
   --font-inter: var(--font-inter-var), system-ui, sans-serif;
   --font-playfair: var(--font-playfair-var), Georgia, serif;
   --font-roboto: var(--font-roboto-var), system-ui, sans-serif;
+  --font-jakarta: var(--font-jakarta-var), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 @layer base {
@@ -81,6 +99,23 @@
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: -0.03em;
+}
+
+/* Hover lift for tappable cards (flat: moves, never gains a shadow); press sinks it back. */
+@utility lift {
+  transition:
+    transform 150ms var(--ease-out),
+    background-color 150ms var(--ease-out),
+    box-shadow 150ms var(--ease-out);
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: inset 0 0 0 1px var(--color-line-strong);
+    }
+  }
+  &:active {
+    transform: translateY(0) scale(0.99);
+  }
 }
 
 @utility pb-safe {
@@ -126,6 +161,63 @@
   from {
     opacity: 0;
     transform: translateX(-48px);
+  }
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Calories ring draws in from empty; --ring-circ is the circle's circumference. */
+@keyframes ring-in {
+  from {
+    stroke-dashoffset: var(--ring-circ);
+  }
+}
+
+@keyframes bar-in {
+  from {
+    width: 0;
+  }
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes pop {
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+/* Landing hero: the scan line sweeping the plate. */
+@keyframes plate-scan {
+  from {
+    top: 6%;
+  }
+  to {
+    top: 92%;
+  }
+}
+
+/* Onboarding "Building your plan": the dumbbell lifts. */
+@keyframes pump {
+  to {
+    transform: translateY(-10px);
+  }
+}
+
+/* Landing section dock rises into place. */
+@keyframes dock-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
   }
 }
 

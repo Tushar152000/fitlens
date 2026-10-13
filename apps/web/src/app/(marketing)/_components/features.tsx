@@ -1,158 +1,234 @@
+"use client";
+
+import { Camera, Dumbbell, Mic, ScanBarcode, TrendingUp } from "lucide-react";
 import Image from "next/image";
-import { RotatingWord } from "./rotating-word";
+import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/cn";
+import { PillWord, SectionHead } from "./section-head";
+
+const FEATURES = [
+  {
+    icon: Camera,
+    title: "Snap it. FITR8 logs it.",
+    body: "Take a photo of your meal and let FITR8 identify what’s on your plate and log the nutrition for you.",
+    src: "/landing/feature-snap.png",
+    width: 511,
+    height: 501,
+    note: "Finds every food and portion",
+  },
+  {
+    icon: Mic,
+    title: "Just say what you ate.",
+    body: "Tell FITR8 what you had and let your voice do the logging. No searching, typing, or complicated entries.",
+    src: "/landing/feature-voice.png",
+    width: 504,
+    height: 434,
+    note: "“2 roti and a bowl of dal”",
+  },
+  {
+    icon: ScanBarcode,
+    title: "Skip the search with a scan",
+    body: "Scan any packaged food to instantly see its calories and macros and add it to your daily log.",
+    src: "/landing/feature-scan.png",
+    width: 650,
+    height: 520,
+    note: "Exact label values",
+  },
+  {
+    icon: Dumbbell,
+    title: "Know what to lift next.",
+    body: "FITR8 learns from your nutrition and training history to set a personalized target for your next workout.",
+    src: "/landing/feature-lift.png",
+    width: 650,
+    height: 520,
+    note: "Next time: +2.5 kg",
+  },
+  {
+    icon: TrendingUp,
+    title: "Watch your progress add up.",
+    body: "Track your changes over time, from strength gains to body composition, and see how your consistency translates into results.",
+    src: "/landing/feature-progress.png",
+    width: 650,
+    height: 520,
+    note: "Weekly trend vs your plan",
+  },
+] as const;
+
+const AUTOPLAY_MS = 6000;
 
 /**
- * Figma 3806:1777: dark band, 80 px padding, 52 px semibold, a word on a purple pill. The pill
- * cycles Nutrition → Workout → Progress every second.
+ * Feature tabs (vertical tablist) beside the matching app screen. Auto-advances while the section
+ * is on screen; hover or keyboard focus pauses it; arrow keys move between tabs.
  */
-export function TrackBand() {
-  return (
-    <section className="relative bg-fitr8-night px-[10px] py-20 text-center text-[36px] leading-[1.1] font-semibold text-white sm:text-[52px]">
-      <h2>
-        <span className="flex items-start justify-center gap-5">
-          Track
-          <RotatingWord words={["Nutrition", "Workout", "Progress"]} />
-        </span>
-        <span className="block">at one place</span>
-      </h2>
-    </section>
-  );
-}
-
-type Feature = {
-  icon: string;
-  title: [string, string?];
-  body: string;
-  /** Mockup inside the 325 × 260 tile. The last three are app screens framed like Figma’s snap mockup. */
-  mockup?: { src: string; className: string; width: number; height: number };
-  imageFirst: boolean;
-  /** Only the voice tile has 8 px corners in Figma. */
-  tileRounded?: boolean;
-  /** The progress icon is drawn mirrored in the design. */
-  iconClassName?: string;
-};
-
-const FEATURES: Feature[] = [
-  {
-    icon: "/landing/icon-snap.svg",
-    title: ["Snap it.", "FITR8 logs it."],
-    body: "Take a photo of your meal and let FITR8 identify what’s on your plate and log the nutrition for you.",
-    mockup: {
-      src: "/landing/feature-snap.png",
-      width: 395,
-      height: 387,
-      className: "top-[-5px] left-0 h-[387px] w-[395px]",
-    },
-    imageFirst: true,
-  },
-  {
-    icon: "/landing/icon-voice.svg",
-    title: ["Just say what you ate."],
-    body: "Tell FITR8 what you had and let your voice do the logging. No searching, typing, or complicated entries.",
-    mockup: {
-      src: "/landing/feature-voice.png",
-      width: 340,
-      height: 292,
-      className: "top-[-9px] left-[-15px] h-[292px] w-[340px]",
-    },
-    imageFirst: false,
-    tileRounded: true,
-  },
-  {
-    icon: "/landing/icon-scan.svg",
-    title: ["Skip the search", "with a scan"],
-    body: "Scan any packaged food to instantly see its calories and macros and add it to your daily log.",
-    mockup: {
-      src: "/landing/feature-scan.png",
-      width: 650,
-      height: 520,
-      className: "top-0 left-0 h-[260px] w-[325px]",
-    },
-    imageFirst: true,
-  },
-  {
-    icon: "/landing/icon-lift.svg",
-    title: ["Know what", "to lift next."],
-    body: "FITR8 learns from your nutrition and training history to set a personalized target for your next workout.",
-    mockup: {
-      src: "/landing/feature-lift.png",
-      width: 650,
-      height: 520,
-      className: "top-0 left-0 h-[260px] w-[325px]",
-    },
-    imageFirst: false,
-  },
-  {
-    icon: "/landing/icon-progress.svg",
-    title: ["Watch your progress add up."],
-    body: "Track your changes over time, from strength gains to body composition, and see how your consistency translates into results.",
-    mockup: {
-      src: "/landing/feature-progress.png",
-      width: 650,
-      height: 520,
-      className: "top-0 left-0 h-[260px] w-[325px]",
-    },
-    imageFirst: true,
-    iconClassName: "-scale-x-100",
-  },
-];
-
-/** Figma 3806:1779 heading + 3808:1808: five 877 px cards, 20 px apart, alternating sides. */
 export function Features() {
+  const [active, setActive] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const section = useRef<HTMLElement>(null);
+  const paused = useRef(false);
+  const visible = useRef(false);
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useEffect(() => {
+    const el = section.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => (visible.current = e.isIntersecting), {
+      threshold: 0.3,
+    });
+    io.observe(el);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return () => io.disconnect();
+
+    let last = performance.now();
+    let elapsed = 0;
+    let raf = 0;
+    const tick = (t: number) => {
+      const dt = t - last;
+      last = t;
+      if (!paused.current && visible.current && !document.hidden) {
+        elapsed += dt;
+        if (elapsed >= AUTOPLAY_MS) {
+          elapsed = 0;
+          setActive((i) => (i + 1) % FEATURES.length);
+        }
+        setProgress(elapsed / AUTOPLAY_MS);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    const reset = () => (elapsed = 0);
+    el.addEventListener("fitr8:feature-chosen", reset);
+    return () => {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+      el.removeEventListener("fitr8:feature-chosen", reset);
+    };
+  }, []);
+
+  function choose(i: number, focus = false) {
+    setActive(i);
+    setProgress(0);
+    section.current?.dispatchEvent(new Event("fitr8:feature-chosen"));
+    if (focus) tabs.current[i]?.focus();
+  }
+
+  const current = FEATURES[active];
+  const NoteIcon = current.icon;
+
   return (
-    <section id="features" className="scroll-mt-16 px-6 pt-[58px] pb-[84px] lg:px-[120px]">
-      <h2 className="text-center text-[30px] leading-[1.1] font-semibold sm:text-[38px]">
-        Staying fit just got easier.
-      </h2>
-      {/* Figma's 877 px cards: 80 px padding + 325 px tile + 236 px copy, spread apart (156 px at full width). */}
-      <ul className="mx-auto mt-[58px] flex max-w-[877px] flex-col gap-5">
-        {FEATURES.map((f) => (
-          <li
-            key={f.icon}
-            className="rounded-[16px] bg-fitr8-soft px-6 py-10 md:px-20 md:py-[60px]"
+    <section
+      id="features"
+      ref={section}
+      onMouseEnter={() => (paused.current = true)}
+      onMouseLeave={() => (paused.current = false)}
+      onFocus={() => (paused.current = true)}
+      onBlur={() => (paused.current = false)}
+      className="scroll-mt-16 bg-white py-16 sm:py-28"
+    >
+      <div className="mx-auto max-w-[1300px] px-4 sm:px-6 lg:px-10">
+        <SectionHead
+          kicker="Features"
+          title={
+            <>
+              Staying fit just got <PillWord>easier.</PillWord>
+            </>
+          }
+          aside="Five ways FITR8 takes the work out of tracking. Pick one to see it in the app."
+        />
+        <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-14">
+          <div
+            role="tablist"
+            aria-label="Features"
+            aria-orientation="vertical"
+            className="flex flex-col gap-2"
           >
-            <div
-              className={`flex flex-col items-center justify-center gap-10 md:justify-between ${
-                f.imageFirst ? "md:flex-row" : "md:flex-row-reverse"
-              }`}
-            >
-              {/* Figma's 325 × 260 tile. */}
-              <div
-                className={`relative h-[260px] w-full max-w-[325px] shrink-0 overflow-hidden bg-white ${f.tileRounded ? "rounded-[8px]" : ""}`}
-              >
-                {f.mockup && (
-                  <div className="absolute top-0 left-1/2 h-[260px] w-[325px] -translate-x-1/2">
-                    <Image
-                      src={f.mockup.src}
-                      alt=""
-                      width={Math.round(f.mockup.width * 1.4)}
-                      height={Math.round(f.mockup.height * 1.4)}
-                      className={`absolute max-w-none object-cover ${f.mockup.className}`}
-                    />
-                  </div>
-                )}
-              </div>
-              <div className="flex w-full flex-col gap-[18px] md:max-w-[236px]">
-                <Image src={f.icon} alt="" width={54} height={54} className={f.iconClassName} />
-                <div className="flex flex-col gap-[15px]">
-                  <h3 className="text-[28px] leading-[1.35] font-bold text-fitr8-ink">
-                    {f.title[0]}
-                    {f.title[1] && (
-                      <>
-                        <br />
-                        {f.title[1]}
-                      </>
+            {FEATURES.map((f, i) => {
+              const Icon = f.icon;
+              const on = i === active;
+              return (
+                <button
+                  key={f.title}
+                  ref={(el) => {
+                    tabs.current[i] = el;
+                  }}
+                  type="button"
+                  role="tab"
+                  id={`feature-tab-${i}`}
+                  aria-selected={on}
+                  aria-controls="feature-panel"
+                  tabIndex={on ? 0 : -1}
+                  onClick={() => choose(i)}
+                  onKeyDown={(e) => {
+                    const d = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+                    if (!d) return;
+                    e.preventDefault();
+                    choose((active + d + FEATURES.length) % FEATURES.length, true);
+                  }}
+                  className={cn(
+                    "relative grid grid-cols-[48px_minmax(0,1fr)] gap-x-4 gap-y-1 overflow-hidden rounded-[20px] px-[18px] py-4 text-left transition-colors",
+                    on ? "bg-fitr8-soft" : "hover:bg-fitr8-soft",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "row-span-2 grid size-12 place-items-center rounded-[14px] transition-colors",
+                      on ? "bg-fitr8 text-white" : "bg-fitr8-lilac-soft text-fitr8",
                     )}
-                  </h3>
-                  <p className="text-[16px] leading-[1.55] font-medium text-fitr8-ink/55">
-                    {f.body}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+                  >
+                    <Icon className="size-6" aria-hidden />
+                  </span>
+                  <span className="self-center text-[21px] font-semibold tracking-[-0.02em]">
+                    {f.title}
+                  </span>
+                  <span
+                    className={cn(
+                      "grid text-[15px] text-ink-2 transition-[grid-template-rows] duration-300 ease-out",
+                      on ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+                    )}
+                  >
+                    <span className="overflow-hidden">{f.body}</span>
+                  </span>
+                  {on && (
+                    <span
+                      aria-hidden
+                      className="absolute inset-x-[18px] bottom-0 h-[3px] rounded-full bg-line"
+                    >
+                      <i
+                        className="block h-full rounded-full bg-fitr8"
+                        style={{ width: `${progress * 100}%` }}
+                      />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div
+            id="feature-panel"
+            role="tabpanel"
+            aria-labelledby={`feature-tab-${active}`}
+            className="relative order-first aspect-[760/640] overflow-hidden rounded-[28px] bg-fitr8-lilac-soft shadow-hard-lg lg:order-none"
+          >
+            <span className="absolute top-[18px] left-[18px] z-[2] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[13px] font-semibold text-fitr8 shadow-hard-sm">
+              <NoteIcon className="size-[15px]" aria-hidden />
+              {current.note}
+            </span>
+            {FEATURES.map((f, i) => (
+              <Image
+                key={f.src}
+                src={f.src}
+                alt={i === active ? `FITR8 app: ${f.title}` : ""}
+                width={f.width}
+                height={f.height}
+                sizes="(min-width: 1024px) 600px, 100vw"
+                className={cn(
+                  "absolute inset-0 size-full object-contain object-bottom px-7 pt-7 transition-[opacity,transform] duration-[380ms] ease-out",
+                  i === active ? "opacity-100" : "translate-y-4 scale-[0.98] opacity-0",
+                )}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

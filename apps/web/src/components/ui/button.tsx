@@ -21,7 +21,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export function buttonClass(variant: ButtonVariant = "primary", className?: string) {
   return cn(
     "inline-flex w-full items-center justify-center gap-2 rounded-button px-5 text-base font-semibold",
-    "transition-colors duration-150 ease-out select-none disabled:cursor-not-allowed",
+    "transition-[color,background-color,transform] duration-150 ease-out select-none active:scale-[0.98] disabled:cursor-not-allowed disabled:active:scale-100",
     VARIANTS[variant],
     className,
   );

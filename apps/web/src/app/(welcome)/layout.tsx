@@ -1,12 +1,9 @@
-import { fitr8FontVars } from "@/lib/fitr8-fonts";
+import { marketingFontVars } from "@/lib/fitr8-fonts";
 
-/**
- * The FITR8 web welcome flow (Figma "Onboarding 0" / "Onboarding 1"): public, full-width, white.
- * It hands over to sign-in and then the in-app /onboarding.
- */
+/** Signed-out onboarding from the website (docs/WEBSITE.md §3), in the landing page's look. */
 export default function WelcomeLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={`${fitr8FontVars} relative min-h-dvh overflow-hidden bg-white font-inter`}>
+    <div className={`${marketingFontVars} min-h-dvh font-jakarta text-fitr8-ink antialiased`}>
       {children}
     </div>
   );

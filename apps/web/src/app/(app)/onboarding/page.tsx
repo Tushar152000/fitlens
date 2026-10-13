@@ -1,13 +1,17 @@
 import { requireViewer, serverApiOrNull } from "@/lib/server/api";
 import type { PlanDto } from "@fitr8/contracts";
-import { OnboardingForm, type OnboardingDraft } from "./onboarding-form";
+import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
+import type { OnboardingDraft } from "@/lib/onboarding/draft";
 
 export const metadata = { title: "Set up your plan — FITR8" };
 
 const ymd = (d: string) => d.slice(0, 10);
 const str = (n: number | null | undefined) => (n == null ? "" : String(n));
 
-/** Three-step onboarding. Prefills from an existing profile so users can re-run it to change their goal. */
+/**
+ * Signed-in onboarding: first time ("new", e.g. after /login without the welcome flow) or to
+ * change the goal from Profile ("edit", prefilled from the profile).
+ */
 export default async function OnboardingPage() {
   const { profile } = await requireViewer();
   // GET /api/plan carries the active goal and latest weigh-in; 404 until onboarding has saved them.
@@ -40,5 +44,5 @@ export default async function OnboardingPage() {
       }
     : {};
 
-  return <OnboardingForm initial={initial} returning={Boolean(profile?.onboardedAt)} />;
+  return <OnboardingFlow mode={profile?.onboardedAt ? "edit" : "new"} initial={initial} />;
 }

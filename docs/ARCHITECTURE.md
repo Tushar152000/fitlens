@@ -21,15 +21,15 @@ This is the contract for every change, human or AI. When code and this file disa
 
 ## 2. Repository layout
 
-| Path                 | What lives there                                                                                                                 | May depend on                                    |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `apps/api`           | NestJS service: HTTP adapters, application services, infrastructure adapters, jobs, the coach agent                              | `@fitr8/domain`, `@fitr8/contracts`, `@fitr8/db` |
-| `apps/web`           | Next.js 16 PWA (UI only)                                                                                                         | `@fitr8/domain` (formatting), `@fitr8/contracts` |
-| `apps/mobile`        | Expo app (UI only)                                                                                                               | `@fitr8/contracts`                               |
-| `packages/domain`    | Pure business rules: nutrition, training engine, dates, formatting, barcode/label maths. No I/O, no framework. 100% unit-tested. | `zod` only                                       |
-| `packages/contracts` | Zod request schemas, AI output schemas, coach stream events, shared DTO types                                                    | `zod`, `@fitr8/domain` (types only)              |
-| `packages/db`        | Prisma schema, migrations, seed, generated client                                                                                | `@fitr8/domain` (seed only)                      |
-| `packages/tsconfig`  | Shared compiler settings                                                                                                         | —                                                |
+| Path                 | What lives there                                                                                                                 | May depend on                                                                 |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `apps/api`           | NestJS service: HTTP adapters, application services, infrastructure adapters, jobs, the coach agent                              | `@fitr8/domain`, `@fitr8/contracts`, `@fitr8/db`                              |
+| `apps/web`           | Next.js 16 PWA (UI only)                                                                                                         | `@fitr8/domain` (formatting, landing-page target preview), `@fitr8/contracts` |
+| `apps/mobile`        | Expo app (UI only)                                                                                                               | `@fitr8/contracts`                                                            |
+| `packages/domain`    | Pure business rules: nutrition, training engine, dates, formatting, barcode/label maths. No I/O, no framework. 100% unit-tested. | `zod` only                                                                    |
+| `packages/contracts` | Zod request schemas, AI output schemas, coach stream events, shared DTO types                                                    | `zod`, `@fitr8/domain` (types only)                                           |
+| `packages/db`        | Prisma schema, migrations, seed, generated client                                                                                | `@fitr8/domain` (seed only)                                                   |
+| `packages/tsconfig`  | Shared compiler settings                                                                                                         | —                                                                             |
 
 Dependency rules are one-way: `apps → packages`, `db → domain`, never `packages → apps`, never `web/mobile → db`.
 

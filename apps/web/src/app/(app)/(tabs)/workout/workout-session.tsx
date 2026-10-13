@@ -44,6 +44,16 @@ export function WorkoutSession({ data, energy }: { data: TodayWorkoutDto; energy
   const doneCount = sets.filter((s) => s.length && s.every((x) => x.done)).length;
   const allDone = session != null && doneCount === session.exercises.length;
 
+  /** Pick an exercise; on phones the active card sits above the list, so bring it into view. */
+  function select(i: number) {
+    setActive(i);
+    if (!window.matchMedia("(min-width: 64rem)").matches) {
+      document
+        .getElementById("active-exercise")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
   function update(i: number, patch: Partial<SetState>) {
     setSets((all) =>
       all.map((ex, j) =>
@@ -81,7 +91,7 @@ export function WorkoutSession({ data, energy }: { data: TodayWorkoutDto; energy
       const nextOpen = session.exercises.findIndex(
         (_, j) => j > active && !sets[j]?.every((s) => s.done),
       );
-      if (nextOpen > 0) setActive(nextOpen);
+      if (nextOpen > 0) select(nextOpen);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't save that exercise. Try again.");
     }
@@ -135,96 +145,117 @@ export function WorkoutSession({ data, energy }: { data: TodayWorkoutDto; energy
         <RestDay data={data} />
       ) : (
         <>
-          <ul className="flex flex-wrap gap-2" aria-label="Session details">
-            {[
-              { icon: Clock, text: `~${session.estimatedMinutes} min` },
-              { icon: ListOrdered, text: `${session.exercises.length} exercises` },
-              { icon: Dumbbell, text: `energy: ${energy}` },
-            ].map(({ icon: Icon, text }) => (
-              <li
-                key={text}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full bg-chip px-4 text-sm font-semibold text-ink-2"
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8">
+            <div className="flex flex-col gap-5">
+              <ul className="flex flex-wrap gap-2" aria-label="Session details">
+                {[
+                  { icon: Clock, text: `~${session.estimatedMinutes} min` },
+                  { icon: ListOrdered, text: `${session.exercises.length} exercises` },
+                  { icon: Dumbbell, text: `energy: ${energy}` },
+                ].map(({ icon: Icon, text }) => (
+                  <li
+                    key={text}
+                    className="inline-flex h-9 items-center gap-1.5 rounded-full bg-chip px-4 text-sm font-semibold text-ink-2"
+                  >
+                    <Icon className="size-4" aria-hidden /> {text}
+                  </li>
+                ))}
+              </ul>
+
+              <div
+                className="h-1.5 overflow-hidden rounded-full bg-track"
+                role="progressbar"
+                aria-label={`${doneCount} of ${session.exercises.length} exercises done`}
+                aria-valuemin={0}
+                aria-valuemax={session.exercises.length}
+                aria-valuenow={doneCount}
               >
-                <Icon className="size-4" aria-hidden /> {text}
-              </li>
-            ))}
-          </ul>
-
-          <ActiveExercise
-            ex={session.exercises[active]}
-            index={active}
-            total={session.exercises.length}
-            doneCount={doneCount}
-            sets={sets[active]}
-            saved={saved[session.exercises[active].slug]}
-            onChange={update}
-            onToggle={toggle}
-          />
-          {error && (
-            <p role="alert" className="text-[13px] font-semibold text-brand">
-              {error}
-            </p>
-          )}
-
-          {allDone && (
-            <div className="flex gap-3 rounded-card bg-protein-soft p-4">
-              <Utensils className="mt-0.5 size-5 shrink-0 text-protein" aria-hidden />
-              <div className="flex flex-col gap-2">
-                <p className="font-bold">Session done. Protein next.</p>
-                <p className="text-[13px] text-ink-2">
-                  Aim for 25–40 g of protein at your next meal to help recovery.
-                </p>
-                <Link href="/log/type" className="text-[13px] font-semibold text-brand">
-                  Log your next meal
-                </Link>
+                <div
+                  className="h-full rounded-full bg-protein transition-[width] duration-300 ease-out"
+                  style={{ width: `${(doneCount / session.exercises.length) * 100}%` }}
+                />
               </div>
-            </div>
-          )}
 
-          <section className="flex flex-col gap-2" aria-labelledby="exercises-heading">
-            <h2 id="exercises-heading" className="display text-[19px]">
-              Exercises
-            </h2>
-            <ul className="flex flex-col gap-2">
-              {session.exercises.map((e, i) => {
-                const done = sets[i]?.every((s) => s.done);
-                return (
-                  <li key={e.slug}>
-                    <button
-                      type="button"
-                      onClick={() => setActive(i)}
-                      aria-current={i === active ? "step" : undefined}
-                      className={cn(
-                        "flex min-h-14 w-full items-center gap-3 rounded-card bg-surface px-4 py-3 text-left",
-                        i === active && "outline-2 outline-ink",
-                      )}
-                    >
-                      <span
+              <ActiveExercise
+                ex={session.exercises[active]}
+                index={active}
+                total={session.exercises.length}
+                doneCount={doneCount}
+                sets={sets[active]}
+                saved={saved[session.exercises[active].slug]}
+                onChange={update}
+                onToggle={toggle}
+              />
+              {error && (
+                <p role="alert" className="text-[13px] font-semibold text-brand">
+                  {error}
+                </p>
+              )}
+
+              {allDone && (
+                <div className="flex gap-3 rounded-card bg-protein-soft p-4">
+                  <Utensils className="mt-0.5 size-5 shrink-0 text-protein" aria-hidden />
+                  <div className="flex flex-col gap-2">
+                    <p className="font-bold">Session done. Protein next.</p>
+                    <p className="text-[13px] text-ink-2">
+                      Aim for 25–40 g of protein at your next meal to help recovery.
+                    </p>
+                    <Link href="/log/type" className="text-[13px] font-semibold text-brand">
+                      Log your next meal
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <section
+              className="flex flex-col gap-2 lg:sticky lg:top-10"
+              aria-labelledby="exercises-heading"
+            >
+              <h2 id="exercises-heading" className="display text-[19px]">
+                Exercises
+              </h2>
+              <ul className="flex flex-col gap-2">
+                {session.exercises.map((e, i) => {
+                  const done = sets[i]?.every((s) => s.done);
+                  return (
+                    <li key={e.slug}>
+                      <button
+                        type="button"
+                        onClick={() => select(i)}
+                        aria-current={i === active ? "step" : undefined}
                         className={cn(
-                          "grid size-8 shrink-0 place-items-center rounded-full text-[13px] font-bold",
-                          done ? "bg-protein text-white" : "bg-sunken text-ink-2",
+                          "flex min-h-14 w-full lift items-center gap-3 rounded-card bg-surface px-4 py-3 text-left",
+                          i === active && "outline-2 outline-ink",
                         )}
                       >
-                        {done ? (
-                          <Check className="size-4" strokeWidth={3} aria-label="Done" />
-                        ) : (
-                          i + 1
-                        )}
-                      </span>
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        <span className="font-semibold">{e.name}</span>
-                        <span className="text-[13px] text-ink-3 tabular-nums">
-                          {e.sets} × {repsLabel(e)}
-                          {e.targetKg != null ? ` · ${e.targetKg} kg` : ""} · {e.rir} in reserve
+                        <span
+                          className={cn(
+                            "grid size-8 shrink-0 place-items-center rounded-full text-[13px] font-bold",
+                            done ? "bg-protein text-white" : "bg-sunken text-ink-2",
+                          )}
+                        >
+                          {done ? (
+                            <Check className="size-4" strokeWidth={3} aria-label="Done" />
+                          ) : (
+                            i + 1
+                          )}
                         </span>
-                      </span>
-                      <ChevronRight className="size-5 shrink-0 text-ink-3" aria-hidden />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className="font-semibold">{e.name}</span>
+                          <span className="text-[13px] text-ink-3 tabular-nums">
+                            {e.sets} × {repsLabel(e)}
+                            {e.targetKg != null ? ` · ${e.targetKg} kg` : ""} · {e.rir} in reserve
+                          </span>
+                        </span>
+                        <ChevronRight className="size-5 shrink-0 text-ink-3" aria-hidden />
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          </div>
         </>
       )}
     </div>
@@ -322,7 +353,9 @@ function ActiveExercise({
                   onClick={() => onToggle(i)}
                   className={cn(
                     "inline-grid size-11 place-items-center rounded-input transition-colors duration-150",
-                    s.done ? "bg-protein text-white" : "bg-sunken text-ink-3 hover:text-ink",
+                    s.done
+                      ? "animate-pop bg-protein text-white"
+                      : "bg-sunken text-ink-3 hover:bg-protein-soft hover:text-protein",
                   )}
                 >
                   <Check className="size-5" strokeWidth={2.5} />

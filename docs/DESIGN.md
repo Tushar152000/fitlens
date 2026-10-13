@@ -27,25 +27,24 @@ on a brand-purple tile (#8116E0, radius 116/512), mark at 54% of the tile width.
 
 ## Public web pages (FITR8 marketing look)
 
-The signed-out web pages follow the FITR8 Figma file ("Ganesh's Work", section `3833:3185`) layout
-and fonts. Everything behind sign-in uses the app tokens below, which share the same purple.
+The landing page `/` follows **[WEBSITE.md](WEBSITE.md)** (sections, interactions, calculator rules,
+launch checklist): Plus Jakarta Sans, FITR8 purple, hard deep-purple shadows on pressable things,
+1300 px content column. Onboarding (`/welcome`, `/onboarding`, plan, get the app) and `/login` use the same look
+(WEBSITE.md §3). Everything behind sign-in
+uses the app tokens below, which share the same purple.
 
-| Route           | Figma node                 | What it is                                                                                |
-| --------------- | -------------------------- | ----------------------------------------------------------------------------------------- |
-| `/`             | `3788:3985` "FITR8"        | Landing page: hero with QR + store badges, feature cards, stats, testimonial, FAQ, footer |
-| `/welcome`      | `3828:2321` "Onboarding 0" | "Welcome to FITR8" + three cards → Continue                                               |
-| `/welcome/name` | `3828:3096` "Onboarding 1" | Step 1 of 5, "First, what can we call you?" → saves `PATCH /api/profile/name`             |
-| `/welcome/done` | none                       | After sign-in: saves the name typed while signed out, then `/onboarding` (or `/today`)    |
+| Route           | Source        | What it is                                                                                                     |
+| --------------- | ------------- | -------------------------------------------------------------------------------------------------------------- |
+| `/`             | WEBSITE.md §1 | Landing page: scan-demo hero, feature tabs, how it works, daily-target calculator, stats, stories, FAQ, footer |
+| `/welcome`      | WEBSITE.md §3 | Onboarding: name, goal, body, training, then Google; answers wait in sessionStorage                            |
+| `/welcome/done` | WEBSITE.md §3 | After sign-in: saves name + answers behind "Building your plan", then `/onboarding/plan`                       |
+| `/login`        | WEBSITE.md §3 | Returning users: purple panel (desktop), "Welcome back", Google                                                |
 
-- **Tokens:** `--color-fitr8*` in `apps/web/src/app/globals.css` (brand purple `#8116E0`). Fonts:
-  Inter, Playfair Display (testimonial), Roboto Bold (pill labels), loaded only by the `(marketing)`
-  and `(welcome)` layouts.
-- **Navbar** (not in Figma): `SiteHeader`, fixed. Transparent at the top with the wordmark at Figma's hero position (the hero keeps an empty 22 px row for it), solid `fitr8` purple with a shadow once scrolled. Features / Results / FAQ anchors (md+), "Log in" (outline pill → `/login`) and "Start for free" (white pill → `/welcome`, sm+). `/welcome` also links "Already have an account? Log in".
-- **Wordmark:** `Fitr8Wordmark`. Figma sets it in Rostex; until that font is licensed into the repo it
-  falls back to Inter ExtraBold.
-- **Assets:** `apps/web/public/landing/` and `public/welcome/`, exported from Figma.
-- **Steps 2–5** of the welcome flow aren't designed yet; after step 1 the user continues in the
-  existing in-app onboarding.
+- **Tokens:** `--color-fitr8*` and `--shadow-hard*` in `apps/web/src/app/globals.css` (brand purple
+  `#8116E0`). Fonts: Plus Jakarta Sans on the landing page, onboarding and
+  login; the app tabs keep Bricolage + Figtree.
+- **Wordmark:** "FITR8" in Plus Jakarta Sans ExtraBold with the `BareMark` / `LogoMark` icon.
+- **Assets:** `apps/web/public/landing/`, exported from Figma.
 
 ## Principles
 
@@ -53,7 +52,7 @@ and fonts. Everything behind sign-in uses the app tokens below, which share the 
 2. **Numbers you can trust.** Always show grams and units beside kcal. Flag low-confidence AI items in amber; never hide uncertainty.
 3. **Explain every change.** Any target change shows a one-line reason with the numbers behind it.
 4. **Kind, never shaming.** Over target uses neutral ink, never red. Missed days get a fresh start.
-5. **Thumb first.** Mobile-first PWA at 390 px. On wider screens, centre a 480 px column (app shell), no desktop layout in v1.
+5. **Thumb first, desktop-ready.** Mobile-first PWA at 390 px. From `lg` (1024 px) the tab screens switch to the desktop shell below; full-screen flows stay a centred 480 px column.
 
 ## Tokens
 
@@ -98,7 +97,25 @@ Load fonts with `next/font/google` (`Bricolage_Grotesque` weights 500–800, `Fi
 - **Touch:** every interactive target ≥ 44 × 44. Primary button height 54.
 - **Elevation:** flat. The only shadow is the camera FAB: `0 6px 16px rgb(194 65 12 / .35)`.
 - **Icons:** `lucide-react`, 2 px stroke, 20–24 px. No emoji anywhere.
-- **Motion:** 150–220 ms ease-out; ring and bars animate value changes; honour `prefers-reduced-motion`.
+- **Motion:** 150–220 ms ease-out; ring and bars animate value changes; honour `prefers-reduced-motion` (globals.css cuts every animation to an instant).
+  - Entrance: tab screens ease in (`animate-page-in` via `(tabs)/template.tsx`); the calories ring draws in (`animate-ring-in`), macro bars fill (`animate-bar-in`), History bars grow (`animate-bar-grow`).
+  - Feedback: buttons sink to 98% on press; tappable cards use the `lift` utility (−2 px and a 1 px `line-strong` inset ring on hover, press sinks back; no drop shadow); quick-add chips and ticked sets `animate-pop`.
+
+## Desktop app shell (lg ≥ 1024 px)
+
+- **SideNav** (`src/components/side-nav.tsx`) replaces the TabBar: fixed 256 px surface column, `Logo`, brand "Log a meal" button, "Type a meal", then Today · Workout · Progress · History · Coach, and the profile card pinned to the bottom. Active item = `brand/8` fill, brand text and a 4 px brand bar on the left edge.
+- **Keyboard shortcuts** (desktop only, ignored while typing or with a modifier): `L` log a meal, `T` type a meal, `1`–`5` the nav items, `6` profile. Each nav item shows its key on hover.
+- **Content:** up to 1120 px wide, 40 px gutters. Two-column screens put the main job on the left and a sticky companion column (`lg:sticky lg:top-10`) on the right:
+
+| Screen   | Left                                                    | Right (sticky)                          |
+| -------- | ------------------------------------------------------- | --------------------------------------- |
+| Today    | Calorie card (188 px ring) + water, meals               | Workout card with the week strip, coach |
+| Workout  | Session chips, progress bar, active set table           | Exercise list                           |
+| Progress | Check-in form, insight                                  | Weight trend, 7-day tiles               |
+| History  | Range, summary, daily bars (260 px tall, hover readout) | Selected day's meals                    |
+| Profile  | Cards flow into two balanced columns in phone order     | —                                       |
+
+- **Full-screen flows** (`/log/*`, `/coach`, `/onboarding`) keep the 480 px column (`AppColumn`) at every width.
 
 ## Components (build in `src/components/ui/`)
 

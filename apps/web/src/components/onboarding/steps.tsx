@@ -4,7 +4,6 @@ import {
   Armchair,
   Bike,
   CalendarDays,
-  ChevronLeft,
   Dumbbell,
   Footprints,
   House,
@@ -14,161 +13,104 @@ import {
   Sparkles,
   Trophy,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { StickyFooter } from "@/components/sticky-footer";
 import {
-  Button,
   ChipGroup,
   ChoiceCardGroup,
   DateField,
   FieldError,
   NumberField,
-  ProgressSteps,
   Segmented,
   TileGroup,
 } from "@/components/ui";
 import {
-  emptyDraft,
   needsTarget,
-  toPayload,
-  validateStep,
   wantsBodyFat,
   ymd,
   type DraftErrors,
   type OnboardingDraft,
-} from "./draft";
-
-export type { OnboardingDraft };
+} from "@/lib/onboarding/draft";
 
 const ic = "size-5";
 
-const STEP_TITLES = ["Your goal", "About you", "Food and training"];
-
-export function OnboardingForm({
-  initial,
-  returning,
-}: {
-  initial: Partial<OnboardingDraft>;
-  returning: boolean;
-}) {
-  const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [draft, setDraft] = useState<OnboardingDraft>(() => ({ ...emptyDraft(), ...initial }));
-  const [errors, setErrors] = useState<DraftErrors>({});
-  const [submitting, setSubmitting] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
-
-  const set = <K extends keyof OnboardingDraft>(key: K, value: OnboardingDraft[K]) => {
-    setDraft((d) => ({ ...d, [key]: value }));
-    setErrors((e) => ({ ...e, [key]: undefined }));
-  };
-
-  const back = () => {
-    setErrors({});
-    if (step > 1) setStep(step - 1);
-    else router.back();
-  };
-
-  async function next() {
-    const found = validateStep(step, draft);
-    if (Object.keys(found).length) {
-      setErrors(found);
-      document
-        .querySelector("[aria-invalid=true], [data-error]")
-        ?.scrollIntoView({ block: "center" });
-      return;
-    }
-    if (step < 3) {
-      setStep(step + 1);
-      window.scrollTo({ top: 0 });
-      return;
-    }
-    setSubmitting(true);
-    setServerError(null);
-    try {
-      const res = await fetch("/api/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          toPayload(draft, Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata"),
-        ),
-      });
-      if (res.status === 401) return router.push("/login");
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        setServerError(
-          body?.details?.[0]?.message ?? body?.error ?? "Something went wrong. Try again.",
-        );
-        setSubmitting(false);
-        return;
-      }
-      router.push("/onboarding/plan");
-      router.refresh();
-    } catch {
-      setServerError("Couldn't reach FITR8. Check your connection and try again.");
-      setSubmitting(false);
-    }
-  }
-
+/** Marks an answer carried over from the landing-page calculator. */
+function FromHome() {
   return (
-    <main className="flex flex-1 flex-col px-6 pt-4">
-      <div className="flex items-center gap-2">
-        {(step > 1 || returning) && (
-          <button
-            type="button"
-            onClick={back}
-            aria-label="Back"
-            className="-ml-3 grid size-11 place-items-center rounded-full text-ink hover:bg-sunken"
-          >
-            <ChevronLeft className="size-6" />
-          </button>
-        )}
-        <ProgressSteps current={step} total={4} className="flex-1" />
-      </div>
-
-      <h1 className="mt-6 display text-[28px] leading-tight">{STEP_TITLES[step - 1]}</h1>
-
-      <div className="mt-6 flex flex-col gap-6 pb-6">
-        {step === 1 && <GoalStep draft={draft} set={set} errors={errors} />}
-        {step === 2 && <AboutStep draft={draft} set={set} errors={errors} />}
-        {step === 3 && <TrainingStep draft={draft} set={set} errors={errors} />}
-      </div>
-
-      <StickyFooter>
-        {serverError && (
-          <p role="alert" className="mb-3 text-center text-[13px] font-semibold text-brand">
-            {serverError}
-          </p>
-        )}
-        <Button variant="primary" onClick={next} disabled={submitting}>
-          {step < 3 ? "Continue" : submitting ? "Building your plan…" : "Build my plan"}
-        </Button>
-      </StickyFooter>
-    </main>
+    <span className="inline-flex items-center gap-1 rounded-full bg-fitr8-lilac-soft px-2 py-0.5 text-[11px] font-bold text-fitr8">
+      <Sparkles className="size-3" aria-hidden />
+      From the home page
+    </span>
   );
 }
 
-type StepProps = {
+/** Step 1 of the signed-out flow. */
+export function NameStep({
+  name,
+  setName,
+  error,
+}: {
+  name: string;
+  setName: (v: string) => void;
+  error?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      <label htmlFor="ob-name" className="text-sm font-semibold text-ink-2">
+        Your first name
+      </label>
+      <input
+        id="ob-name"
+        suppressHydrationWarning
+        autoComplete="given-name"
+        autoFocus
+        maxLength={60}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="e.g. Aarav"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? "ob-name-error" : undefined}
+        className="h-[54px] rounded-input border border-line-strong bg-surface px-4 text-lg font-semibold outline-none placeholder:font-medium placeholder:text-ink-3/60 focus:border-fitr8 focus:ring-3 focus:ring-fitr8-lilac-soft"
+      />
+      {error && <FieldError id="ob-name-error">{error}</FieldError>}
+    </div>
+  );
+}
+
+export type StepProps = {
   draft: OnboardingDraft;
   set: <K extends keyof OnboardingDraft>(key: K, value: OnboardingDraft[K]) => void;
   errors: DraftErrors;
+  /** Fields filled in from the landing-page calculator, marked until the user changes them. */
+  prefilled?: ReadonlySet<keyof OnboardingDraft>;
 };
 
-function Field({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
+function Field({
+  label,
+  error,
+  fromHome,
+  children,
+}: {
+  label: string;
+  error?: string;
+  fromHome?: boolean;
+  children: ReactNode;
+}) {
   return (
-    <fieldset className="flex flex-col gap-2.5" data-error={error ? "" : undefined}>
-      <legend className="mb-2.5 text-[13px] font-semibold text-ink-2">{label}</legend>
+    <fieldset className="flex min-w-0 flex-col gap-2.5" data-error={error ? "" : undefined}>
+      <legend className="mb-2.5 flex flex-wrap items-center gap-1.5 text-sm font-semibold text-ink-2">
+        {label}
+        {fromHome && <FromHome />}
+      </legend>
       {children}
       {error && <FieldError>{error}</FieldError>}
     </fieldset>
   );
 }
 
-function GoalStep({ draft, set, errors }: StepProps) {
+export function GoalStep({ draft, set, errors, prefilled }: StepProps) {
   return (
     <>
-      <Field label="Pick one" error={errors.goalType}>
+      <Field label="Pick one" error={errors.goalType} fromHome={prefilled?.has("goalType")}>
         <ChoiceCardGroup
           label="Goal"
           value={draft.goalType}
@@ -236,12 +178,18 @@ function GoalStep({ draft, set, errors }: StepProps) {
   );
 }
 
-function AboutStep({ draft, set, errors }: StepProps) {
+export function AboutStep({
+  draft,
+  set,
+  errors,
+  prefilled,
+  ageHint,
+}: StepProps & { ageHint?: number | null }) {
   const bf = wantsBodyFat(draft);
   const optional = bf ? "" : " (optional)";
   return (
     <>
-      <Field label="Sex" error={errors.sex}>
+      <Field label="Sex" error={errors.sex} fromHome={prefilled?.has("sex")}>
         <Segmented
           label="Sex"
           value={draft.sex}
@@ -259,11 +207,12 @@ function AboutStep({ draft, set, errors }: StepProps) {
         max={ymd(new Date())}
         onValueChange={(v) => set("birthDate", v)}
         error={errors.birthDate}
+        hint={ageHint ? `On the home page you said you’re ${ageHint}.` : undefined}
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <NumberField
-          label="Height"
+          label={prefilled?.has("heightCm") ? "Height · from home page" : "Height"}
           unit="cm"
           placeholder="170"
           value={draft.heightCm}
@@ -271,7 +220,7 @@ function AboutStep({ draft, set, errors }: StepProps) {
           error={errors.heightCm}
         />
         <NumberField
-          label="Weight"
+          label={prefilled?.has("weightKg") ? "Weight · from home page" : "Weight"}
           unit="kg"
           placeholder="75"
           value={draft.weightKg}
@@ -313,7 +262,11 @@ function AboutStep({ draft, set, errors }: StepProps) {
         </p>
       </div>
 
-      <Field label="How active are you outside workouts?" error={errors.activityLevel}>
+      <Field
+        label="How active are you outside workouts?"
+        error={errors.activityLevel}
+        fromHome={prefilled?.has("activityLevel")}
+      >
         <ChoiceCardGroup
           label="Activity level"
           value={draft.activityLevel}
@@ -415,7 +368,7 @@ function ByWhen({
   );
 }
 
-function TrainingStep({ draft, set, errors }: StepProps) {
+export function TrainingStep({ draft, set, errors }: StepProps) {
   return (
     <>
       <Field label="Diet" error={errors.dietType}>
@@ -499,7 +452,7 @@ function TrainingStep({ draft, set, errors }: StepProps) {
           type="checkbox"
           checked={draft.medicalFlag}
           onChange={(e) => set("medicalFlag", e.target.checked)}
-          className="mt-0.5 size-6 shrink-0 cursor-pointer accent-brand"
+          className="mt-0.5 size-6 shrink-0 cursor-pointer accent-fitr8"
         />
         <span className="flex flex-col">
           <span className="font-semibold">

@@ -1,9 +1,13 @@
-import Image from "next/image";
+"use client";
+
+import { ChevronDown, Copy } from "lucide-react";
+import { useId, useRef, useState } from "react";
+import { cn } from "@/lib/cn";
 
 export const CONTACT_EMAIL = "ask@fitr8.com";
 
-// Only the first answer is written in Figma; the other three describe what the app does today
-// and need product sign-off.
+// Only the first answer is written in Figma; the rest describe what the app does today and need
+// product sign-off ("Is FITR8 free?" follows the free tier in docs/DESIGN.md).
 const FAQS = [
   {
     q: "What is FITR8?",
@@ -21,64 +25,131 @@ const FAQS = [
     q: "Is FITR8 suitable for beginners?",
     a: "Yes. You tell FITR8 your experience level when you set up, and your plan starts from there. It gives general fitness guidance, not medical advice.",
   },
+  {
+    q: "Is FITR8 free?",
+    a: "You can start for free. Typing meals and relogging your usual meals are always free, and the free plan includes a few photo scans every day.",
+  },
 ];
 
-/** Figma 3823:2176: title + "Still have questions" card on the left, accordion on the right. */
+/** Sticky title + "Still have questions?" card beside a one-open-at-a-time accordion. */
 export function Faq() {
+  const [open, setOpen] = useState(0);
+  const base = useId();
+
   return (
-    <section id="faq" className="flex scroll-mt-16 justify-center px-4 pt-[62px] pb-[62px]">
-      {/* Figma places this 898 px block at x 245, i.e. 26 px left of centre. */}
-      <div className="flex w-full max-w-[898px] flex-col gap-10 md:flex-row md:items-center md:gap-[38px] lg:mr-[52px]">
-        <div className="flex w-full flex-col gap-10 md:w-[341px] md:shrink-0 md:gap-[165px]">
-          <h2 className="text-[30px] leading-[1.1] font-semibold sm:text-[38px]">
-            Frequently asked
-            <br />
-            questions
-          </h2>
-          <div className="order-last rounded-[16px] bg-fitr8-soft p-6 md:order-none">
-            <p className="text-[20px] leading-[1.35] font-semibold text-fitr8-ink">
-              Still have a questions?
+    <section id="faq" className="scroll-mt-16 py-16 sm:py-28">
+      <div className="mx-auto grid max-w-[1300px] items-start gap-8 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16 lg:px-10">
+        <div className="flex flex-col gap-8 lg:sticky lg:top-[100px]">
+          <div>
+            <p className="mb-3 text-[13px] font-semibold tracking-[0.08em] text-fitr8 uppercase">
+              FAQ
             </p>
-            <p className="mt-3 max-w-[292px] text-[12px] leading-[1.41] font-medium text-fitr8-ink/55">
-              Can’t find the answer to your question? Send us an email and we’ll get back to you as
-              soon as possible
-            </p>
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="mt-5 flex h-[39px] w-[132px] items-center justify-center rounded-full bg-fitr8 font-roboto text-[14px] leading-5 font-bold tracking-[0.1px] text-white"
-            >
-              Send email
-            </a>
+            <h2 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.025em] sm:text-[48px]">
+              Frequently asked questions
+            </h2>
           </div>
+          <AskCard />
         </div>
 
-        <div className="flex w-full flex-col gap-[14px] md:w-[519px]">
-          {FAQS.map((f, i) => (
-            <details
-              key={f.q}
-              name="faq"
-              open={i === 0}
-              className="group rounded-[16px] bg-fitr8-soft px-6 py-6 open:pb-[34px]"
-            >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 [&::-webkit-details-marker]:hidden">
-                <span className="text-[20px] leading-[1.35] font-semibold text-fitr8-ink group-open:text-fitr8">
-                  {f.q}
-                </span>
-                <Image
-                  src="/landing/icon-faq-chevron.svg"
-                  alt=""
-                  width={28}
-                  height={26}
-                  className="shrink-0 group-open:-scale-y-100"
-                />
-              </summary>
-              <p className="mt-[14px] max-w-[442px] text-[14px] leading-[1.41] font-medium text-fitr8-ink/55">
-                {f.a}
-              </p>
-            </details>
-          ))}
+        <div className="flex flex-col gap-3">
+          {FAQS.map((f, i) => {
+            const isOpen = open === i;
+            return (
+              <div
+                key={f.q}
+                className={cn(
+                  "rounded-[20px] bg-white transition-shadow duration-200",
+                  isOpen && "shadow-[inset_0_0_0_2px_var(--color-fitr8)]",
+                )}
+              >
+                <h3>
+                  <button
+                    type="button"
+                    id={`${base}-q${i}`}
+                    aria-expanded={isOpen}
+                    aria-controls={`${base}-a${i}`}
+                    onClick={() => setOpen(isOpen ? -1 : i)}
+                    className={cn(
+                      "flex w-full items-center justify-between gap-4 px-6 py-[22px] text-left text-[19px] font-semibold tracking-[-0.01em]",
+                      isOpen && "text-fitr8",
+                    )}
+                  >
+                    {f.q}
+                    <span
+                      className={cn(
+                        "grid size-[34px] shrink-0 place-items-center rounded-full transition-[transform,background-color] duration-200",
+                        isOpen ? "rotate-180 bg-fitr8-lilac-soft" : "bg-fitr8-soft",
+                      )}
+                    >
+                      <ChevronDown className="size-[18px]" aria-hidden />
+                    </span>
+                  </button>
+                </h3>
+                <div
+                  id={`${base}-a${i}`}
+                  role="region"
+                  aria-labelledby={`${base}-q${i}`}
+                  className={cn(
+                    "grid transition-[grid-template-rows] duration-300 ease-out",
+                    isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+                  )}
+                >
+                  <div className="overflow-hidden">
+                    <p className="max-w-[38em] px-6 pb-6 text-ink-2">{f.a}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
+  );
+}
+
+function AskCard() {
+  const [label, setLabel] = useState("Copy");
+  const addr = useRef<HTMLAnchorElement>(null);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(CONTACT_EMAIL);
+      setLabel("Copied");
+    } catch {
+      // No clipboard access: select the address so the user can copy it themselves.
+      const range = document.createRange();
+      if (addr.current) range.selectNodeContents(addr.current);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+      setLabel("Selected");
+    }
+    window.setTimeout(() => setLabel("Copy"), 1600);
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-[20px] bg-white p-6">
+      <h3 className="text-[22px] font-semibold tracking-[-0.02em]">Still have questions?</h3>
+      <p className="text-[15px] text-ink-2">
+        Can’t find the answer you need? Email us and we’ll get back to you as soon as we can.
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <a
+          ref={addr}
+          href={`mailto:${CONTACT_EMAIL}`}
+          className="rounded-[10px] bg-fitr8-soft px-3 py-2 font-semibold select-all hover:underline"
+        >
+          {CONTACT_EMAIL}
+        </a>
+        <button
+          type="button"
+          onClick={copy}
+          className="inline-flex h-[38px] items-center gap-1.5 rounded-full bg-fitr8 px-3.5 text-sm font-semibold text-white hover:bg-brand-hover"
+        >
+          <Copy className="size-4" aria-hidden />
+          <span aria-live="polite">{label}</span>
+        </button>
+      </div>
+    </div>
   );
 }

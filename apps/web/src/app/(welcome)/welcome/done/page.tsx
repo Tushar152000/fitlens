@@ -1,10 +1,10 @@
 import { requireViewer } from "@/lib/server/api";
-import { SaveName } from "./save-name";
+import { FinishSignup } from "./finish-signup";
 
-export const metadata = { title: "Setting up — FITR8" };
+export const metadata = { title: "Building your plan — FITR8" };
 
-/** Landing spot after sign-in from the welcome flow: saves the stashed name, then moves on. */
+/** Landing spot after Google from the welcome flow: saves the stashed answers, then the plan. */
 export default async function WelcomeDonePage() {
   const viewer = await requireViewer();
-  return <SaveName onboarded={Boolean(viewer.profile?.onboardedAt)} />;
+  return <FinishSignup onboarded={Boolean(viewer.profile?.onboardedAt)} />;
 }

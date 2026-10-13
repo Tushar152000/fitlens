@@ -30,10 +30,7 @@ export function MealRow({
 }) {
   const note = STATUS_TEXT[status];
   return (
-    <Link
-      href={href}
-      className="flex min-h-16 items-center gap-3 rounded-card bg-surface p-3 transition-colors hover:bg-surface/70"
-    >
+    <Link href={href} className="flex min-h-16 lift items-center gap-3 rounded-card bg-surface p-3">
       <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-sunken text-ink-2">
         {photoUrl ? (
           // Signed URLs expire; next/image would cache them under a stale key.

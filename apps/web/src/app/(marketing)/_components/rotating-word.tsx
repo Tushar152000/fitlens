@@ -2,10 +2,10 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-const INTERVAL_MS = 1000;
+const INTERVAL_MS = 1800;
 
 /**
- * The purple pill in "Track ___ at one place". Cycles through `words` every second: the new word
+ * The purple pill in "Track ___ at one place". Cycles through `words` every 1.8 s: the new word
  * slides up into place while the pill eases to its width. Holds the first word when the user
  * prefers reduced motion.
  */
@@ -36,7 +36,7 @@ export function RotatingWord({ words }: { words: string[] }) {
   return (
     <>
       <span
-        className="relative inline-flex justify-center overflow-hidden rounded-[4px] bg-fitr8 px-[10px] transition-[width] duration-500 ease-out"
+        className="relative inline-flex justify-center overflow-hidden rounded-[12px] bg-fitr8 px-[10px] transition-[width] duration-500 ease-out"
         style={widths[index] ? { width: widths[index] } : undefined}
       >
         {/* Screen readers get one stable word, not a change every second. */}

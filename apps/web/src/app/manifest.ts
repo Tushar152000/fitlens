@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "FITR8",
     description:
       "Snap your meals, hit your goal. Calorie tracking and adaptive workouts for Indian food.",
-    start_url: "/today",
+    start_url: "/home",
     display: "standalone",
     background_color: "#F6F6F8",
     theme_color: "#8116E0",

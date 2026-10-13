@@ -1,145 +1,95 @@
+import { ArrowRight, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { BareMark } from "@/components/logo";
+import { ctaArrow, hardButton } from "./cta";
+import { ScanDemo } from "./scan-demo";
 
-/**
- * Figma 3803:1747 + backdrop. On desktop the frame is 1440 × 690: a 214 px purple strip, then the
- * plate photo with a purple → transparent gradient over its left 770 px and the outline shape at
- * x 789. Below lg the photo sits behind a stronger purple wash and the copy stacks.
- */
+/** Hero: headline + CTAs + app download on the left, a live scan of the plate photo on the right. */
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-fitr8">
-      <div className="relative mx-auto max-w-[1440px] lg:h-[690px]">
-        {/* Backdrop. Percentages are the Figma offsets over the 1440 frame. */}
-        <div
-          aria-hidden
-          className="absolute inset-0 lg:top-[-57px] lg:bottom-[-71px] lg:left-[14.86%]"
-        >
-          <Image
-            src="/landing/hero-plate.jpg"
-            alt=""
-            fill
-            priority
-            sizes="(min-width: 1024px) 85vw, 100vw"
-            className="object-cover"
-          />
-        </div>
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-fitr8/80 lg:right-auto lg:left-[14.86%] lg:w-[53.47%] lg:bg-transparent lg:bg-gradient-to-l lg:from-fitr8/0 lg:to-fitr8"
-        />
-        {/* Frosted "glass" shape (547 × 516 at x 789). Figma exports only its 10% white fill, not the
-            background blur, so an opaque copy of the shape masks a blurred 10% white panel. */}
-        <div
-          aria-hidden
-          className="absolute top-[50px] left-[54.79%] hidden aspect-[547/516] w-[37.97%] bg-white/10 backdrop-blur-[2px] lg:block"
-          style={{
-            maskImage: "url(/landing/hero-outline-mask.svg)",
-            maskSize: "100% 100%",
-            WebkitMaskImage: "url(/landing/hero-outline-mask.svg)",
-            WebkitMaskSize: "100% 100%",
-          }}
-        />
-        {/* The same shape's thin white outline, drawn over the frosted fill. */}
-        <svg
-          aria-hidden
-          viewBox="0 0 546.824 515.977"
-          preserveAspectRatio="none"
-          fill="none"
-          className="absolute top-[50px] left-[54.79%] hidden aspect-[547/516] w-[37.97%] overflow-visible lg:block"
-        >
-          {HERO_OUTLINE_PATHS.map((d) => (
-            <path
-              key={d}
-              d={d}
-              stroke="white"
-              strokeWidth={1.5}
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
-        </svg>
-
-        <div className="relative flex items-center gap-[223px] px-6 pt-[50px] pb-16 lg:pb-0 lg:pl-[15.42%]">
-          <div className="flex w-full max-w-[539px] flex-col gap-[68px]">
-            {/* The fixed SiteHeader draws the wordmark here; this keeps Figma's 22 px row + 68 px gap. */}
-            <div aria-hidden className="h-[22px]" />
-
-            <div className="flex flex-col gap-8">
-              <h1 className="flex flex-col items-start gap-[11px] text-[34px] leading-[1.1] font-bold text-white sm:text-[48px]">
-                <span>The World’s</span>
-                <span className="rounded-[8px] bg-white px-[14px] py-[12px] text-fitr8 sm:whitespace-nowrap">
-                  #1 Nutrition &amp; Progress
-                </span>
-                <span>tracking app</span>
-              </h1>
-
-              <div className="flex flex-col gap-8">
-                <p className="max-w-[499px] text-[14px] leading-[1.1] font-medium text-white lowercase">
-                  Track your meals, log your workouts, and discover what to do next. Everything you
-                  need to reach your fitness goals, all in one place.
-                </p>
-                <Link
-                  href="/welcome"
-                  className="flex h-12 w-[276px] items-center justify-center gap-2 rounded-full bg-white font-roboto text-[16px] leading-5 font-bold tracking-[0.1px] text-fitr8"
-                >
-                  START FOR FREE
-                  <Image
-                    src="/landing/icon-chevron.svg"
-                    alt=""
-                    width={24}
-                    height={24}
-                    className="rotate-90"
-                  />
-                </Link>
-              </div>
-            </div>
+    <section
+      id="top"
+      className="relative overflow-hidden bg-fitr8 pt-6 pb-16 text-white lg:pt-10 lg:pb-24"
+    >
+      <BareMark className="pointer-events-none absolute -top-[10%] -right-[6%] w-[62%] max-w-[820px] opacity-[0.07]" />
+      <div className="relative mx-auto grid max-w-[1300px] items-center gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] lg:gap-16 lg:px-10">
+        <div>
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/12 py-[7px] pr-3.5 pl-2 text-sm font-semibold">
+            <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold tracking-[0.04em] text-fitr8 uppercase">
+              Free
+            </span>
+            Snap, say, type or scan your meals
+          </p>
+          <h1 className="mt-6 flex flex-col items-start gap-2.5 text-[42px] leading-[1.1] font-semibold tracking-[-0.025em] text-balance sm:text-[56px] lg:text-[68px]">
+            <span>The world’s</span>
+            <span className="rounded-[14px] bg-white px-[0.22em] pt-[0.04em] pb-[0.1em] text-fitr8">
+              #1 nutrition &amp; progress
+            </span>
+            <span>tracking app</span>
+          </h1>
+          <p className="mt-6 max-w-[30em] text-lg text-white/80">
+            Track your meals, log your workouts, and discover what to do next. Everything you need
+            to reach your fitness goals, all in one place.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
+            <Link href="/welcome" className={`${hardButton} bg-white text-fitr8`}>
+              Start for free
+              <ArrowRight className={ctaArrow} aria-hidden />
+            </Link>
+            <a
+              href="#how"
+              className="inline-flex items-center gap-1.5 font-semibold hover:underline hover:underline-offset-4"
+            >
+              See how it works
+              <ChevronDown className="size-5" aria-hidden />
+            </a>
           </div>
-
-          <div className="relative hidden h-[284px] w-[236px] shrink-0 lg:block">
-            <Image
-              src="/landing/qr-code.png"
-              alt="QR code to download the FITR8 app"
-              width={230}
-              height={230}
-              className="absolute top-0 left-0 size-[230px] rounded-[11px] shadow-[10px_10px_0_0_var(--color-fitr8-deep)]"
-            />
-            <StoreBadges className="absolute top-[250px] left-0" />
-          </div>
+          <GetTheApp className="mt-10" />
         </div>
 
-        <StoreBadges className="relative px-6 pb-10 lg:hidden" />
+        <ScanDemo />
       </div>
     </section>
   );
 }
 
-/** The two pieces of the outline shape, from public/landing/hero-outline-mask.svg. */
-const HERO_OUTLINE_PATHS = [
-  "M267.53 234.898C287.798 233.367 324.371 234.464 346.018 234.466L497.316 234.505C486.066 295.44 470.69 360.874 457.947 422.095L341.317 421.961C323.28 421.942 291.13 420.946 274.309 422.354C266.171 423.015 258.157 424.69 250.431 427.343C223.873 436.563 206.965 454.324 195.017 479.104C189.607 492.739 188.918 501.701 187.367 515.977L0 515.957C3.94257 362.597 113.619 244.846 267.53 234.898Z",
-  "M0.217407 0C61.1253 0.944078 124.63 0.0449629 185.712 0.0440054L546.824 0C537.796 50.603 524.449 105.336 514.11 156.307C511.649 166.074 509.705 177.433 507.772 187.428C438.504 188.241 367.398 187.421 297.967 187.461L224.333 187.491C196.358 187.491 171.494 188.82 144.036 182.319C111.389 174.554 81.4413 158.135 57.3369 134.789C19.8365 98.3919 0.997688 51.9272 0.217407 0Z",
-];
-
-/** App Store (102 × 34) and Google Play (114 × 34) badges, 20 px apart, hard purple shadow. */
-function StoreBadges({ className }: { className?: string }) {
+/** QR code + store badges. */
+export function GetTheApp({ className, compact }: { className?: string; compact?: boolean }) {
   return (
-    <div className={`flex gap-5 ${className ?? ""}`}>
-      <Image
-        src="/landing/badge-app-store.png"
-        alt="Download on the App Store"
-        width={102}
-        height={34}
-        className="h-[34px] w-[102px] object-cover shadow-[4px_4px_0_0_var(--color-fitr8-deep)]"
-      />
-      <span className="relative h-[34px] w-[114px] overflow-hidden shadow-[4px_4px_0_0_var(--color-fitr8-deep)]">
-        {/* Figma crops the Play badge: 114.04% wide, offset −7.02% / −23.98%. */}
+    <div className={`flex items-center gap-[18px] ${className ?? ""}`}>
+      <span className="size-[92px] shrink-0 rounded-[10px] bg-white p-1.5 shadow-hard-sm">
         <Image
-          src="/landing/badge-google-play.png"
-          alt="Get it on Google Play"
-          width={130}
-          height={50}
-          className="absolute top-[-23.98%] left-[-7.02%] h-[147.97%] w-[114.04%] max-w-none"
+          src="/landing/qr-code.png"
+          alt="QR code to download the FITR8 app"
+          width={80}
+          height={80}
+          className="size-full"
         />
       </span>
+      {!compact && (
+        <div>
+          <p className="text-sm font-semibold text-white/80">
+            Scan to get the app, or find it in your store
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-3">
+            <Image
+              src="/landing/badge-app-store.png"
+              alt="Download on the App Store"
+              width={114}
+              height={38}
+              className="h-[38px] w-auto rounded-[7px] shadow-[3px_3px_0_var(--color-fitr8-deep)]"
+            />
+            <Image
+              src="/landing/badge-google-play.png"
+              alt="Get it on Google Play"
+              width={98}
+              height={38}
+              className="h-[38px] w-auto rounded-[7px] shadow-[3px_3px_0_var(--color-fitr8-deep)]"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

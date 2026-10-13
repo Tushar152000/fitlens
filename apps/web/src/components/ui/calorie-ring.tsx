@@ -7,7 +7,7 @@ const CIRC = 2 * Math.PI * R;
 
 /**
  * Calories ring: brand arc for eaten, centre shows what's left ("kcal to go" before anything is
- * logged). Over target the ring completes in ink with a grey arc for the overflow — never red.
+ * logged); the arc draws in on mount. Over target the ring completes in ink with a grey arc for the overflow — never red.
  */
 export function CalorieRing({
   eaten,
@@ -52,7 +52,8 @@ export function CalorieRing({
           strokeLinecap="round"
           strokeDasharray={CIRC}
           strokeDashoffset={CIRC * (1 - fraction)}
-          className={`transition-[stroke-dashoffset] duration-200 ease-out ${over ? "stroke-ink" : "stroke-brand"}`}
+          style={{ "--ring-circ": CIRC } as React.CSSProperties}
+          className={`animate-ring-in transition-[stroke-dashoffset] duration-200 ease-out ${over ? "stroke-ink" : "stroke-brand"}`}
         />
         {over && (
           <circle
@@ -64,7 +65,8 @@ export function CalorieRing({
             strokeLinecap="round"
             strokeDasharray={CIRC}
             strokeDashoffset={CIRC * (1 - overflow)}
-            className="stroke-line-strong transition-[stroke-dashoffset] duration-200 ease-out"
+            style={{ "--ring-circ": CIRC, animationDelay: "500ms" } as React.CSSProperties}
+            className="animate-ring-in stroke-line-strong transition-[stroke-dashoffset] duration-200 ease-out"
           />
         )}
       </svg>
