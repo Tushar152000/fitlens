@@ -7,7 +7,8 @@
 ARG NODE_VERSION=22
 
 FROM node:${NODE_VERSION}-alpine AS base
-RUN apk add --no-cache libc6-compat && corepack enable
+# openssl: Prisma's schema engine (used by the migrate target) links against it on alpine.
+RUN apk add --no-cache libc6-compat openssl && corepack enable
 WORKDIR /repo
 
 # Only the workspaces the API depends on, with a pruned lockfile (turbo prune).
