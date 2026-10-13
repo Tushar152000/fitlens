@@ -6,6 +6,8 @@ import { AuthEventsService } from "./auth-events.service.js";
 import { AuthController } from "./auth.controller.js";
 import { AuthGuard } from "./auth.guard.js";
 import { AuthService } from "./auth.service.js";
+import { APPLE_ID } from "./apple/apple-id.js";
+import { AppleIdClient } from "./apple/apple-id.client.js";
 import { GoogleOidcClient } from "./google/google-oidc.client.js";
 import { GOOGLE_OIDC } from "./google/oidc.js";
 import { IdentityService } from "./identity.service.js";
@@ -39,7 +41,19 @@ import { SessionsController } from "./sessions.controller.js";
           clientSecret: env.AUTH_GOOGLE_SECRET,
         }),
     },
+    {
+      provide: APPLE_ID,
+      inject: [ENV],
+      useFactory: (env: Env) =>
+        new AppleIdClient({
+          clientId: env.APPLE_CLIENT_ID,
+          teamId: env.APPLE_TEAM_ID,
+          keyId: env.APPLE_KEY_ID,
+          privateKey: env.APPLE_PRIVATE_KEY,
+        }),
+    },
   ],
-  exports: [SessionService, AuthGuard, OriginGuard, AuthCookies],
+  // AuthService: account deletion revokes Sign in with Apple first (UsersController).
+  exports: [SessionService, AuthGuard, OriginGuard, AuthCookies, AuthService],
 })
 export class AuthModule {}

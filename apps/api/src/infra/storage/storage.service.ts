@@ -1,7 +1,9 @@
 import {
   CreateBucketCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadBucketCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -53,6 +55,30 @@ export class StorageService implements OnApplicationBootstrap {
   mealPhotoKey(userId: string, contentType: string): string {
     const ext = contentType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
     return `meals/${userId}/${randomUUID()}.${ext}`;
+  }
+
+  /**
+   * Deletes every photo a user uploaded (meals/<userId>/…), page by page, 1,000 keys per request.
+   * Returns how many objects were removed.
+   */
+  async deleteUserPhotos(userId: string): Promise<number> {
+    const prefix = `meals/${userId}/`;
+    let removed = 0;
+    let token: string | undefined;
+    do {
+      const page = await this.s3.send(
+        new ListObjectsV2Command({ Bucket: this.bucket, Prefix: prefix, ContinuationToken: token }),
+      );
+      const keys = (page.Contents ?? []).flatMap((o) => (o.Key ? [{ Key: o.Key }] : []));
+      if (keys.length) {
+        await this.s3.send(
+          new DeleteObjectsCommand({ Bucket: this.bucket, Delete: { Objects: keys, Quiet: true } }),
+        );
+        removed += keys.length;
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+    return removed;
   }
 
   /** The client PUTs the (compressed) image straight to storage with this URL. */

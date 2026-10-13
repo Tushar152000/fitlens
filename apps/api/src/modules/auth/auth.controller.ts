@@ -1,10 +1,12 @@
 import { Controller, Get, HttpCode, Post, Req, Res, UseInterceptors } from "@nestjs/common";
 import type { Request, Response } from "express";
 import {
+  AppleSignInSchema,
   DevLoginSchema,
   GoogleStartQuerySchema,
   MobileStartQuerySchema,
   MobileTokenSchema,
+  type AppleSignInInput,
   type AuthTokenDto,
   type DevLoginDto,
   type DevLoginInput,
@@ -93,6 +95,16 @@ export class AuthController {
     @Req() req: Request,
   ): Promise<AuthTokenDto> {
     return this.auth.redeemAppCode(body, clientMeta(req));
+  }
+
+  /** App (iOS): Sign in with Apple's identity token + raw nonce → a bearer session token. */
+  @Post("apple")
+  @HttpCode(200)
+  apple(
+    @ZodBody(AppleSignInSchema) body: AppleSignInInput,
+    @Req() req: Request,
+  ): Promise<AuthTokenDto> {
+    return this.auth.signInWithApple(body, clientMeta(req));
   }
 
   /** Ends this session (cookie or bearer). Always 204, signed in or not, and clears the cookie. */

@@ -77,6 +77,13 @@ export const EnvSchema = z
     AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be at least 32 characters"),
     AUTH_GOOGLE_ID: optional,
     AUTH_GOOGLE_SECRET: optional,
+    /** Sign in with Apple: the iOS bundle id (e.g. com.fitr8.app), the identity token's audience. */
+    APPLE_CLIENT_ID: optional,
+    /** Apple Developer team id, and a "Sign in with Apple" key (id + .p8 contents): used to sign the
+     *  client secret for exchanging and revoking tokens. Required when deployed with Apple on. */
+    APPLE_TEAM_ID: optional,
+    APPLE_KEY_ID: optional,
+    APPLE_PRIVATE_KEY: optional,
     /** Email-only sign-in without Google (POST /api/auth/dev). Default: on locally and in tests; refused when deployed. */
     AUTH_DEV_LOGIN: optionalFlag,
     /** Web session idle lifetime: signed out after this many days without use. */
@@ -147,6 +154,16 @@ export const EnvSchema = z
           code: "custom",
           path: ["AUTH_GOOGLE_ID"],
           message: `required ${where}, where Google is the only sign-in: set AUTH_GOOGLE_ID and AUTH_GOOGLE_SECRET`,
+        });
+      }
+      if (
+        env.APPLE_CLIENT_ID &&
+        !(env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY)
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["APPLE_PRIVATE_KEY"],
+          message: `required ${where} with Sign in with Apple on (account deletion must revoke it): set APPLE_TEAM_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY`,
         });
       }
       if (!env.PUBLIC_URL.startsWith("https://")) {

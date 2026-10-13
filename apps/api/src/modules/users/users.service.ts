@@ -1,8 +1,9 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import type { RemindersInput } from "@fitr8/contracts";
 import { localDate } from "@fitr8/domain/dates";
 import { AppError } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
+import { StorageService } from "../../infra/storage/storage.service.js";
 
 export const DEFAULT_TIMEZONE = "Asia/Kolkata";
 
@@ -22,7 +23,12 @@ export const csvCell = (v: unknown) => {
 /** Identity and per-user settings every other module needs (timezone → the user's "today"). */
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(UsersService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   async timezone(userId: string): Promise<string> {
     const profile = await this.prisma.profile.findUnique({
@@ -179,8 +185,18 @@ export class UsersService {
     };
   }
 
-  /** Removes the user and everything tied to it (all relations cascade). Photos are left for a cleanup job. */
+  /**
+   * Removes the user and everything tied to it (all relations cascade), then their photos in
+   * storage. A storage failure is logged, never blocks the deletion: the rows are already gone.
+   */
   async deleteAccount(userId: string) {
     await this.prisma.user.delete({ where: { id: userId } });
+    await this.storage
+      .deleteUserPhotos(userId)
+      .catch((err) =>
+        this.logger.error(
+          `Photos of deleted user ${userId} not removed: ${err instanceof Error ? err.message : err}`,
+        ),
+      );
   }
 }

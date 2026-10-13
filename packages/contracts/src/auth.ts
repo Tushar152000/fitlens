@@ -31,6 +31,25 @@ export const MobileTokenSchema = z.object({
 });
 export type MobileTokenInput = z.infer<typeof MobileTokenSchema>;
 
+/**
+ * POST /api/auth/apple — native Sign in with Apple (iOS). The app asks Apple with
+ * `nonce = SHA-256(nonce)` (hex) and sends the raw value here; Apple returns the hash in the token.
+ */
+export const AppleSignInSchema = z.object({
+  identityToken: z.string().min(1).max(8192),
+  /** One-time code; traded for a refresh token so account deletion can revoke the sign-in. */
+  authorizationCode: z.string().min(1).max(1024).optional(),
+  nonce: z.string().min(16).max(128),
+  /** Only sent by Apple on the very first sign-in. */
+  fullName: z
+    .object({
+      givenName: z.string().trim().max(80).nullish(),
+      familyName: z.string().trim().max(80).nullish(),
+    })
+    .nullish(),
+});
+export type AppleSignInInput = z.infer<typeof AppleSignInSchema>;
+
 /** POST /api/auth/dev — local development and tests only (refused in production). */
 export const DevLoginSchema = z.object({
   email: z.string().email().max(254),
@@ -43,6 +62,8 @@ export type SessionClient = "WEB" | "MOBILE";
 /** GET /api/auth/providers — which sign-in buttons the login screen shows. */
 export interface ProvidersDto {
   google: boolean;
+  /** Sign in with Apple (the iOS app shows its button only when this is true). */
+  apple: boolean;
   dev: boolean;
 }
 

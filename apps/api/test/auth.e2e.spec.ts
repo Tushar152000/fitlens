@@ -91,7 +91,7 @@ describe("auth", () => {
   describe("providers", () => {
     it("lists the sign-in methods and is never cached", async () => {
       const res = await t.http().get("/api/auth/providers").expect(200);
-      expect(res.body).toEqual({ google: true, dev: true });
+      expect(res.body).toEqual({ google: true, apple: true, dev: true });
       expect(res.headers["cache-control"]).toBe("no-store");
     });
   });

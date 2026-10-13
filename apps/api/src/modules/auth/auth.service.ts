@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import type {
+  AppleSignInInput,
   AuthTokenDto,
   DevLoginInput,
   MobileStartQuery,
@@ -22,6 +23,7 @@ import {
   pkceMatches,
   safeReturnPath,
 } from "./auth.policy.js";
+import { InjectAppleId, type AppleSignIn } from "./apple/apple-id.js";
 import { InjectGoogleOidc, OidcError, type OidcProvider } from "./google/oidc.js";
 import { IdentityRejected, IdentityService } from "./identity.service.js";
 import {
@@ -33,6 +35,9 @@ import {
 
 /** HKDF purpose for the sign-in state cookie: its key can't open anything else. */
 const STATE_PURPOSE = "signin-state";
+/** HKDF purpose for stored Apple refresh tokens. They don't expire, so the seal lasts 10 years. */
+const APPLE_TOKEN_PURPOSE = "apple-refresh-token";
+const APPLE_TOKEN_TTL_MS = 10 * 365 * 86_400_000;
 
 /**
  * What survives the Google round trip, sealed (AES-GCM) in an httpOnly cookie:
@@ -70,6 +75,9 @@ const COPY = {
   taken: "This email is already linked to a different Google account",
   badCode: "Bad sign-in code",
   expiredCode: "Sign-in code expired, try again",
+  apple: "Apple sign-in failed, try again",
+  appleUnverified: "Apple didn't share a verified email. Try again, or continue with Google.",
+  appleTaken: "This email is already linked to a different Apple ID",
 } as const;
 
 class SignInFailure extends Error {
@@ -91,6 +99,7 @@ export class AuthService {
 
   constructor(
     @InjectGoogleOidc() private readonly google: OidcProvider,
+    @InjectAppleId() private readonly apple: AppleSignIn,
     private readonly identities: IdentityService,
     private readonly sessions: SessionService,
     private readonly events: AuthEventsService,
@@ -113,7 +122,7 @@ export class AuthService {
   }
 
   providers(): ProvidersDto {
-    return { google: this.google.enabled, dev: this.devLoginEnabled };
+    return { google: this.google.enabled, apple: this.apple.enabled, dev: this.devLoginEnabled };
   }
 
   // ── Start ──────────────────────────────────────────────────────────────
@@ -293,6 +302,105 @@ export class AuthService {
 
   private failMobile(reason: string, meta: ClientMeta, userId?: string) {
     return this.events.record({ type: "SIGN_IN_FAILED", userId, client: "MOBILE", reason, meta });
+  }
+
+  // ── Sign in with Apple (native app) ────────────────────────────────────
+
+  /**
+   * The iOS app's Apple sheet → a bearer session. Verifies the identity token, checks the nonce
+   * (the token carries SHA-256 of the raw value the app sends), maps the Apple id to a user the
+   * same way as Google, and keeps a sealed refresh token so account deletion can revoke it.
+   */
+  async signInWithApple(input: AppleSignInInput, meta: ClientMeta): Promise<AuthTokenDto> {
+    if (!this.apple.enabled) throw new AppError(503, "Sign in with Apple is not configured");
+    let userId: string | undefined;
+    try {
+      const identity = await this.apple.verifyIdentityToken(input.identityToken);
+      if (!identity.nonce || !safeEqual(identity.nonce, sha256Hex(input.nonce))) {
+        throw new SignInFailure("nonce_mismatch", COPY.apple);
+      }
+      const name =
+        [input.fullName?.givenName, input.fullName?.familyName].filter(Boolean).join(" ") || null;
+      userId = await this.identities.resolveUser("APPLE", {
+        ...identity,
+        name,
+        picture: null,
+      });
+      if (input.authorizationCode)
+        await this.storeAppleToken(identity.subject, input.authorizationCode);
+    } catch (err) {
+      const failure = this.toAppleFailure(err);
+      await this.failMobile(failure.reason, meta, userId);
+      throw new AppError(failure.reason === "internal_error" ? 500 : 401, failure.copy);
+    }
+    const session = await this.sessions.create(userId, "MOBILE", meta);
+    await this.events.record({ type: "SIGN_IN", userId, client: "MOBILE", reason: "apple", meta });
+    return { token: session.token, expiresAt: session.expiresAt.toISOString() };
+  }
+
+  /** Best effort: a missing refresh token only means deletion can't revoke at Apple. */
+  private async storeAppleToken(subject: string, authorizationCode: string) {
+    if (!this.apple.canRevoke) return;
+    try {
+      const refreshToken = await this.apple.refreshTokenFor(authorizationCode);
+      if (!refreshToken) return;
+      await this.prisma.authIdentity.update({
+        where: { provider_subject: { provider: "APPLE", subject } },
+        data: {
+          refreshTokenSealed: seal(
+            this.env.AUTH_SECRET,
+            APPLE_TOKEN_PURPOSE,
+            { t: refreshToken },
+            APPLE_TOKEN_TTL_MS,
+          ),
+        },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Apple refresh token not stored: ${err instanceof Error ? err.message : err}`,
+      );
+    }
+  }
+
+  /**
+   * Before an account is deleted: revoke its Sign in with Apple tokens at Apple (App Store
+   * guideline 5.1.1(v)). Best effort; never blocks the deletion.
+   */
+  async revokeAppleSignIn(userId: string): Promise<void> {
+    if (!this.apple.canRevoke) return;
+    const rows = await this.prisma.authIdentity.findMany({
+      where: { userId, provider: "APPLE", refreshTokenSealed: { not: null } },
+      select: { refreshTokenSealed: true },
+    });
+    for (const row of rows) {
+      const opened = unseal<{ t: string }>(
+        this.env.AUTH_SECRET,
+        APPLE_TOKEN_PURPOSE,
+        row.refreshTokenSealed!,
+      );
+      if (!opened.ok) continue;
+      await this.apple
+        .revoke(opened.payload.t)
+        .catch((err) =>
+          this.logger.warn(`Apple revoke failed: ${err instanceof Error ? err.message : err}`),
+        );
+    }
+  }
+
+  private toAppleFailure(err: unknown): SignInFailure {
+    if (err instanceof SignInFailure) return err;
+    if (err instanceof OidcError) {
+      this.logger.warn(`Apple sign-in failed (${err.reason}): ${err.message}`);
+      return new SignInFailure(err.reason, COPY.apple);
+    }
+    if (err instanceof IdentityRejected) {
+      return new SignInFailure(
+        err.reason,
+        err.reason === "email_taken" ? COPY.appleTaken : COPY.appleUnverified,
+      );
+    }
+    this.logger.error(err instanceof Error ? (err.stack ?? err.message) : String(err));
+    return new SignInFailure("internal_error", COPY.apple);
   }
 
   // ── Sign-out and devices ───────────────────────────────────────────────
