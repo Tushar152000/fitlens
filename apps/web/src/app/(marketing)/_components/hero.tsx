@@ -41,6 +41,24 @@ export function Hero() {
             WebkitMaskSize: "100% 100%",
           }}
         />
+        {/* The same shape's thin white outline, drawn over the frosted fill. */}
+        <svg
+          aria-hidden
+          viewBox="0 0 546.824 515.977"
+          preserveAspectRatio="none"
+          fill="none"
+          className="absolute top-[50px] left-[54.79%] hidden aspect-[547/516] w-[37.97%] overflow-visible lg:block"
+        >
+          {HERO_OUTLINE_PATHS.map((d) => (
+            <path
+              key={d}
+              d={d}
+              stroke="white"
+              strokeWidth={1.5}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </svg>
 
         <div className="relative flex items-center gap-[223px] px-6 pt-[50px] pb-16 lg:pb-0 lg:pl-[15.42%]">
           <div className="flex w-full max-w-[539px] flex-col gap-[68px]">
@@ -94,6 +112,12 @@ export function Hero() {
     </section>
   );
 }
+
+/** The two pieces of the outline shape, from public/landing/hero-outline-mask.svg. */
+const HERO_OUTLINE_PATHS = [
+  "M267.53 234.898C287.798 233.367 324.371 234.464 346.018 234.466L497.316 234.505C486.066 295.44 470.69 360.874 457.947 422.095L341.317 421.961C323.28 421.942 291.13 420.946 274.309 422.354C266.171 423.015 258.157 424.69 250.431 427.343C223.873 436.563 206.965 454.324 195.017 479.104C189.607 492.739 188.918 501.701 187.367 515.977L0 515.957C3.94257 362.597 113.619 244.846 267.53 234.898Z",
+  "M0.217407 0C61.1253 0.944078 124.63 0.0449629 185.712 0.0440054L546.824 0C537.796 50.603 524.449 105.336 514.11 156.307C511.649 166.074 509.705 177.433 507.772 187.428C438.504 188.241 367.398 187.421 297.967 187.461L224.333 187.491C196.358 187.491 171.494 188.82 144.036 182.319C111.389 174.554 81.4413 158.135 57.3369 134.789C19.8365 98.3919 0.997688 51.9272 0.217407 0Z",
+];
 
 /** App Store (102 × 34) and Google Play (114 × 34) badges, 20 px apart, hard purple shadow. */
 function StoreBadges({ className }: { className?: string }) {

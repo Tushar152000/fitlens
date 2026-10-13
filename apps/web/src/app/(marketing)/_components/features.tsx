@@ -104,24 +104,24 @@ export function Features() {
       <h2 className="text-center text-[30px] leading-[1.1] font-semibold sm:text-[38px]">
         Staying fit just got easier.
       </h2>
-      {/* Same side padding and 1200 px max as the footer, so the edges line up at every width. */}
-      <ul className="mx-auto mt-[58px] flex max-w-[1200px] flex-col gap-5">
+      {/* Figma's 877 px cards: 80 px padding + 325 px tile + 236 px copy, spread apart (156 px at full width). */}
+      <ul className="mx-auto mt-[58px] flex max-w-[877px] flex-col gap-5">
         {FEATURES.map((f) => (
           <li
             key={f.icon}
-            className="rounded-[16px] bg-fitr8-soft px-6 py-10 md:px-20 md:py-[60px] lg:px-[120px]"
+            className="rounded-[16px] bg-fitr8-soft px-6 py-10 md:px-20 md:py-[60px]"
           >
             <div
-              className={`flex flex-col items-center justify-center gap-10 md:gap-[156px] lg:justify-between lg:gap-10 ${
+              className={`flex flex-col items-center justify-center gap-10 md:justify-between ${
                 f.imageFirst ? "md:flex-row" : "md:flex-row-reverse"
               }`}
             >
-              {/* Figma's 325 × 260 tile, scaled 1.354× to 440 × 352 on wide screens (crop kept). */}
+              {/* Figma's 325 × 260 tile. */}
               <div
-                className={`relative h-[260px] w-full max-w-[325px] shrink-0 overflow-hidden bg-white lg:h-[352px] lg:w-[440px] lg:max-w-none ${f.tileRounded ? "rounded-[8px]" : ""}`}
+                className={`relative h-[260px] w-full max-w-[325px] shrink-0 overflow-hidden bg-white ${f.tileRounded ? "rounded-[8px]" : ""}`}
               >
                 {f.mockup && (
-                  <div className="absolute top-0 left-1/2 h-[260px] w-[325px] origin-top-left -translate-x-1/2 lg:left-0 lg:translate-x-0 lg:scale-[1.3538]">
+                  <div className="absolute top-0 left-1/2 h-[260px] w-[325px] -translate-x-1/2">
                     <Image
                       src={f.mockup.src}
                       alt=""
@@ -132,7 +132,7 @@ export function Features() {
                   </div>
                 )}
               </div>
-              <div className="flex w-full flex-col gap-[18px] md:max-w-[236px] lg:max-w-[320px]">
+              <div className="flex w-full flex-col gap-[18px] md:max-w-[236px]">
                 <Image src={f.icon} alt="" width={54} height={54} className={f.iconClassName} />
                 <div className="flex flex-col gap-[15px]">
                   <h3 className="text-[28px] leading-[1.35] font-bold text-fitr8-ink">
