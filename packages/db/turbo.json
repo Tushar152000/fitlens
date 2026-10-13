@@ -1,0 +1,9 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // `prisma generate` writes the client into src/generated: cache it, or a cache hit leaves it missing.
+    "build": { "outputs": ["$TURBO_EXTENDS$", "src/generated/**"] },
+    "typecheck": { "outputs": ["src/generated/**"] }
+  }
+}
