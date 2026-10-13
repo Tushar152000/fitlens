@@ -1,27 +1,54 @@
 import { useQuery } from "@tanstack/react-query";
+import * as AppleAuthentication from "expo-apple-authentication";
 import type { ProvidersDto } from "@fitr8/contracts";
 import { LogIn } from "lucide-react-native";
-import { useState } from "react";
-import { StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Platform, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { HeroPlate } from "@/components/hero-plate";
 import { Button, FieldError, Logo, Screen, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { openLegal } from "@/lib/legal";
 import { colors, fonts, radius } from "@/lib/theme";
 
-/** Screen 1: welcome + sign-in. Google opens in the system browser and hands a code back to the app. */
+function useProviders() {
+  return useQuery({
+    queryKey: ["auth-providers"],
+    queryFn: () => api<ProvidersDto>("/api/auth/providers"),
+    staleTime: Infinity,
+    retry: false,
+  });
+}
+
+/** Sign in with Apple is offered on iOS devices that support it (App Store guideline 4.8). */
+function useAppleAvailable() {
+  const [available, setAvailable] = useState(false);
+  useEffect(() => {
+    if (Platform.OS !== "ios") return;
+    AppleAuthentication.isAvailableAsync().then(setAvailable, () => setAvailable(false));
+  }, []);
+  return available;
+}
+
+/**
+ * Screen 1: welcome + sign-in. Apple (iOS) uses the system sheet; Google opens in the system browser
+ * and hands a code back to the app.
+ */
 export default function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, appleSignIn } = useAuth();
   const { width } = useWindowDimensions();
+  const providers = useProviders();
+  const appleAvailable = useAppleAvailable();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const showApple = appleAvailable && Boolean(providers.data?.apple);
 
-  async function onGoogle() {
+  async function run(fn: () => Promise<void>) {
     setBusy(true);
     setError(null);
     try {
-      await signIn();
+      await fn();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-in failed. Try again.");
     } finally {
@@ -34,10 +61,19 @@ export default function LoginScreen() {
       gutter={24}
       footer={
         <>
-          <Button variant="strong" onPress={onGoogle} loading={busy}>
+          {showApple && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={radius.button}
+              onPress={() => !busy && run(appleSignIn)}
+              style={{ width: "100%", height: 54 }}
+            />
+          )}
+          <Button variant={showApple ? "secondary" : "strong"} onPress={() => run(signIn)} loading={busy}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <GoogleMark />
-              <Text variant="button" color={colors.white}>
+              <Text variant="button" color={appleAvailable && providers.data?.apple ? colors.ink : colors.white}>
                 Continue with Google
               </Text>
             </View>
@@ -45,14 +81,23 @@ export default function LoginScreen() {
           {error && <FieldError>{error}</FieldError>}
           <DevSignIn />
           <Text size={12} color={colors.ink3} center>
-            By continuing you agree to our Terms and Privacy Policy. FITR8 gives general fitness guidance and is not
-            medical advice.
+            By continuing you agree to our{" "}
+            <Text size={12} color={colors.brand} weight={600} onPress={() => openLegal("terms")}>
+              Terms
+            </Text>{" "}
+            and{" "}
+            <Text size={12} color={colors.brand} weight={600} onPress={() => openLegal("privacy")}>
+              Privacy Policy
+            </Text>
+            . FITR8 gives general fitness guidance and is not medical advice.
           </Text>
         </>
       }
     >
       <Logo size={30} />
-      <HeroPlate size={Math.min(320, width - 48)} />
+      <View style={styles.hero}>
+        <HeroPlate size={Math.min(240, width - 48 - 40)} />
+      </View>
       <View style={{ gap: 12 }}>
         <Text variant="display">Snap your meal. Hit your goal.</Text>
         <Text color={colors.ink2}>
@@ -70,12 +115,7 @@ export default function LoginScreen() {
  */
 function DevSignIn() {
   const { devSignIn } = useAuth();
-  const providers = useQuery({
-    queryKey: ["auth-providers"],
-    queryFn: () => api<ProvidersDto>("/api/auth/providers"),
-    staleTime: Infinity,
-    retry: false,
-  });
+  const providers = useProviders();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +158,13 @@ function DevSignIn() {
 }
 
 const styles = StyleSheet.create({
+  hero: {
+    alignItems: "center",
+    borderRadius: radius.sheet,
+    backgroundColor: colors.brand,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+  },
   input: {
     height: 54,
     borderWidth: 1,

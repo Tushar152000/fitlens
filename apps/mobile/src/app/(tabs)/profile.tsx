@@ -23,6 +23,7 @@ import { queryClient } from "@/lib/query";
 import { colors, fonts, radius } from "@/lib/theme";
 import type { PlanResponse } from "@/lib/types-plan";
 import type { UsageDto } from "@fitr8/contracts";
+import { openLegal } from "@/lib/legal";
 
 const GOAL_LABEL = { FAT_LOSS: "Lose fat", MUSCLE_GAIN: "Build muscle", RECOMPOSITION: "Recomposition" } as const;
 const DIET_LABEL = { VEG: "Veg", NON_VEG: "Non-veg", EGGETARIAN: "Eggetarian", VEGAN: "Vegan" } as const;
@@ -179,6 +180,15 @@ export default function ProfileScreen() {
 
       <Text size={12} color={colors.ink3} center>
         {me.email} · FITR8 gives general fitness guidance, not medical advice.
+      </Text>
+      <Text size={12} color={colors.ink3} center>
+        <Text size={12} color={colors.brand} weight={600} onPress={() => openLegal("privacy")}>
+          Privacy Policy
+        </Text>
+        {"  ·  "}
+        <Text size={12} color={colors.brand} weight={600} onPress={() => openLegal("terms")}>
+          Terms
+        </Text>
       </Text>
     </Screen>
   );
