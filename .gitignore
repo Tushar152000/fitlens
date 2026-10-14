@@ -41,3 +41,6 @@ npm-debug.log*
 
 # Prisma client generated from the wrong directory (the real one is packages/db/src/generated)
 /src/generated/
+
+# Recorded demo videos (large binaries; share them, don’t commit them)
+/videos/

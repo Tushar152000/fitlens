@@ -67,6 +67,7 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 | `workouts` | exercises, workout_plans, workout_logs             | `/workouts/*`                                                       |
 | `progress` | body_metrics, checkins                             | `/checkins`, `/progress`, `/history`, `/dashboard`                  |
 | `coach`    | coach_conversations, coach_messages                | `/coach/*`                                                          |
+| `billing`  | entitlements, billing_events                       | `/billing`, `/billing/refresh`, `/billing/revenuecat` (webhook)     |
 | `ai`       | — (model access)                                   | —                                                                   |
 | `health`   | —                                                  | `/health`, `/health/live`                                           |
 

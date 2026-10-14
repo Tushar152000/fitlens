@@ -1,15 +1,39 @@
-import { Smartphone } from "lucide-react";
+import { BellRing, Smartphone } from "lucide-react";
 import Image from "next/image";
+import { StoreBadges, storeLinks } from "@/components/store-links";
 import { onboardingButton } from "./button-styles";
 
 /** The app's deep link (apps/mobile app.json "scheme"); opens Today when the app is installed. */
 export const APP_LINK = "fitlens://today";
 
 /**
- * Where people get the phone app: a QR card on desktop, an "Open the FITR8 app" button plus store
- * badges on phones.
+ * Where people get the phone app. Live: a QR card on desktop, "Open the FITR8 app" + badges on
+ * phones. Before launch (no store URLs yet): a "coming soon" card that says the plan is saved.
  */
-export function GetAppCard() {
+export function GetAppCard({ email }: { email?: string | null }) {
+  if (!storeLinks().live) {
+    return (
+      <div className="flex items-start gap-4 rounded-3xl bg-white p-5 shadow-hard">
+        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-fitr8 text-white">
+          <BellRing className="size-6" aria-hidden />
+        </span>
+        <div>
+          <p className="text-lg font-semibold">The app is almost here</p>
+          <p className="mt-1 text-sm text-ink-2">
+            FITR8 for iPhone and Android is coming soon. Your plan is saved to your account and will
+            be waiting when you sign in
+            {email ? (
+              <>
+                . We’ll let you know at <b className="text-fitr8-ink">{email}</b> when it’s live.
+              </>
+            ) : (
+              "."
+            )}
+          </p>
+        </div>
+      </div>
+    );
+  }
   return (
     <>
       <div className="hidden items-center gap-[18px] rounded-3xl bg-white p-5 shadow-hard lg:flex">
@@ -39,26 +63,5 @@ export function GetAppCard() {
         <StoreBadges className="justify-center" />
       </div>
     </>
-  );
-}
-
-function StoreBadges({ className }: { className?: string }) {
-  return (
-    <div className={`flex flex-wrap gap-2.5 ${className ?? ""}`}>
-      <Image
-        src="/landing/badge-app-store.png"
-        alt="Download on the App Store"
-        width={114}
-        height={38}
-        className="h-[38px] w-auto rounded-[7px]"
-      />
-      <Image
-        src="/landing/badge-google-play.png"
-        alt="Get it on Google Play"
-        width={98}
-        height={38}
-        className="h-[38px] w-auto rounded-[7px]"
-      />
-    </div>
   );
 }

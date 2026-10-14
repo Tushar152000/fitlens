@@ -69,7 +69,14 @@ describe("meals", () => {
   it("reports photo scan usage", async () => {
     const { agent } = await t.signIn();
     const res = await agent.get("/api/usage").expect(200);
-    expect(res.body).toEqual({ used: 0, limit: 3, left: 3, resetsAt: expect.any(String) });
+    expect(res.body).toEqual({
+      used: 0,
+      limit: 3,
+      left: 3,
+      resetsAt: expect.any(String),
+      plan: "FREE",
+      paywall: false,
+    });
   });
 
   it("validates the create body", async () => {

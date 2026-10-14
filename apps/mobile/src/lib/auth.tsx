@@ -8,6 +8,7 @@ import { api, ApiError, setApiToken, setUnauthorizedHandler } from "./api";
 import { API_URL } from "./config";
 import { queryClient } from "./query";
 import { writeConversationId } from "./coach-store";
+import { forgetPurchaser, identifyPurchaser } from "./purchases";
 import { readToken, writeToken } from "./token-store";
 import type { Me } from "./types";
 
@@ -54,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "loading", me: null });
 
   const clear = useCallback(async () => {
+    await forgetPurchaser();
     setApiToken(null);
     queryClient.clear(); // never show the last user's data to the next one
     await Promise.all([writeToken(null), writeConversationId(null)]);
@@ -64,6 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const me = await api<Me>("/api/me");
       setState({ status: "signedIn", me });
+      // Ties store purchases to this account; never blocks the app if RevenueCat is unreachable.
+      identifyPurchaser(me.id).catch(() => undefined);
     } catch (err) {
       // Offline at launch: keep the token and let the user retry rather than signing them out.
       if (err instanceof ApiError && err.status === 401) await clear();

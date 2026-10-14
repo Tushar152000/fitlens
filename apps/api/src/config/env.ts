@@ -116,6 +116,19 @@ export const EnvSchema = z
     /** Coach messages per user per local day. */
     COACH_DAILY_LIMIT: z.coerce.number().int().positive().default(40),
 
+    /** Pro photo scans per user per local day: fair use (docs/PREMIUM.md). */
+    AI_PRO_DAILY_LIMIT: z.coerce.number().int().positive().default(30),
+    /** Free coach messages per user per local day once the paywall is on (COACH_DAILY_LIMIT is Pro's). */
+    COACH_FREE_DAILY_LIMIT: z.coerce.number().int().positive().default(5),
+    /** Turn on Pro gating (free limits, label scans for Pro). Off: everyone keeps today's limits. */
+    PAYWALL_ENABLED: flag,
+    /** Exact Authorization header value set on the RevenueCat webhook. */
+    REVENUECAT_WEBHOOK_AUTH: optional,
+    /** RevenueCat secret API key (sk_…): reads a customer's current state after a webhook or purchase. */
+    REVENUECAT_SECRET_KEY: optional,
+    /** RevenueCat entitlement identifier that means FITR8 Pro. */
+    REVENUECAT_ENTITLEMENT: z.string().default("pro"),
+
     OFF_CONTACT: optional,
   })
   // Resolve environment-dependent defaults, then validate the result.
@@ -173,6 +186,17 @@ export const EnvSchema = z
           message: `must be https ${where} (session cookies are Secure)`,
         });
       }
+    }
+    if (
+      isDeployed(env) &&
+      env.PAYWALL_ENABLED &&
+      !(env.REVENUECAT_WEBHOOK_AUTH && env.REVENUECAT_SECRET_KEY)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["REVENUECAT_WEBHOOK_AUTH"],
+        message: `required in ${env.APP_ENV} with PAYWALL_ENABLED: set REVENUECAT_WEBHOOK_AUTH and REVENUECAT_SECRET_KEY`,
+      });
     }
     if (env.SESSION_DAYS > env.SESSION_MAX_DAYS || env.MOBILE_SESSION_DAYS > env.SESSION_MAX_DAYS) {
       ctx.addIssue({

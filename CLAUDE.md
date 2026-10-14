@@ -10,6 +10,7 @@ pnpm + Turborepo monorepo: `apps/api` (NestJS, the only backend), `apps/web` (Ne
 - **UI:** `docs/DESIGN.md` (tokens, components, screens, states). Match it exactly.
 - **Website and web redesign:** `docs/WEBSITE.md` (landing page, desktop app shell, onboarding redesign status).
 - **App store release:** `docs/STORE.md` (Sign in with Apple setup, reviewer access, listing, privacy answers).
+- **FITR8 Pro:** `docs/PREMIUM.md` (RevenueCat, plans and limits, paywall switch, setup).
 - **Workflows:** use the `fitr8-feature` skill for any feature/endpoint/table/screen, and `fitr8-coach-tool` for the AI coach.
 
 ## Commands (Node 22 — `nvm use`; pnpm via corepack)

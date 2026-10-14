@@ -2,6 +2,7 @@ import { ChevronRight, Download, Flame, Pencil } from "lucide-react";
 import Link from "next/link";
 import { LogoMark } from "@/components/logo";
 import { GetAppCard } from "@/components/onboarding/get-app";
+import { storeLinks } from "@/components/store-links";
 import { dateLabel } from "@/components/onboarding/steps-meta";
 import { cn } from "@/lib/cn";
 import { formatInt } from "@fitr8/domain/format";
@@ -61,8 +62,10 @@ export default async function HomePage() {
             Hi{first ? `, ${first}` : ""}
           </h1>
           <p className="mt-2 max-w-[38em] text-ink-2">
-            Here’s your plan at a glance. Log meals, water and workouts in the FITR8 app; your
-            numbers show up here too.
+            Here’s your plan at a glance.{" "}
+            {storeLinks().live
+              ? "Log meals, water and workouts in the FITR8 app; your numbers show up here too."
+              : "Logging happens in the FITR8 app, coming soon to iPhone and Android."}
           </p>
         </div>
 
@@ -75,9 +78,9 @@ export default async function HomePage() {
           <div className="flex flex-col gap-6">
             <section className="flex flex-col gap-3" aria-labelledby="app-heading">
               <h2 id="app-heading" className="text-xl font-semibold tracking-[-0.02em]">
-                Log in the app
+                {storeLinks().live ? "Log in the app" : "The app is coming soon"}
               </h2>
-              <GetAppCard />
+              <GetAppCard email={email} />
             </section>
 
             <section className="flex flex-col gap-3" aria-labelledby="account-heading">

@@ -1,5 +1,6 @@
 import { Bell, Camera, CircleCheck, Footprints } from "lucide-react";
 import { GetAppCard } from "@/components/onboarding/get-app";
+import { storeLinks } from "@/components/store-links";
 import { OnboardingShell } from "@/components/onboarding/shell";
 import { estimateLine, parseMode, RAIL, SETUP_STEPS } from "@/components/onboarding/steps-meta";
 import { requireOnboardedViewer, serverApiOrNull } from "@/lib/server/api";
@@ -11,7 +12,7 @@ const PERKS = [
   {
     icon: Camera,
     title: "Snap meals with your camera",
-    sub: "Photo, voice, barcode and label scans",
+    sub: "Photo, barcode and label scans, or type it",
   },
   {
     icon: Bell,
@@ -27,7 +28,7 @@ const PERKS = [
  * app just needs a sign-in.
  */
 export default async function GetTheAppPage({ searchParams }: PageProps<"/onboarding/app">) {
-  const [{ name }, sp, plan] = await Promise.all([
+  const [{ name, email }, sp, plan] = await Promise.all([
     requireOnboardedViewer(),
     searchParams,
     serverApiOrNull<PlanDto>("/plan"),
@@ -36,6 +37,7 @@ export default async function GetTheAppPage({ searchParams }: PageProps<"/onboar
   const mode = parseMode(sp.flow) === "welcome" ? "welcome" : "new";
   const rail = RAIL[mode];
   const first = name?.split(" ")[0];
+  const { live } = storeLinks();
   const t = plan?.summary.target;
 
   return (
@@ -61,21 +63,23 @@ export default async function GetTheAppPage({ searchParams }: PageProps<"/onboar
     >
       <p className="flex items-center gap-2.5 rounded-2xl bg-protein-soft px-3.5 py-3 text-sm font-semibold text-protein">
         <CircleCheck className="size-[18px] shrink-0" strokeWidth={2.6} aria-hidden />
-        Your plan is saved{first ? `, ${first}` : ""}. It’s waiting for you in the app.
+        Your plan is saved{first ? `, ${first}` : ""}.{" "}
+        {live ? "It’s waiting for you in the app." : "It’ll be waiting for you in the app."}
       </p>
       <div>
         <h1 className="text-[30px] leading-[1.12] font-semibold tracking-[-0.025em] lg:text-[38px]">
-          Take FITR8 with you
+          {live ? "Take FITR8 with you" : "Next: the FITR8 app"}
         </h1>
         <p className="mt-2 text-ink-2">
-          Logging works best on your phone: snap a meal in two seconds, get reminders, and count
-          your steps. Sign in with the same Google account and everything’s there.
+          {live
+            ? "Logging works best on your phone: snap a meal in two seconds, get reminders, and count your steps. Sign in with the same Google account and everything’s there."
+            : "Logging works best on your phone: snap a meal in two seconds, get reminders, and count your steps. Here’s what the app adds:"}
         </p>
       </div>
 
       <div className="grid items-center gap-5 lg:grid-cols-2">
         <div>
-          <GetAppCard />
+          <GetAppCard email={email} />
         </div>
 
         <ul className="grid gap-2.5">

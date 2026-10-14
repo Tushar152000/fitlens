@@ -122,6 +122,7 @@ model User {
   labelScans   LabelScan[]
   waterLogs    WaterLog[]
   coachChats   CoachConversation[]
+  entitlement  Entitlement?
 
   @@map("users")
 }
@@ -147,18 +148,18 @@ enum AuthEventType {
 /// A sign-in method linked to a user: one row per (provider, provider's stable user id).
 /// We keep no provider access/refresh tokens: FITR8 never calls Google on the user's behalf.
 model AuthIdentity {
-  id           String       @id @default(cuid())
-  userId       String
-  provider     AuthProvider
+  id                 String       @id @default(cuid())
+  userId             String
+  provider           AuthProvider
   /// The provider's stable subject id (Google `sub`), never the email: emails can change hands.
-  subject      String
+  subject            String
   /// Email the provider reported at the last sign-in (for support; `users.email` is the account's).
-  email        String?
+  email              String?
   /// Apple only: the refresh token, sealed with AUTH_SECRET, so deleting the account can revoke
   /// Sign in with Apple (App Store guideline 5.1.1(v)). Null when it couldn't be fetched.
   refreshTokenSealed String?
-  createdAt    DateTime     @default(now())
-  lastSignInAt DateTime     @default(now())
+  createdAt          DateTime     @default(now())
+  lastSignInAt       DateTime     @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -571,20 +572,56 @@ model CoachConversation {
 /// One turn. `content` holds the Anthropic content blocks verbatim (text, tool_use, tool_result,
 /// thinking, compaction) so the transcript can be replayed byte-for-byte; `text` is the display copy.
 model CoachMessage {
-  id             String   @id @default(cuid())
-  conversationId String
-  role           String // "user" | "assistant"
-  content        Json
-  text           String   @default("")
+  id              String   @id @default(cuid())
+  conversationId  String
+  role            String // "user" | "assistant"
+  content         Json
+  text            String   @default("")
   /// Human labels of tools used in this turn ("Checked today's meals").
-  actions        String[] @default([])
-  tokensIn       Int?
-  tokensOut      Int?
+  actions         String[] @default([])
+  tokensIn        Int?
+  tokensOut       Int?
   cacheReadTokens Int?
-  createdAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
 
   conversation CoachConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
   @@map("coach_messages")
+}
+
+/// FITR8 Pro access from RevenueCat, one row per user who has ever subscribed. Owned by `billing`.
+model Entitlement {
+  userId      String    @id
+  /// Pro until this moment (store expiry, or the billing grace period). Ignored when `lifetime`.
+  proUntil    DateTime?
+  lifetime    Boolean   @default(false)
+  willRenew   Boolean   @default(true)
+  productId   String?
+  /// APP_STORE, PLAY_STORE… (where to manage the subscription)
+  store       String?
+  /// TRIAL, INTRO, NORMAL, PROMOTIONAL, PREPAID
+  periodType  String?
+  /// SANDBOX or PRODUCTION
+  environment String?
+  /// Time of the newest state applied (webhook event time or REST sync), so a late, older webhook
+  /// can't undo it.
+  syncedAt    DateTime
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("entitlements")
+}
+
+/// RevenueCat webhook deliveries already handled (retries reuse the event id). Owned by `billing`.
+model BillingEvent {
+  /// RevenueCat's event id.
+  id         String   @id
+  type       String
+  userId     String?
+  receivedAt DateTime @default(now())
+
+  @@index([receivedAt])
+  @@map("billing_events")
 }

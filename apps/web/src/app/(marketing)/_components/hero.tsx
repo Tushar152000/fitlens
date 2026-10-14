@@ -2,6 +2,7 @@ import { ArrowRight, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { BareMark } from "@/components/logo";
+import { ComingSoon, StoreBadges, storeLinks } from "@/components/store-links";
 import { ctaArrow, hardButton } from "./cta";
 import { ScanDemo } from "./scan-demo";
 
@@ -54,8 +55,20 @@ export function Hero() {
   );
 }
 
-/** QR code + store badges. */
+/** QR code + store badges once the app is live; until then, a coming-soon note. */
 export function GetTheApp({ className, compact }: { className?: string; compact?: boolean }) {
+  if (!storeLinks().live) {
+    return compact ? (
+      <ComingSoon onBrand className={className} />
+    ) : (
+      <div className={`flex max-w-[30em] flex-col items-start gap-2.5 ${className ?? ""}`}>
+        <ComingSoon onBrand />
+        <p className="text-sm text-white/75">
+          Start on the web today. Your plan will be waiting in the app for iPhone and Android.
+        </p>
+      </div>
+    );
+  }
   return (
     <div className={`flex items-center gap-[18px] ${className ?? ""}`}>
       <span className="size-[92px] shrink-0 rounded-[10px] bg-white p-1.5 shadow-hard-sm">
@@ -72,22 +85,7 @@ export function GetTheApp({ className, compact }: { className?: string; compact?
           <p className="text-sm font-semibold text-white/80">
             Scan to get the app, or find it in your store
           </p>
-          <div className="mt-2.5 flex flex-wrap gap-3">
-            <Image
-              src="/landing/badge-app-store.png"
-              alt="Download on the App Store"
-              width={114}
-              height={38}
-              className="h-[38px] w-auto rounded-[7px] shadow-[3px_3px_0_var(--color-fitr8-deep)]"
-            />
-            <Image
-              src="/landing/badge-google-play.png"
-              alt="Get it on Google Play"
-              width={98}
-              height={38}
-              className="h-[38px] w-auto rounded-[7px] shadow-[3px_3px_0_var(--color-fitr8-deep)]"
-            />
-          </div>
+          <StoreBadges shadow className="mt-2.5" />
         </div>
       )}
     </div>
