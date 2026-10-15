@@ -7,7 +7,6 @@ const COMPANY_LINKS: { label: string; href?: string }[] = [
   { label: "About us" },
   { label: "Reviews", href: "/#stories" },
   { label: "Privacy Policy", href: "/privacy" },
-  { label: "Pricing and Refund Policy" },
   { label: "Terms of Use", href: "/terms" },
 ];
 const SOCIALS = [
