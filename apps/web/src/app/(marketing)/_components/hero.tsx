@@ -1,11 +1,10 @@
-import { ArrowRight, ChevronDown } from "lucide-react";
-import Image from "next/image";
+import { ArrowRight, ChevronDown, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { BareMark } from "@/components/logo";
 import { ctaArrow, hardButton } from "./cta";
 import { ScanDemo } from "./scan-demo";
 
-/** Hero: headline + CTAs + app download on the left, a live scan of the plate photo on the right. */
+/** Hero: headline + CTAs on the left, a live scan of the plate photo on the right. */
 export function Hero() {
   return (
     <section
@@ -45,7 +44,7 @@ export function Hero() {
               <ChevronDown className="size-5" aria-hidden />
             </a>
           </div>
-          <GetTheApp className="mt-10" />
+          <AppComingSoon className="mt-10" />
         </div>
 
         <ScanDemo />
@@ -54,20 +53,18 @@ export function Hero() {
   );
 }
 
-/** QR code to the app. No store badges until FITR8 is live on the App Store and Google Play. */
-export function GetTheApp({ className, compact }: { className?: string; compact?: boolean }) {
+/** Stands in for the QR code and store badges until FITR8 is published on the App Store and Google Play. */
+export function AppComingSoon({ className, compact }: { className?: string; compact?: boolean }) {
   return (
-    <div className={`flex items-center gap-[18px] ${className ?? ""}`}>
-      <span className="size-[92px] shrink-0 rounded-[10px] bg-white p-1.5 shadow-hard-sm">
-        <Image
-          src="/landing/qr-code.png"
-          alt="QR code to download the FITR8 app"
-          width={80}
-          height={80}
-          className="size-full"
-        />
+    <p
+      className={`inline-flex items-center gap-2.5 rounded-full bg-white/12 py-2 pr-4 pl-2 text-sm font-semibold text-white ${className ?? ""}`}
+    >
+      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-fitr8">
+        <Smartphone className="size-4" aria-hidden />
       </span>
-      {!compact && <p className="text-sm font-semibold text-white/80">Scan to get the app</p>}
-    </div>
+      {compact
+        ? "App coming soon on iOS & Android"
+        : "The FITR8 app is coming soon to the App Store and Google Play"}
+    </p>
   );
 }

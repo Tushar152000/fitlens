@@ -1,9 +1,9 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { ctaArrow, hardButton } from "./cta";
-import { GetTheApp } from "./hero";
+import { AppComingSoon } from "./hero";
 
-/** Closing purple band: one line, Start for free, and the QR code. */
+/** Closing purple band: one line, Start for free, and "app coming soon". */
 export function FinalCta() {
   return (
     <section aria-labelledby="final-heading" className="bg-fitr8 py-14 text-white sm:py-[88px]">
@@ -24,7 +24,7 @@ export function FinalCta() {
             Start for free
             <ArrowRight className={ctaArrow} aria-hidden />
           </Link>
-          <GetTheApp compact />
+          <AppComingSoon compact />
         </div>
       </div>
     </section>

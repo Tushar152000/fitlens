@@ -37,7 +37,7 @@ that comes next. App screens and tokens live in [DESIGN.md](DESIGN.md); architec
 | #   | Section               | Component                             | Content and interaction                                                                                                                                                                                                                                                                                                                   |
 | --- | --------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Header + section dock | `site-header.tsx`, `section-dock.tsx` | Sticky top bar: logo, Log in → `/login`, Start for free → `/welcome`; purple over the hero, white with blur once scrolled. Section links (Features · How it works · Your numbers · Results · FAQ) sit in a floating pill fixed to the bottom of the screen; the section in view is filled purple. On phones the pill scrolls sideways.    |
-| 2   | Hero                  | `hero.tsx`                            | "Free" eyebrow, H1 "The world’s / #1 nutrition & progress / tracking app", lede, Start for free + "See how it works", QR + "Scan to get the app" (no store badges until the apps are published). Faint white FITR8 mark in the background.                                                                                                |
+| 2   | Hero                  | `hero.tsx`                            | "Free" eyebrow, H1 "The world’s / #1 nutrition & progress / tracking app", lede, Start for free + "See how it works", then an `AppComingSoon` pill ("The FITR8 app is coming soon to the App Store and Google Play"). Faint white FITR8 mark in the background.                                                                           |
 | 2a  | Scan demo             | `scan-demo.tsx`                       | Plate photo scans on load (lilac line, 1.3 s), then 6 food chips pop in (90 ms stagger) and the result card rises. Tap a chip ↔ highlights its row. ± steppers change portions; kcal counts to the new total. The dressing is the amber "Not sure, check this" item; adjusting it flips the badge to "All checked". "Scan again" replays. |
 | 3   | Track band            | `track-band.tsx`                      | Night band, "Track [Nutrition / Workout / Progress] at one place" (word rotates every 1.8 s, `RotatingWord`), chips for every way to log.                                                                                                                                                                                                 |
 | 4   | Features              | `features.tsx`                        | Vertical tablist of 5 features beside the matching app screen. Auto-advances every 6 s while on screen (progress bar on the active tab); hover or focus pauses; arrow keys move.                                                                                                                                                          |
@@ -46,7 +46,7 @@ that comes next. App screens and tokens live in [DESIGN.md](DESIGN.md); architec
 | 7   | Stats                 | `stats.tsx`                           | Purple band, "…and everything in between.", 100+ / 50+ / 7 days count up once when scrolled into view, app screens image.                                                                                                                                                                                                                 |
 | 8   | Results               | `testimonials.tsx`                    | One quote at a time (light-weight sans), initial avatar, arrows, dots, 7 s autoplay that restarts after a manual change.                                                                                                                                                                                                                  |
 | 9   | FAQ                   | `faq.tsx`                             | Sticky title + "Still have questions?" card (email with a Copy button; falls back to selecting the text). Accordion, one open at a time, animated height.                                                                                                                                                                                 |
-| 10  | Final CTA             | `final-cta.tsx`                       | "Your next meal is a good place to start." + Start for free + QR.                                                                                                                                                                                                                                                                         |
+| 10  | Final CTA             | `final-cta.tsx`                       | "Your next meal is a good place to start." + Start for free + compact `AppComingSoon` ("App coming soon on iOS & Android").                                                                                                                                                                                                               |
 | 11  | Footer                | `site-footer.tsx`                     | Wordmark, line, social icons, company links (Privacy Policy → `/privacy`, Terms of Use → `/terms`, Reviews → results; the rest plain text until the pages exist), contact, legal line.                                                                                                                                                    |
 
 ### Calculator rules
@@ -89,7 +89,7 @@ changes.
 - **FAQ "Is FITR8 free?"** follows the free tier in DESIGN.md (3 photo scans a day; typing and
   usuals free). Needs product sign-off, like answers 2–4.
 - **"World’s #1"** is the Figma headline; confirm the claim is one you can stand behind.
-- **Store badges** come back on the landing hero (and get real store links) once the apps are published. The onboarding/home `GetAppCard` still shows them.
+- **QR code and store badges** were removed (the QR was a stock placeholder that opened nothing). Once the apps are published, swap `AppComingSoon` (hero, final CTA) and the `GetAppCard` copy for a real QR and store links.
 - Unused Figma exports in `public/landing/` (testimonial photos, deco SVGs, hero outline mask) can be
   deleted once the old design is no longer needed for reference.
 
@@ -143,8 +143,8 @@ Signed-in visitors to `/welcome` are sent to `/onboarding` (or `/today` if onboa
 5. **Your daily target** (`/onboarding/plan?flow=…`): Realistic goal, dark target card
    (maintenance ± deficit, macro split), now → goal line, BMI / BMR / workouts, warnings. "Too fast
    to be safe" variant with Keep the goal / Keep the date (`POST /api/goal/option`).
-6. **Get the app** (`/onboarding/app`): desktop shows the QR code and store badges; phones show
-   "Open the FITR8 app" (`fitlens://today`) plus badges. This is the end of onboarding: there is
+6. **Get the app** (`/onboarding/app`): a "The FITR8 app is coming soon" card (no QR or store badges until the apps are published); phones also show
+   "Already have the app? Open it" (`fitlens://today`) for beta testers. This is the end of onboarding: there is
    no "continue on the web" button, so new users are sent to the phone app.
 7. Signed in again later on the web → `/home` (§4).
 
@@ -187,6 +187,6 @@ website's look (no sidebar, no logging). `/login`, `/welcome` (signed in), `/wel
   (`GET /api/dashboard`, `GET /api/water`).
 - **Your daily target:** dark card with kcal, protein / carbs / fat, goal, weight now → goal with
   the date, training days and minutes (`GET /api/plan`).
-- **Log in the app:** `GetAppCard` (QR on desktop, "Open the FITR8 app" + badges on phones).
+- **Log in the app:** `GetAppCard` ("The FITR8 app is coming soon"; phones also get the "Already have the app? Open it" deep link).
 - **Account:** name and email, Edit my plan (→ `/onboarding`, back to `/home` after saving),
   Export my data (CSV), Sign out, Delete account.
