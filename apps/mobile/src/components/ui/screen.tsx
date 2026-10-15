@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import {
+  KeyboardAvoidingView,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -13,7 +14,9 @@ import { colors, gutter as defaultGutter } from "@/lib/theme";
 
 /**
  * Scrolling screen on the ground colour with the app gutter. `footer` is pinned to the bottom
- * (the one primary action), above the tab bar when the screen has one.
+ * (the one primary action), above the tab bar when the screen has one, and rides up with the
+ * keyboard so inputs in it stay visible. Padding on both platforms: the app is edge-to-edge on
+ * Android, where the window no longer resizes for the keyboard.
  */
 export function Screen({
   children,
@@ -38,7 +41,7 @@ export function Screen({
   const insets = useSafeAreaInsets();
   const bottom = tabBar ? 0 : insets.bottom;
   return (
-    <View style={[styles.root, dark && { backgroundColor: colors.ink }]}>
+    <KeyboardAvoidingView behavior="padding" style={[styles.root, dark && { backgroundColor: colors.ink }]}>
       <ScrollView
         contentContainerStyle={[
           { paddingTop: insets.top + 16, paddingHorizontal: gutter, paddingBottom: footer ? 16 : bottom + 32, gap: 24 },
@@ -64,7 +67,7 @@ export function Screen({
           {footer}
         </View>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

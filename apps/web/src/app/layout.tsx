@@ -14,7 +14,7 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "FITR8 — AI fitness coach",
+  title: "FITR8 - AI fitness coach",
   description:
     "Snap your meals, hit your goal. Calorie tracking and adaptive workouts for Indian food.",
 };
