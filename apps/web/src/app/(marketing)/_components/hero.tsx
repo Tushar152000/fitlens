@@ -54,7 +54,7 @@ export function Hero() {
   );
 }
 
-/** QR code + store badges. */
+/** QR code to the app. No store badges until FITR8 is live on the App Store and Google Play. */
 export function GetTheApp({ className, compact }: { className?: string; compact?: boolean }) {
   return (
     <div className={`flex items-center gap-[18px] ${className ?? ""}`}>
@@ -67,29 +67,7 @@ export function GetTheApp({ className, compact }: { className?: string; compact?
           className="size-full"
         />
       </span>
-      {!compact && (
-        <div>
-          <p className="text-sm font-semibold text-white/80">
-            Scan to get the app, or find it in your store
-          </p>
-          <div className="mt-2.5 flex flex-wrap gap-3">
-            <Image
-              src="/landing/badge-app-store.png"
-              alt="Download on the App Store"
-              width={114}
-              height={38}
-              className="h-[38px] w-auto rounded-[7px] shadow-[3px_3px_0_var(--color-fitr8-deep)]"
-            />
-            <Image
-              src="/landing/badge-google-play.png"
-              alt="Get it on Google Play"
-              width={98}
-              height={38}
-              className="h-[38px] w-auto rounded-[7px] shadow-[3px_3px_0_var(--color-fitr8-deep)]"
-            />
-          </div>
-        </div>
-      )}
+      {!compact && <p className="text-sm font-semibold text-white/80">Scan to get the app</p>}
     </div>
   );
 }
