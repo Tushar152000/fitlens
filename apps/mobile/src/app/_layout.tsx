@@ -82,6 +82,7 @@ function Routes() {
         <Stack.Screen name="briefing" />
         <Stack.Screen name="history" />
         <Stack.Screen name="coach" />
+        <Stack.Screen name="pro" options={{ presentation: "modal" }} />
       </Stack.Protected>
     </Stack>
   );

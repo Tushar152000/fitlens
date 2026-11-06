@@ -90,6 +90,8 @@ export interface MeDto {
   image: string | null;
   onboarded: boolean;
   profile: ProfileDto | null;
+  /** FITR8 Pro or the free plan (docs/PREMIUM.md). */
+  plan: "FREE" | "PRO";
 }
 
 /** PATCH /api/profile/reminders */
@@ -256,6 +258,9 @@ export interface UsageDto {
   limit: number;
   left: number;
   resetsAt: string;
+  plan: "FREE" | "PRO";
+  /** False until Pro can be bought: show no upgrade prompts. */
+  paywall: boolean;
 }
 
 /** One entry of GET /api/meals/usuals. */

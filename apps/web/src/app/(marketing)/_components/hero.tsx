@@ -1,10 +1,11 @@
-import { ArrowRight, ChevronDown, Smartphone } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { BareMark } from "@/components/logo";
+import { ComingSoon, StoreBadges, storeLinks } from "@/components/store-links";
 import { ctaArrow, hardButton } from "./cta";
 import { ScanDemo } from "./scan-demo";
 
-/** Hero: headline + CTAs on the left, a live scan of the plate photo on the right. */
+/** Hero: headline + CTAs + app download on the left, a live scan of the plate photo on the right. */
 export function Hero() {
   return (
     <section
@@ -44,7 +45,7 @@ export function Hero() {
               <ChevronDown className="size-5" aria-hidden />
             </a>
           </div>
-          <AppComingSoon className="mt-10" />
+          <GetTheApp className="mt-10" />
         </div>
 
         <ScanDemo />
@@ -53,18 +54,26 @@ export function Hero() {
   );
 }
 
-/** Stands in for the QR code and store badges until FITR8 is published on the App Store and Google Play. */
-export function AppComingSoon({ className, compact }: { className?: string; compact?: boolean }) {
-  return (
-    <p
-      className={`inline-flex items-center gap-2.5 rounded-full bg-white/12 py-2 pr-4 pl-2 text-sm font-semibold text-white ${className ?? ""}`}
-    >
-      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-fitr8">
-        <Smartphone className="size-4" aria-hidden />
-      </span>
-      {compact
-        ? "App coming soon on iOS & Android"
-        : "The FITR8 app is coming soon to the App Store and Google Play"}
-    </p>
+/** Store badges once the app is live (APP_STORE_URL / PLAY_STORE_URL); until then, a coming-soon note. */
+export function GetTheApp({ className, compact }: { className?: string; compact?: boolean }) {
+  if (!storeLinks().live) {
+    return compact ? (
+      <ComingSoon onBrand className={className} />
+    ) : (
+      <div className={`flex max-w-[30em] flex-col items-start gap-2.5 ${className ?? ""}`}>
+        <ComingSoon onBrand />
+        <p className="text-sm text-white/75">
+          Start on the web today. Your plan will be waiting in the app for iPhone and Android.
+        </p>
+      </div>
+    );
+  }
+  return compact ? (
+    <StoreBadges shadow className={className} />
+  ) : (
+    <div className={className}>
+      <p className="text-sm font-semibold text-white/80">Get the app</p>
+      <StoreBadges shadow className="mt-2.5" />
+    </div>
   );
 }

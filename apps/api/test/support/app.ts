@@ -6,12 +6,14 @@ import request from "supertest";
 import { applyTestEnv } from "./env.js";
 import { FakeApple } from "./fake-apple.js";
 import { FakeGoogle } from "./fake-google.js";
+import { FakeRevenueCat } from "./fake-revenuecat.js";
 
 applyTestEnv();
 const { AppModule } = await import("../../src/app.module.js");
 const { PrismaService } = await import("../../src/infra/prisma/prisma.service.js");
 const { GOOGLE_OIDC } = await import("../../src/modules/auth/google/oidc.js");
 const { APPLE_ID } = await import("../../src/modules/auth/apple/apple-id.js");
+const { REVENUECAT } = await import("../../src/modules/billing/revenuecat.js");
 
 export interface TestApp {
   app: INestApplication;
@@ -23,6 +25,8 @@ export interface TestApp {
   google: FakeGoogle;
   /** Sign in with Apple, as far as the API can tell. */
   apple: FakeApple;
+  /** RevenueCat's REST API, as far as the API can tell. */
+  revenueCat: FakeRevenueCat;
   /** A fresh signed-in user. Requests made through the returned agent carry the session cookie. */
   signIn: (
     name?: string,
@@ -39,6 +43,7 @@ export interface TestAppOptions {
 export async function createTestApp(options: TestAppOptions = {}): Promise<TestApp> {
   const google = new FakeGoogle();
   const apple = new FakeApple();
+  const revenueCat = new FakeRevenueCat();
   const saved = { ...process.env };
   Object.assign(process.env, options.env);
   let moduleRef;
@@ -48,6 +53,8 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
       .useValue(google)
       .overrideProvider(APPLE_ID)
       .useValue(apple)
+      .overrideProvider(REVENUECAT)
+      .useValue(revenueCat)
       .compile();
   } finally {
     process.env = saved;
@@ -66,6 +73,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     browser: () => request.agent(server),
     google,
     apple,
+    revenueCat,
     async signIn(name = "Test User") {
       const agent = request.agent(server);
       const res = await agent

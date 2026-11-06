@@ -8,7 +8,6 @@ import type {
 import { startOfLocalDay } from "@fitr8/domain/dates";
 import type { Prisma } from "@fitr8/db";
 import { AppError, notFound } from "../../common/errors.js";
-import { InjectEnv, type Env } from "../../config/config.module.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { UsersService } from "../users/users.service.js";
 import { runAgent, type AgentStep } from "./agent/agent-loop.js";
@@ -19,6 +18,7 @@ import {
   type ModelGateway,
 } from "./agent/model-gateway.js";
 import { COACH_SYSTEM_PROMPT } from "./coach.prompt.js";
+import { BillingService } from "../billing/billing.service.js";
 import { CoachToolbox } from "./tools/coach-toolbox.js";
 import { TurnLock } from "./turn-lock.js";
 
@@ -50,8 +50,8 @@ export class CoachService {
     private readonly users: UsersService,
     private readonly toolbox: CoachToolbox,
     private readonly lock: TurnLock,
+    private readonly billing: BillingService,
     @Inject(MODEL_GATEWAY) private readonly gateway: ModelGateway,
-    @InjectEnv() private readonly env: Env,
   ) {}
 
   /**
@@ -70,10 +70,15 @@ export class CoachService {
         conversation: { userId },
       },
     });
-    if (sentToday >= this.env.COACH_DAILY_LIMIT) {
-      throw new AppError(429, "You've reached today's coach limit. It resets at midnight.", {
-        limit: this.env.COACH_DAILY_LIMIT,
-      });
+    const { coach: limit, plan, paywall } = await this.billing.limits(userId);
+    if (sentToday >= limit) {
+      throw new AppError(
+        429,
+        plan === "FREE" && paywall
+          ? `You've used today's ${limit} free coach messages. Pro gives you more.`
+          : "You've reached today's coach limit. It resets at midnight.",
+        { limit, plan, paywall },
+      );
     }
 
     const conversation = input.conversationId

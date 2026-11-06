@@ -4,6 +4,7 @@ import { localDate } from "@fitr8/domain/dates";
 import { AppError } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { StorageService } from "../../infra/storage/storage.service.js";
+import { BillingService } from "../billing/billing.service.js";
 
 export const DEFAULT_TIMEZONE = "Asia/Kolkata";
 
@@ -28,6 +29,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly billing: BillingService,
   ) {}
 
   async timezone(userId: string): Promise<string> {
@@ -87,7 +89,8 @@ export class UsersService {
       select: { id: true, name: true, email: true, image: true, profile: true },
     });
     const { profile, ...rest } = user;
-    return { ...rest, onboarded: Boolean(profile?.onboardedAt), profile };
+    const plan = await this.billing.plan(userId);
+    return { ...rest, onboarded: Boolean(profile?.onboardedAt), profile, plan };
   }
 
   /** The name the user asked to be called in the web welcome flow. Google sign-in won't overwrite it. */

@@ -6,13 +6,14 @@ import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { ChevronRight, Crown, Download, Flame, LogOut, Pencil, Trash2 } from "lucide-react-native";
 import { useEffect, useState, type ReactNode } from "react";
-import { Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Linking, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Sheet } from "@/components/sheet";
 import { Button, FieldError, Screen, Switch, Text } from "@/components/ui";
 import { api, apiText } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { formatInt } from "@/lib/format";
-import { dayQuery, waterQuery } from "@/lib/queries";
+import { manageSubscriptionUrl, purchasesAvailable } from "@/lib/purchases";
+import { billingQuery, dayQuery, waterQuery } from "@/lib/queries";
 import {
   ensureNotificationPermission,
   remindersAvailable,
@@ -322,15 +323,24 @@ const formatNext = (d: Date) => {
   return today ? `today, ${time}` : `${new Intl.DateTimeFormat("en-IN", { weekday: "long" }).format(d)}, ${time}`;
 };
 
-/** Plan card: free scans left today + Go Pro. */
+/** Plan card: scans left today, and FITR8 Pro (upgrade, or renewal + manage). */
 function PlanCard({ usage }: { usage: UsageDto }) {
-  const [note, setNote] = useState(false);
+  const billing = useQuery({ ...billingQuery, enabled: usage.plan === "PRO" });
   const pips = Math.min(usage.limit, 10);
   const usedPips = Math.min(pips, Math.round((usage.used / usage.limit) * pips));
+  const pro = usage.plan === "PRO";
+  const until = billing.data?.proUntil
+    ? new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(
+        new Date(billing.data.proUntil),
+      )
+    : null;
   return (
     <View style={styles.planCard} accessibilityLabel="Your plan">
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text weight={600}>Free plan</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          {pro && <Crown size={16} color={colors.brand} />}
+          <Text weight={600}>{pro ? "FITR8 Pro" : "Free plan"}</Text>
+        </View>
         <Text weight={600} size={13} color={colors.ink3} tabular>
           {usage.left} of {usage.limit} photo scans left today
         </Text>
@@ -343,16 +353,30 @@ function PlanCard({ usage }: { usage: UsageDto }) {
           />
         ))}
       </View>
-      <Text size={13} color={colors.ink3}>
-        Typing meals and relogging usuals are always free.
-      </Text>
-      <Button variant="strong" icon={Crown} onPress={() => setNote(true)}>
-        Go Pro
-      </Button>
-      {note && (
-        <Text size={13} color={colors.ink3} center>
-          Pro isn&apos;t available yet.
-        </Text>
+      {pro ? (
+        <>
+          {until && (
+            <Text size={13} color={colors.ink3}>
+              {billing.data?.lifetime
+                ? "Lifetime access."
+                : billing.data?.willRenew
+                  ? `Renews ${until}.`
+                  : `Pro until ${until}; won't renew.`}
+            </Text>
+          )}
+          <Button variant="secondary" onPress={() => Linking.openURL(manageSubscriptionUrl)}>
+            Manage subscription
+          </Button>
+        </>
+      ) : (
+        <>
+          <Text size={13} color={colors.ink3}>
+            Typing meals and relogging usuals are always free.
+          </Text>
+          <Button variant="strong" icon={Crown} onPress={() => router.push("/pro")}>
+            {purchasesAvailable ? "Go Pro" : "FITR8 Pro: coming soon"}
+          </Button>
+        </>
       )}
     </View>
   );

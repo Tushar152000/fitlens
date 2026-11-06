@@ -8,6 +8,7 @@ import { StorageService } from "../../infra/storage/storage.service.js";
 import { FOOD_EXTRACTOR, type FoodExtractor } from "../ai/index.js";
 import { MealItemsService } from "../meals/meal-items.service.js";
 import { MealsService } from "../meals/meals.service.js";
+import { BillingService } from "../billing/billing.service.js";
 import { ScanQuotaService } from "../meals/scan-quota.service.js";
 
 /** Nutrition-label photos → a LabelScan the user checks (7g) → their own unreviewed Food, logged to a meal. */
@@ -17,6 +18,7 @@ export class LabelsService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly quota: ScanQuotaService,
+    private readonly billing: BillingService,
     private readonly items: MealItemsService,
     private readonly meals: MealsService,
     @Inject(FOOD_EXTRACTOR) private readonly extractor: FoodExtractor,
@@ -29,6 +31,9 @@ export class LabelsService {
   async scan(userId: string, input: LabelScanInput) {
     if (!input.photoKey.startsWith(`meals/${userId}/`)) {
       throw new AppError(403, "Photo does not belong to you");
+    }
+    if (!(await this.billing.limits(userId)).labelScans) {
+      throw new AppError(402, "Label scans are part of FITR8 Pro.", { reason: "pro_required" });
     }
     await this.quota.assertCanScanPhoto(userId);
 

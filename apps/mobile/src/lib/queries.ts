@@ -1,3 +1,4 @@
+import type { BillingDto } from "@fitr8/contracts";
 import { api } from "./api";
 import type { Day, Energy, TodayWorkout, WaterDay } from "./types";
 
@@ -10,3 +11,6 @@ export const workoutQuery = (energy: Energy = "ok") => ({
 });
 
 export const waterQuery = { queryKey: ["water"], queryFn: () => api<WaterDay>("/api/water") };
+
+/** GET /api/billing: plan, renewal and today's limits (FITR8 Pro). */
+export const billingQuery = { queryKey: ["billing"], queryFn: () => api<BillingDto>("/api/billing") };
