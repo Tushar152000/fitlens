@@ -33,6 +33,10 @@ jobs:
 
       - run: pnpm turbo run build --filter=@fitr8/contracts
 
+      # The commit message goes in through env, never pasted into the script: quotes in it broke the
+      # command, and inlined ${{ }} text is a script-injection risk. Only its first line is used.
       - name: Publish update
         working-directory: apps/mobile
-        run: eas update --branch preview --message "${{ github.event.head_commit.message }}" --non-interactive
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: eas update --branch preview --message "$(printf '%s\n' "$COMMIT_MESSAGE" | head -n 1)" --non-interactive
