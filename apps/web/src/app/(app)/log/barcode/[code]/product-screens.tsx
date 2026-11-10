@@ -113,7 +113,11 @@ export function ProductScreen({
       <main className="flex flex-1 flex-col px-5 pt-2">
         <p className="inline-flex w-fit items-center gap-1.5 rounded-full bg-protein-soft px-3 py-1 text-[13px] font-semibold text-protein">
           <BadgeCheck className="size-4" aria-hidden />
-          {fromOff || food.verified ? "Exact label values" : "Your label scan"}
+          {fromOff
+            ? "Open Food Facts data"
+            : food.verified
+              ? "Verified nutrition data"
+              : "Your label scan"}
         </p>
 
         <div className="mt-4 flex items-start gap-4">

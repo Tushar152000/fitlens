@@ -12,7 +12,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of Use"
-      updated="14 October 2026"
+      updated="10 November 2026"
       intro={
         <p className="!mt-0 !text-lg">
           These terms apply when you use the FITR8 app or website (the “service”), provided by Fitr8
@@ -67,11 +67,15 @@ export default function TermsPage() {
         </li>
       </ul>
 
-      <h2>Paid plans</h2>
+      <h2>Paid plans and subscriptions</h2>
       <p>
-        If we offer a paid plan, you buy it through the App Store or Google Play, and their terms
-        govern billing, renewal, cancellation and refunds. Prices and what’s included are shown
-        before you buy.
+        Paid plans may be offered through the Apple App Store or Google Play. Where available, the
+        purchase screen will show the price, billing period, trial (if any) and included features
+        before you confirm. Purchases may be processed with the help of RevenueCat and the relevant
+        app store. The store through which you subscribed controls payment collection, renewal,
+        cancellation and refund handling. You can manage or cancel a subscription through that
+        store’s account settings. Deleting your FITR8 account does not necessarily cancel a store
+        subscription; cancel it separately with Apple or Google to avoid future charges.
       </p>
 
       <h2>Changes and availability</h2>
@@ -96,8 +100,9 @@ export default function TermsPage() {
 
       <h2>Law and contact</h2>
       <p>
-        These terms are governed by the laws of India. Questions? Email{" "}
-        <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+        These terms are governed by the laws of India. Nothing here removes rights you may have
+        under applicable consumer-protection or data-protection law. For questions, complaints or
+        support, email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
       </p>
     </LegalPage>
   );

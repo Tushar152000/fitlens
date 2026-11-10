@@ -5,13 +5,13 @@ once published). Production talks to `https://www.fitr8.com` (`eas.json`).
 
 ## 0. Ready in the code
 
-| Store requirement                               | Where                                                                                    |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Sign in with Apple next to Google (Apple 4.8)   | iOS login screen; `POST /api/auth/apple` (identity token + nonce, `apps/api/.../apple/`) |
-| In-app account deletion (Apple 5.1.1(v))        | Profile → Delete account; deletes data **and photos** and revokes Sign in with Apple     |
-| Privacy policy and terms, in the app and public | `https://www.fitr8.com/privacy`, `/terms`; linked from login, Profile, website footer    |
-| Purpose strings                                 | Camera and photo library only; microphone permission removed (`app.json`)                |
-| Encryption export question                      | `usesNonExemptEncryption: false` (standard HTTPS only)                                   |
+| Store requirement                               | Where                                                                                                    |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Sign in with Apple next to Google (Apple 4.8)   | iOS login screen; `POST /api/auth/apple` (identity token + nonce, `apps/api/.../apple/`)                 |
+| In-app account deletion (Apple 5.1.1(v))        | Profile → Delete account; deletes account records, attempts photo cleanup and revokes Sign in with Apple |
+| Privacy policy and terms, in the app and public | `https://www.fitr8.com/privacy`, `/terms`; linked from login, Profile, website footer                    |
+| Purpose strings                                 | Camera and photo library only; microphone permission removed (`app.json`)                                |
+| Encryption export question                      | `usesNonExemptEncryption: false` (standard HTTPS only)                                                   |
 
 ## 1. Accounts (once)
 
@@ -99,7 +99,7 @@ that lack the native code and can crash them. 0.2.0 added `react-native-purchase
 
 ## 7. Privacy answers (from what the code collects)
 
-Same facts as `/privacy`. Nothing is used for tracking or advertising; nothing is sold.
+Keep this table aligned with `/privacy`. Nothing is used for tracking or advertising; nothing is sold. AI requests may be processed by the configured OpenAI or Anthropic provider. When subscriptions are enabled, RevenueCat and the relevant app store process purchase-related identifiers and subscription status. The in-product CSV export currently covers confirmed meal items and weigh-ins only; it is not a complete account export.
 
 | Data                                                                     | Collected | Linked to user | Purpose                               |
 | ------------------------------------------------------------------------ | --------- | -------------- | ------------------------------------- |
@@ -111,8 +111,8 @@ Same facts as `/privacy`. Nothing is used for tracking or advertising; nothing i
 | Analytics / crash SDKs                                                   | None      | –              | –                                     |
 
 - Play Data safety: data is **encrypted in transit**; users can **request deletion** (in-app);
-  transfers to service providers (OpenAI, Google Cloud, Cloudflare, Vercel) are processing on our
-  behalf, not "sharing".
+  service providers process data to run the service. Confirm the final provider list and the
+  applicable store disclosure answers against the actual production configuration before release.
 - Apple App Privacy: "Data Linked to You" for the rows above; **Data Used to Track You: none**.
 
 ## 8. Before submitting

@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, Dumbbell, Mic, ScanBarcode, TrendingUp } from "lucide-react";
+import { Camera, Dumbbell, ScanBarcode, TrendingUp } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -10,29 +10,20 @@ const FEATURES = [
   {
     icon: Camera,
     title: "Snap it. FITR8 logs it.",
-    body: "Take a photo of your meal and let FITR8 identify what’s on your plate and log the nutrition for you.",
+    body: "Take a photo or describe your meal in everyday words. FITR8 identifies foods and portions for you to review and confirm before they’re logged.",
     src: "/landing/feature-snap.png",
     width: 511,
     height: 501,
     note: "Finds every food and portion",
   },
   {
-    icon: Mic,
-    title: "Just say what you ate.",
-    body: "Tell FITR8 what you had and let your voice do the logging. No searching, typing, or complicated entries.",
-    src: "/landing/feature-voice.png",
-    width: 504,
-    height: 434,
-    note: "“2 roti and a bowl of dal”",
-  },
-  {
     icon: ScanBarcode,
     title: "Skip the search with a scan",
-    body: "Scan any packaged food to instantly see its calories and macros and add it to your daily log.",
+    body: "Look up packaged food by barcode. When product information is available, review its calories and macros before adding it to your log.",
     src: "/landing/feature-scan.png",
     width: 650,
     height: 520,
-    note: "Exact label values",
+    note: "Product details when available",
   },
   {
     icon: Dumbbell,
@@ -131,7 +122,7 @@ export function Features() {
               Staying fit just got <PillWord>easier.</PillWord>
             </>
           }
-          aside="Five ways FITR8 takes the work out of tracking. Pick one to see it in the app."
+          aside="Explore the tools that bring nutrition, training and progress into one routine."
         />
         <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-14">
           <div

@@ -22,11 +22,10 @@ export function Hero() {
             Snap, say, type or scan your meals
           </p>
           <h1 className="mt-6 flex flex-col items-start gap-2.5 text-[42px] leading-[1.1] font-semibold tracking-[-0.025em] text-balance sm:text-[56px] lg:text-[68px]">
-            <span>The world’s</span>
+            <span>Nutrition, workouts</span>
             <span className="rounded-[14px] bg-white px-[0.22em] pt-[0.04em] pb-[0.1em] text-fitr8">
-              #1 nutrition &amp; progress
+              &amp; progress, together.
             </span>
-            <span>tracking app</span>
           </h1>
           <p className="mt-6 max-w-[30em] text-lg text-white/80">
             Track your meals, log your workouts, and discover what to do next. Everything you need

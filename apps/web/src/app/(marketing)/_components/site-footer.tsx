@@ -1,22 +1,12 @@
-import Image from "next/image";
 import Link from "next/link";
 import { CONTACT_EMAIL } from "./faq";
 
-// Pages not built yet stay plain text; social profiles aren't decided yet (icons only).
-const COMPANY_LINKS: { label: string; href?: string }[] = [
-  { label: "About us" },
+const COMPANY_LINKS = [
   { label: "Reviews", href: "/#stories" },
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Terms of Use", href: "/terms" },
 ];
-const SOCIALS = [
-  { icon: "/landing/social-linkedin.svg", label: "LinkedIn" },
-  { icon: "/landing/social-youtube.svg", label: "YouTube" },
-  { icon: "/landing/social-instagram.svg", label: "Instagram" },
-  { icon: "/landing/social-quora.svg", label: "Quora" },
-];
-
-/** Dark footer (extra bottom padding clears the section dock): wordmark, line and socials; company links (pages not built yet); contact. */
+/** Dark footer (extra bottom padding clears the section dock): wordmark, live links and contact. */
 export function SiteFooter() {
   return (
     <footer className="bg-fitr8-footer pt-14 pb-28 text-[15px] text-fitr8-footer-text">
@@ -29,16 +19,6 @@ export function SiteFooter() {
             <p className="mt-3 max-w-[26em]">
               Helping you eat smarter, train better and see real progress, all in one app.
             </p>
-            <p className="mt-8 text-xs font-semibold tracking-[0.2em] text-white/40 uppercase">
-              Follow us
-            </p>
-            <ul className="mt-3 flex gap-3">
-              {SOCIALS.map((s) => (
-                <li key={s.label}>
-                  <Image src={s.icon} alt={s.label} width={29} height={29} />
-                </li>
-              ))}
-            </ul>
           </div>
           <div>
             <h2 className="mb-3.5 text-[13px] font-semibold tracking-[0.08em] text-fitr8-lilac uppercase">
@@ -47,13 +27,9 @@ export function SiteFooter() {
             <ul className="flex flex-col gap-2.5">
               {COMPANY_LINKS.map((l) => (
                 <li key={l.label}>
-                  {l.href ? (
-                    <Link href={l.href} className="hover:text-white hover:underline">
-                      {l.label}
-                    </Link>
-                  ) : (
-                    l.label
-                  )}
+                  <Link href={l.href} className="hover:text-white hover:underline">
+                    {l.label}
+                  </Link>
                 </li>
               ))}
             </ul>

@@ -26,7 +26,8 @@ services:
 
   # S3-compatible photo storage. The API creates the bucket on boot outside production.
   minio:
-    image: quay.io/minio/minio
+    # MinIO stopped publishing quay.io/minio/minio and minio/minio; this is Chainguard's build of the same server.
+    image: cgr.dev/chainguard/minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: fitlens

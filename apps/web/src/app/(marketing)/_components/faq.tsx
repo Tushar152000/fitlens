@@ -15,7 +15,7 @@ const FAQS = [
   },
   {
     q: "How does FITR8 track my food?",
-    a: "Snap a photo of your plate, type or say what you ate, scan a packaged food’s barcode, or photograph its nutrition label. FITR8 finds the foods and portions, you confirm them, and the calories and macros are logged against your daily targets.",
+    a: "Snap a photo of your plate, type what you ate, scan a packaged food’s barcode, or photograph its nutrition label. FITR8 finds the foods and portions, you confirm them, and the calories and macros are logged against your daily targets.",
   },
   {
     q: "Can FITR8 help me improve my workouts?",
@@ -27,7 +27,7 @@ const FAQS = [
   },
   {
     q: "Is FITR8 free?",
-    a: "You can start for free. Typing meals and relogging your usual meals are always free, and the free plan includes a few photo scans every day.",
+    a: "You can start for free. Typing meals and relogging usual meals are free, and the free plan currently includes 3 photo scans per day. Paid features may be offered separately when subscriptions are enabled.",
   },
 ];
 

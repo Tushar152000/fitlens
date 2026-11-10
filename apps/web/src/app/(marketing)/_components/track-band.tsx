@@ -1,9 +1,8 @@
-import { Camera, Droplet, Dumbbell, Keyboard, Mic, ScanBarcode } from "lucide-react";
+import { Camera, Droplet, Dumbbell, Keyboard, ScanBarcode } from "lucide-react";
 import { RotatingWord } from "./rotating-word";
 
 const METHODS = [
   { icon: Camera, label: "Photo" },
-  { icon: Mic, label: "Voice" },
   { icon: Keyboard, label: "Typing" },
   { icon: ScanBarcode, label: "Barcode" },
   { icon: Dumbbell, label: "Workouts" },

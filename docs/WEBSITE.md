@@ -5,12 +5,13 @@ that comes next. App screens and tokens live in [DESIGN.md](DESIGN.md); architec
 [ARCHITECTURE.md](ARCHITECTURE.md). Approved prototype of the landing page:
 [FITR8 Website artifact](https://claude.ai/artifact/MuywVVqmy7Qy7k3CCNNVRF).
 
-| Part                           | Status                         | Where                                                   |
-| ------------------------------ | ------------------------------ | ------------------------------------------------------- |
-| Landing page `/`               | Built                          | `apps/web/src/app/(marketing)/`                         |
-| Desktop app shell (lg+)        | Built                          | `apps/web/src/components/side-nav.tsx`, `(app)/(tabs)/` |
-| Onboarding (`/welcome` → plan) | Next: to be designed and built | `apps/web/src/app/(welcome)/`, `(app)/onboarding/`      |
-| Footer pages (About, Privacy…) | Not designed                   | Footer lists them as plain text until the pages exist   |
+| Part                           | Status                                       | Where                                                   |
+| ------------------------------ | -------------------------------------------- | ------------------------------------------------------- |
+| Landing page `/`               | Built                                        | `apps/web/src/app/(marketing)/`                         |
+| Desktop app shell (lg+)        | Built                                        | `apps/web/src/components/side-nav.tsx`, `(app)/(tabs)/` |
+| Onboarding (`/welcome` → plan) | Implemented; verify end-to-end before launch | `apps/web/src/app/(welcome)/`, `(app)/onboarding/`      |
+| Privacy and Terms pages        | Built                                        | `apps/web/src/app/(marketing)/privacy/`, `terms/`       |
+| About page                     | Not built                                    | Keep out of the footer until a real page exists         |
 
 ## 1. Landing page
 
@@ -37,17 +38,17 @@ that comes next. App screens and tokens live in [DESIGN.md](DESIGN.md); architec
 | #   | Section               | Component                             | Content and interaction                                                                                                                                                                                                                                                                                                                   |
 | --- | --------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Header + section dock | `site-header.tsx`, `section-dock.tsx` | Sticky top bar: logo, Log in → `/login`, Start for free → `/welcome`; purple over the hero, white with blur once scrolled. Section links (Features · How it works · Your numbers · Results · FAQ) sit in a floating pill fixed to the bottom of the screen; the section in view is filled purple. On phones the pill scrolls sideways.    |
-| 2   | Hero                  | `hero.tsx`                            | "Free" eyebrow, H1 "The world’s / #1 nutrition & progress / tracking app", lede, Start for free + "See how it works", then `GetTheApp`: a "coming soon" pill until the apps are live, store badges after (`store-links.tsx`). Faint white FITR8 mark in the background.                                                                   |
+| 2   | Hero                  | `hero.tsx`                            | "Free" eyebrow, H1 "Nutrition, workouts & progress, together.", lede, Start for free + "See how it works", then `GetTheApp`: a "coming soon" pill until the apps are live, store badges after (`store-links.tsx`). Faint white FITR8 mark in the background.                                                                              |
 | 2a  | Scan demo             | `scan-demo.tsx`                       | Plate photo scans on load (lilac line, 1.3 s), then 6 food chips pop in (90 ms stagger) and the result card rises. Tap a chip ↔ highlights its row. ± steppers change portions; kcal counts to the new total. The dressing is the amber "Not sure, check this" item; adjusting it flips the badge to "All checked". "Scan again" replays. |
 | 3   | Track band            | `track-band.tsx`                      | Night band, "Track [Nutrition / Workout / Progress] at one place" (word rotates every 1.8 s, `RotatingWord`), chips for every way to log.                                                                                                                                                                                                 |
-| 4   | Features              | `features.tsx`                        | Vertical tablist of 5 features beside the matching app screen. Auto-advances every 6 s while on screen (progress bar on the active tab); hover or focus pauses; arrow keys move.                                                                                                                                                          |
+| 4   | Features              | `features.tsx`                        | Vertical tablist of 4 implemented features beside the matching app screen. Auto-advances every 6 s while on screen (progress bar on the active tab); hover or focus pauses; arrow keys move.                                                                                                                                              |
 | 5   | How it works          | `how-it-works.tsx`                    | Three numbered steps (a real sequence): Set your goal · Log in seconds · Get your next move, each with a small app preview. Cards lift with the hard shadow on hover.                                                                                                                                                                     |
 | 6   | Your numbers          | `target-calculator.tsx`               | Goal, sex, age, height, weight, activity → daily kcal (counts up), protein / carbs / fat bars, BMR, maintenance, water, and one line with the numbers behind the target. Validation messages under the form. "Start with these numbers" → `/welcome`.                                                                                     |
-| 7   | Stats                 | `stats.tsx`                           | Purple band, "…and everything in between.", 100+ / 50+ / 7 days count up once when scrolled into view, app screens image.                                                                                                                                                                                                                 |
-| 8   | Results               | `testimonials.tsx`                    | One quote at a time (light-weight sans), initial avatar, arrows, dots, 7 s autoplay that restarts after a manual change.                                                                                                                                                                                                                  |
+| 7   | Stats                 | `stats.tsx`                           | Purple band, "…and everything in between.", 60+ exercises / 4 meal-logging methods / 7 days count up once when scrolled into view.                                                                                                                                                                                                        |
+| 8   | Community             | `testimonials.tsx`                    | Feedback invitation; publish real member stories only with permission.                                                                                                                                                                                                                                                                    |
 | 9   | FAQ                   | `faq.tsx`                             | Sticky title + "Still have questions?" card (email with a Copy button; falls back to selecting the text). Accordion, one open at a time, animated height.                                                                                                                                                                                 |
 | 10  | Final CTA             | `final-cta.tsx`                       | "Your next meal is a good place to start." + Start for free + compact `GetTheApp` (coming-soon pill, or badges once live).                                                                                                                                                                                                                |
-| 11  | Footer                | `site-footer.tsx`                     | Wordmark, line, social icons, company links (Privacy Policy → `/privacy`, Terms of Use → `/terms`, Reviews → results; the rest plain text until the pages exist), contact, legal line.                                                                                                                                                    |
+| 11  | Footer                | `site-footer.tsx`                     | Wordmark, live links (Privacy Policy → `/privacy`, Terms of Use → `/terms`, Reviews → results), contact and legal line. Social links remain hidden until official profile URLs are configured.                                                                                                                                            |
 
 ### Calculator rules
 
@@ -83,12 +84,13 @@ changes.
 
 ### Before launch
 
-- **Testimonials are placeholders.** Only Rahul's quote is in Figma; the other four were written for
-  design review. Replace all five with real member stories (with consent) before the site goes
-  public.
+- **Member stories:** do not publish invented testimonials or stock identities. The landing section
+  currently asks visitors for feedback; add member stories only after receiving real feedback and
+  explicit permission to publish each person's name, quote and any associated image.
 - **FAQ "Is FITR8 free?"** follows the free tier in DESIGN.md (3 photo scans a day; typing and
   usuals free). Needs product sign-off, like answers 2–4.
-- **"World’s #1"** is the Figma headline; confirm the claim is one you can stand behind.
+- **Marketing claim:** the unsupported “World’s #1” superlative was removed. Keep public claims
+  factual and supportable.
 - **Store links:** set `APP_STORE_URL` / `PLAY_STORE_URL` on the web deployment once the apps are published; every "get the app" spot switches from "coming soon" to linked badges (`store-links.tsx`). There is no QR code: the old one was a stock placeholder that opened nothing.
 - Unused Figma exports in `public/landing/` (testimonial photos, deco SVGs, hero outline mask) can be
   deleted once the old design is no longer needed for reference.

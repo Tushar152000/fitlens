@@ -13,7 +13,7 @@ import { Testimonials } from "./_components/testimonials";
 import { TrackBand } from "./_components/track-band";
 
 export const metadata: Metadata = {
-  title: "FITR8 — The world’s #1 nutrition & progress tracking app",
+  title: "FITR8 — Nutrition, workouts & progress together",
   description:
     "Track your meals, log your workouts, and discover what to do next. Everything you need to reach your fitness goals, all in one place.",
 };

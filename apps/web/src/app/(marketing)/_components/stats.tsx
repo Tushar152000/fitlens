@@ -1,15 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 const STATS = [
-  { value: 100, suffix: "+", label: "Exercises" },
-  { value: 50, suffix: "+", label: "Nutrients tracked" },
+  { value: 60, suffix: "+", label: "Exercises" },
+  { value: 4, suffix: " ways", label: "To log a meal" },
   { value: 7, suffix: " days", label: "Of progress at a glance" },
 ];
 
-/** Purple band: headline, stats that count up when they scroll into view, then the app screens. */
+/** Purple band: verifiable product stats that count up when they scroll into view. */
 export function Stats() {
   const ref = useRef<HTMLDivElement>(null);
   const [seen, setSeen] = useState(false);
@@ -56,14 +55,6 @@ export function Stats() {
           <Stat key={s.label} {...s} seen={seen} />
         ))}
       </div>
-      <Image
-        src="/landing/app-screens.png"
-        alt="FITR8 app screens: Today, meal log, food detail, plan and progress"
-        width={1428}
-        height={464}
-        sizes="(min-width: 1024px) 980px, 100vw"
-        className="mx-auto mt-12 h-auto w-full max-w-[980px] translate-y-2"
-      />
     </section>
   );
 }
