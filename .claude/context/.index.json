@@ -483,15 +483,14 @@
   }
  },
  "infra": {
-  "syncedAt": "2026-11-11T12:19:24.555Z",
-  "head": "62483ba",
+  "syncedAt": "2026-11-11T13:25:49.390Z",
+  "head": "50b13c9",
   "files": {
-   "infra/owner-setup.sh": "2ec35fef6bdf",
    ".env.example": "958032d2cb39",
    ".env.production.example": "f992a2ea48a4",
    ".github/dependabot.yml": "1c8fd42f4644",
    ".github/workflows/ci.yml": "04026a5c3ce9",
-   ".github/workflows/deploy.yml": "4b016aea0133",
+   ".github/workflows/deploy.yml": "704efd3c6a0b",
    ".github/workflows/mobile-release.yml": "3c0c1ba5c223",
    "apps/api/Dockerfile": "5008ec25a6d3",
    "apps/mobile/app.json": "4dbceaf2d7db",
@@ -500,7 +499,8 @@
    "docker-compose.yml": "d86571b110cf",
    "infra/gcp/api-domain.sh": "0778edd156f5",
    "infra/gcp/setup.sh": "9c1d5ee0660c",
-   "infra/release-check.sh": "b10f3f8b369a",
+   "infra/owner-setup.sh": "ca3c310f1e2b",
+   "infra/release-check.sh": "7f9004ed6708",
    "package.json": "946bb87f2bea",
    "pnpm-workspace.yaml": "f7d5341c1abc",
    "scripts/lib/android.mjs": "721c30903488",
