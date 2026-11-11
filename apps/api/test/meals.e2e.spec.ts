@@ -147,6 +147,8 @@ describe("meals", () => {
         aiNotes: expect.stringContaining("Oil or ghee"),
       });
       expect(res.body.items).toHaveLength(4);
+      // Every item of the plate is a seeded food, so all are priced from the database, not the model.
+      expect(res.body.items.filter((i: { approximate: boolean }) => i.approximate)).toEqual([]);
       expect((await agent.get("/api/usage").expect(200)).body).toMatchObject({ used: 1, left: 2 });
 
       const one = await agent.get(`/api/meals/${res.body.id}`).expect(200);
