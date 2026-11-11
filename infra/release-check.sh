@@ -167,26 +167,32 @@ fi # LIVE_ONLY
 section "Live checks"
 if [ -n "$API_PUBLIC_URL" ]; then
   health="$(curl -fsS -m 15 "$API_PUBLIC_URL/api/health" 2>/dev/null)"
-  [[ "$health" == *'"db":"ok"'* ]] && ok "$API_PUBLIC_URL/api/health → $health" || bad "API health failed: ${health:-no response}"
-  providers="$(curl -fsS -m 15 "$API_PUBLIC_URL/api/auth/providers" 2>/dev/null)"
-  [[ "$providers" == *'"google":true'* ]] && ok "Google sign-in on" || bad "Google sign-in off: $providers"
-  if [ -n "$APPLE_CLIENT_ID" ]; then
-    [[ "$providers" == *'"apple":true'* ]] && ok "Sign in with Apple on" || bad "Apple configured but the API reports it off"
-  fi
-  [[ "$providers" == *'"dev":false'* ]] && ok "dev sign-in off" || bad "dev sign-in is ON in production"
-  redirect="$(curl -s -o /dev/null -m 15 -w '%{redirect_url}' "$API_PUBLIC_URL/api/auth/google")"
-  if [[ "$redirect" == *"redirect_uri=$(printf '%s' "$API_PUBLIC_URL/api/auth/callback/google" | sed 's#:#%3A#g; s#/#%2F#g')"* ]]; then
-    ok "Google returns to $API_PUBLIC_URL/api/auth/callback/google (must be listed in the Google OAuth client)"
+  if [[ "$health" == *'"db":"ok"'* ]]; then
+    ok "$API_PUBLIC_URL/api/health → $health"
   else
-    bad "Google redirect URI isn't the API's: $(grep -o 'redirect_uri=[^&]*' <<<"$redirect" || echo "${redirect:-no redirect}")"
+    bad "API health failed: ${health:-no response} (the checks that need the API are skipped)"
   fi
-  if [ -n "$PUBLIC_URL" ]; then
-    cors="$(curl -s -o /dev/null -D - -m 15 -X OPTIONS "$API_PUBLIC_URL/api/me" \
-      -H "Origin: $PUBLIC_URL" -H "Access-Control-Request-Method: GET")"
-    if grep -qi "access-control-allow-origin: $PUBLIC_URL" <<<"$cors" && grep -qi "access-control-allow-credentials: true" <<<"$cors"; then
-      ok "CORS lets $PUBLIC_URL call the API with cookies"
+  if [ -n "$health" ]; then
+    providers="$(curl -fsS -m 15 "$API_PUBLIC_URL/api/auth/providers" 2>/dev/null)"
+    [[ "$providers" == *'"google":true'* ]] && ok "Google sign-in on" || bad "Google sign-in off: $providers"
+    if [ -n "$APPLE_CLIENT_ID" ]; then
+      [[ "$providers" == *'"apple":true'* ]] && ok "Sign in with Apple on" || bad "Apple configured but the API reports it off"
+    fi
+    [[ "$providers" == *'"dev":false'* ]] && ok "dev sign-in off" || bad "dev sign-in is ON in production"
+    redirect="$(curl -s -o /dev/null -m 15 -w '%{redirect_url}' "$API_PUBLIC_URL/api/auth/google")"
+    if [[ "$redirect" == *"redirect_uri=$(printf '%s' "$API_PUBLIC_URL/api/auth/callback/google" | sed 's#:#%3A#g; s#/#%2F#g')"* ]]; then
+      ok "Google returns to $API_PUBLIC_URL/api/auth/callback/google (must be listed in the Google OAuth client)"
     else
-      bad "CORS doesn't allow $PUBLIC_URL with credentials"
+      bad "Google redirect URI isn't the API's: $(grep -o 'redirect_uri=[^&]*' <<<"$redirect" || echo "${redirect:-no redirect}")"
+    fi
+    if [ -n "$PUBLIC_URL" ]; then
+      cors="$(curl -s -o /dev/null -D - -m 15 -X OPTIONS "$API_PUBLIC_URL/api/me" \
+        -H "Origin: $PUBLIC_URL" -H "Access-Control-Request-Method: GET")"
+      if grep -qi "access-control-allow-origin: $PUBLIC_URL" <<<"$cors" && grep -qi "access-control-allow-credentials: true" <<<"$cors"; then
+        ok "CORS lets $PUBLIC_URL call the API with cookies"
+      else
+        bad "CORS doesn't allow $PUBLIC_URL with credentials"
+      fi
     fi
   fi
 fi
