@@ -262,7 +262,10 @@ VARS=(
   "APPLE_CLIENT_ID=$([ "$APPLE_ON" = true ] && echo com.fitr8.app)"
   "REVENUECAT_ENABLED=$REVENUECAT_ON"
 )
-if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
+# Variables need admin on the repository; without it, print them for a repo admin (infra/owner-setup.sh
+# sets the web/API ones) instead of stopping halfway.
+if command -v gh >/dev/null && gh auth status >/dev/null 2>&1 &&
+  [ "$(gh api "repos/$GITHUB_REPO" --jq .permissions.admin 2>/dev/null)" = true ]; then
   for v in "${VARS[@]}"; do
     if [ -n "${v#*=}" ]; then
       gh variable set "${v%%=*}" --repo "$GITHUB_REPO" --body "${v#*=}"
@@ -272,7 +275,8 @@ if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
   done
   echo "set on $GITHUB_REPO"
 else
-  echo "Set these under GitHub → Settings → Secrets and variables → Actions → Variables:"
+  echo "Not an admin of $GITHUB_REPO here. A repo admin sets these (Settings → Secrets and variables →"
+  echo "Actions → Variables), or runs infra/owner-setup.sh for the web/API ones:"
   printf '  %s\n' "${VARS[@]}"
 fi
 

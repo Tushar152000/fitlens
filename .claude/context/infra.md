@@ -18,6 +18,8 @@ On successful CI `workflow_run` on main (or manual). WIF auth, no keys. `api-ima
 - `infra/gcp/setup.sh` (idempotent): project/APIs/SAs/AR, Cloud SQL (default tier `db-custom-1-3840`, patches an existing instance + PITR), secrets incl. optional Apple (`.p8` from file) + RevenueCat (webhook auth generated), IAM, WIF, all repo vars, then `api-domain.sh`.
 - `infra/gcp/api-domain.sh`: global HTTPS LB + serverless NEG + managed cert for `api.<site>` (Cloud Run domain mapping unsupported in asia-south1).
 - `infra/release-check.sh`: read-only ✅/⚠️/❌ over GitHub vars/secrets, Secret Manager + IAM, SQL, Cloud Run, LB/cert/DNS, live API/web/CORS/Google redirect. `LIVE_ONLY=1` = live checks only (works on localhost).
+- `infra/owner-setup.sh`: for the GitHub repo **admin** + Vercel owner (Tushar). Sets repo vars `API_PUBLIC_URL`, `AUTH_COOKIE_DOMAIN`, `API_MIN_INSTANCES`, `VERCEL_ORG_ID`/`VERCEL_PROJECT_ID` (via `vercel link` in apps/web), secret `VERCEL_TOKEN` (hidden prompt), Vercel env `NEXT_PUBLIC_API_URL` (Production), optional Vercel DNS A record for api.<site>; prints the Google OAuth redirect step. Refuses to run without repo admin.
+- Access (2026-11-11): divyam070707@gmail.com has admin on GCP `fitlens-prod` but only push on the GitHub repo, so GitHub vars/secrets and Vercel go through owner-setup.sh.
 - Runbook: `docs/RELEASE.md`.
 
 ## Docker

@@ -30,12 +30,13 @@ exists g compute network-endpoint-groups describe fitlens-api-neg --region="$REG
   g compute network-endpoint-groups create fitlens-api-neg --region="$REGION" \
     --network-endpoint-type=serverless --cloud-run-service="$SERVICE"
 
-if ! exists g compute backend-services describe fitlens-api-backend --global; then
-  g compute backend-services create fitlens-api-backend --global \
-    --load-balancing-scheme=EXTERNAL_MANAGED --protocol=HTTPS
+# Serverless NEG backends take no protocol/port name (the load balancer talks to Cloud Run itself).
+exists g compute backend-services describe fitlens-api-backend --global ||
+  g compute backend-services create fitlens-api-backend --global --load-balancing-scheme=EXTERNAL_MANAGED
+g compute backend-services describe fitlens-api-backend --global --format='value(backends[].group)' |
+  grep -q "/networkEndpointGroups/fitlens-api-neg" ||
   g compute backend-services add-backend fitlens-api-backend --global \
     --network-endpoint-group=fitlens-api-neg --network-endpoint-group-region="$REGION"
-fi
 
 exists g compute url-maps describe fitlens-api-lb --global ||
   g compute url-maps create fitlens-api-lb --global --default-service=fitlens-api-backend

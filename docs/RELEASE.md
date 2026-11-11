@@ -35,6 +35,19 @@ Safe to re-run; it skips what exists. It:
   `API_PUBLIC_URL`, `AUTH_COOKIE_DOMAIN`, `S3_BUCKET`, `AI_PROVIDER`, `API_MIN_INSTANCES`,
   `APPLE_CLIENT_ID` when Apple is set up, `REVENUECAT_ENABLED`).
 
+## 1b. Repository admin + Vercel owner: one command
+
+GitHub variables/secrets need **admin** on the repository, and Vercel needs the project owner. If
+setup.sh ran from an account without those, the admin runs (after `gh auth login` and `npx vercel login`):
+
+```bash
+infra/owner-setup.sh
+```
+
+It sets `API_PUBLIC_URL`, `AUTH_COOKIE_DOMAIN`, `API_MIN_INSTANCES`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`,
+the `VERCEL_TOKEN` secret (pasted, hidden), Vercel's `NEXT_PUBLIC_API_URL`, and offers to add the DNS
+record below in Vercel DNS. That covers steps 2 and 4.
+
 ## 2. DNS
 
 - [ ] `A` record **`api.fitr8.com` → the IP setup.sh printed** (Vercel → Domains → fitr8.com → DNS).
