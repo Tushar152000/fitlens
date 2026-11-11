@@ -9,9 +9,11 @@ pnpm + Turborepo monorepo: `apps/api` (NestJS, the only backend), `apps/web` (Ne
 - **Architecture and engineering rules:** `docs/ARCHITECTURE.md` — binding for every change (module boundaries, layering, errors, testing, the coach agent loop).
 - **UI:** `docs/DESIGN.md` (tokens, components, screens, states). Match it exactly.
 - **Website and web redesign:** `docs/WEBSITE.md` (landing page, desktop app shell, onboarding redesign status).
+- **Release / CI-CD:** `docs/RELEASE.md` (tokens and settings, `infra/gcp/setup.sh`, `infra/release-check.sh`); reference `docs/DEPLOY.md`.
 - **App store release:** `docs/STORE.md` (Sign in with Apple setup, reviewer access, listing, privacy answers).
 - **FITR8 Pro:** `docs/PREMIUM.md` (RevenueCat, plans and limits, paywall switch, setup).
-- **Workflows:** use the `fitr8-feature` skill for any feature/endpoint/table/screen, and `fitr8-coach-tool` for the AI coach.
+- **Workflows:** use the `fitr8-feature` skill for any feature/endpoint/table/screen, and `fitr8-coach-tool` for the AI coach. Run multi-step work through `fitr8-loop` (read → plan → make → verify until done).
+- **Knowledge base:** `.claude/context/` (start at `README.md`) holds verified, code-first notes per area plus `risks.md` and `decisions.md`. Read the relevant section before exploring; hooks flag stale sections and ask for a refresh after you change code.
 
 ## Commands (Node 22 — `nvm use`; pnpm via corepack)
 
