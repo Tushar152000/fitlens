@@ -22,7 +22,11 @@ async function bootstrap() {
   app.use(cookieParser());
   app.useBodyParser("json", { limit: "1mb" });
   // Browsers normally reach the API through the web app's same-origin proxy; CORS is only for extra origins.
-  if (env.CORS_ORIGINS.length) app.enableCors({ origin: env.CORS_ORIGINS, credentials: true });
+  // The web app calls this API from the browser (with its session cookie), plus any extra origins.
+  app.enableCors({
+    origin: [new URL(env.PUBLIC_URL).origin, ...env.CORS_ORIGINS],
+    credentials: true,
+  });
   app.enableShutdownHooks();
 
   await app.listen(env.PORT);

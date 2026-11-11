@@ -9,6 +9,7 @@ import { formatInt } from "@fitr8/domain/format";
 import { requireOnboardedViewer, serverApiOrNull } from "@/lib/server/api";
 import type { DashboardDto, PlanDto, WaterDayDto } from "@fitr8/contracts";
 import { DangerZone, SignOutButton } from "../(tabs)/profile/profile-controls";
+import { apiUrl } from "@/lib/api-url";
 
 export const metadata = { title: "Your plan — FITR8" };
 
@@ -96,7 +97,7 @@ export default async function HomePage() {
                   Edit my plan
                 </AccountLink>
                 <AccountLink
-                  href="/api/export"
+                  href={apiUrl("/api/export")}
                   icon={<Download className="size-5 text-ink-2" />}
                   plain
                 >

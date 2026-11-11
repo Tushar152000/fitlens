@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { PrismaService } from "../../infra/prisma/prisma.service.js";
-import { MealItemsService } from "./meal-items.service.js";
+import { MealItemsService, pickFood } from "./meal-items.service.js";
 
 const tea = {
   id: "food_tea",
   name: "masala chai",
+  aliases: [] as string[],
   kcalPer100g: 50,
   proteinPer100g: 2,
   carbsPer100g: 7,
@@ -16,13 +17,13 @@ const tea = {
   ],
 };
 
-/** A fake Prisma that knows one food by id and by exact name. */
+/** A fake Prisma that knows one food by id and returns it as the only name candidate. */
 function service(food: typeof tea | null = tea) {
   const prisma = {
     food: {
       findUnique: async ({ where }: { where: { id: string } }) =>
         food && where.id === food.id ? food : null,
-      findFirst: async () => food,
+      findMany: async () => (food ? [food] : []),
     },
   } as unknown as PrismaService;
   return new MealItemsService(prisma);
@@ -94,5 +95,37 @@ describe("MealItemsService.buildItem", () => {
     });
     const blank = await service(null).buildItem({ name: "x", quantity: 1, unit: "g", grams: 50 });
     expect(blank).toMatchObject({ kcal: 0, proteinG: 0, carbsG: 0, fatG: 0 });
+  });
+});
+
+describe("pickFood", () => {
+  const f = (name: string, aliases: string[] = []) => ({ name, aliases });
+  const coffees = [f("black coffee"), f("latte"), f("cold coffee"), f("filter coffee")];
+  const rice = [f("white rice"), f("jeera rice"), f("ghee"), f("roti")];
+
+  it("prefers an exact name or alias", () => {
+    expect(pickFood(" Jeera  Rice ", rice)?.name).toBe("jeera rice");
+    expect(pickFood("chapati", [f("roti", ["chapati"]), f("plain paratha")])?.name).toBe("roti");
+  });
+
+  it("matches the most specific food that ends the detected name", () => {
+    expect(pickFood("plain white rice", rice)?.name).toBe("white rice");
+    expect(pickFood("tandoori roti", rice)?.name).toBe("roti");
+  });
+
+  it("never matches a food that only starts the name", () => {
+    // "ghee rice" is a rice dish, not 100 g of ghee.
+    expect(pickFood("ghee rice", rice)).toBeNull();
+  });
+
+  it("uses a more specific food only when it is the only one", () => {
+    expect(pickFood("chai", [f("masala chai"), f("black coffee")])?.name).toBe("masala chai");
+    // Black coffee and cold coffee differ several-fold in kcal: don't guess.
+    expect(pickFood("coffee", coffees)).toBeNull();
+  });
+
+  it("returns null for no candidates or a blank name", () => {
+    expect(pickFood("mystery curry", [])).toBeNull();
+    expect(pickFood("  ", rice)).toBeNull();
   });
 });

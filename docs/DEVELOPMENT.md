@@ -78,13 +78,13 @@ Browser ───────────http://localhost:3000──┘
 **Google on web:**
 
 1. Set `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` in `.env`.
-2. Make sure the OAuth client lists the redirect URI `http://localhost:3000/api/auth/callback/google`.
+2. Make sure the OAuth client lists the redirect URI `http://localhost:4000/api/auth/callback/google` (the API's own port: the web has no `/api`).
 3. If the consent screen is in Testing mode, add your account as a test user.
 
 **Google on a phone:** Google won't redirect to `localhost` or private IPs, so give your laptop a public https address:
 
-1. `cloudflared tunnel --url http://localhost:3000` prints `https://<name>.trycloudflare.com`.
-2. Set `PUBLIC_URL` in `.env` and `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` to it.
+1. `cloudflared tunnel --url http://localhost:4000` (the API) prints `https://<name>.trycloudflare.com`.
+2. Set `API_PUBLIC_URL` in `.env` and `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` to it.
 3. Add `https://<name>.trycloudflare.com/api/auth/callback/google` to the OAuth client.
 4. Restart `pnpm dev` and Expo.
 

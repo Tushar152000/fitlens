@@ -48,7 +48,8 @@ npx eas-cli@latest submit --platform android  # → Play Console (needs a servic
 ```
 
 EAS manages signing (iOS certificates/profiles, Android keystore). JS-only changes later ship with
-`eas update` (the existing `eas-update.yml` workflow); native changes need a new build + review.
+`eas update` (the last job of `deploy.yml`, after the API is live); native changes need a new build
+(Actions → "Mobile release") + review.
 With `runtimeVersion: appVersion`, a native change (new native module, plugin or permission) must
 also bump `version` in `apps/mobile/app.json`; otherwise the next update reaches older builds
 that lack the native code and can crash them. 0.2.0 added `react-native-purchases` (Pro).

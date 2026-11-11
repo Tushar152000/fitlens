@@ -31,6 +31,7 @@ import {
   totals,
   type Row,
 } from "./rows";
+import { apiUrl } from "@/lib/api-url";
 
 /** GET /api/meals/:id, with the one hint the screen reads from the model's raw output. */
 export type MealDto = Omit<MealDetailDto, "aiRaw"> & {
@@ -622,7 +623,10 @@ function AddItemSheet({
     const t = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/foods?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
+        const res = await fetch(apiUrl(`/api/foods?q=${encodeURIComponent(q)}`), {
+          credentials: "include",
+          signal: ctrl.signal,
+        });
         if (res.ok) setHits((await res.json()).foods);
       } catch {
         // aborted or offline

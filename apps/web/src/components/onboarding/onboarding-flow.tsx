@@ -30,6 +30,7 @@ import { googleButton, onboardingButton } from "./button-styles";
 import { OnboardingShell } from "./shell";
 import { estimateLine, RAIL, SETUP_STEPS, type OnboardingMode } from "./steps-meta";
 import { AboutStep, GoalStep, NameStep, TrainingStep } from "./steps";
+import { apiUrl } from "@/lib/api-url";
 
 type FormStep = "name" | "goal" | "about" | "training" | "signin";
 const FORM: Record<OnboardingMode, FormStep[]> = {
@@ -416,7 +417,7 @@ function SignInCard({
       </ul>
       {providers.google && (
         <a
-          href={`/api/auth/google?returnTo=${encodeURIComponent(returnTo)}`}
+          href={apiUrl(`/api/auth/google?returnTo=${encodeURIComponent(returnTo)}`)}
           className={googleButton}
         >
           <GoogleMark />

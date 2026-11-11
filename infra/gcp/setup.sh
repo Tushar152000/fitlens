@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # One-time provisioning of the FitLens backend on Google Cloud. Safe to re-run: every step skips what exists.
 #
-#   PROJECT_ID=fitlens-prod PUBLIC_URL=https://fitlens.example.com infra/gcp/setup.sh
+#   PROJECT_ID=fitlens-prod PUBLIC_URL=https://www.fitr8.com infra/gcp/setup.sh
+#
+# Also sets up the API's own domain (api.<site>, through infra/gcp/api-domain.sh), optional Sign in
+# with Apple and RevenueCat secrets, and every GitHub repository variable the Deploy workflow reads.
+# Check the result with infra/release-check.sh. Full release runbook: docs/RELEASE.md.
 #
 # Creates: Artifact Registry repo, Cloud SQL Postgres, Secret Manager secrets, a runtime service account for
 # Cloud Run, and a deployer service account that GitHub Actions impersonates through Workload Identity
@@ -13,8 +17,16 @@
 # AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET, OPENAI_API_KEY (or ANTHROPIC_API_KEY), S3_ENDPOINT, S3_ACCESS_KEY_ID,
 # S3_SECRET_ACCESS_KEY.
 #
-# Optional overrides: REGION (asia-south1), GITHUB_REPO, SQL_TIER (db-f1-micro), BUCKET (R2 bucket name,
-# fitlens-meals), BILLING_ACCOUNT, YES=1 (skip the confirmation), AI_PROVIDER (openai | anthropic; openai).
+# Optional (Enter skips at the prompt; re-run later to add): APPLE_TEAM_ID, APPLE_KEY_ID,
+# APPLE_PRIVATE_KEY_FILE (path to the AuthKey_<id>.p8), REVENUECAT_SECRET_KEY (enables RevenueCat; the
+# webhook password is generated). Read it back with: gcloud secrets versions access latest --secret=<name>
+#
+# Optional overrides: REGION (asia-south1), GITHUB_REPO, SQL_TIER (db-custom-1-3840: 1 dedicated vCPU,
+# 3.75 GB; an existing instance on another tier is moved to it, which restarts it for a few minutes),
+# API_DOMAIN (api.<site of PUBLIC_URL>), BUCKET (R2 bucket name, fitlens-meals), BILLING_ACCOUNT,
+# YES=1 (skip the confirmation), AI_PROVIDER (openai | anthropic; openai), API_MIN_INSTANCES (1).
+# `cond && report || report`: the report helpers always succeed, so this is a safe if/else.
+# shellcheck disable=SC2015
 set -euo pipefail
 
 : "${PROJECT_ID:?set PROJECT_ID, e.g. fitlens-prod}"
@@ -22,9 +34,15 @@ set -euo pipefail
 REGION="${REGION:-asia-south1}"
 GITHUB_REPO="${GITHUB_REPO:-Tushar152000/fitlens}"
 SQL_INSTANCE="${SQL_INSTANCE:-fitlens-db}"
-SQL_TIER="${SQL_TIER:-db-f1-micro}"
+SQL_TIER="${SQL_TIER:-db-custom-1-3840}"
 BUCKET="${BUCKET:-fitlens-meals}"
 AI_PROVIDER="${AI_PROVIDER:-openai}"
+API_MIN_INSTANCES="${API_MIN_INSTANCES:-1}"
+# www.fitr8.com → site fitr8.com → API at api.fitr8.com, session cookie for .fitr8.com.
+WEB_HOST="$(printf '%s' "$PUBLIC_URL" | sed -E 's#^https?://##; s#[:/].*$##')"
+SITE="${WEB_HOST#www.}"
+API_DOMAIN="${API_DOMAIN:-api.$SITE}"
+COOKIE_DOMAIN=".$SITE"
 AR_REPO=fitlens
 WIF_POOL=github
 WIF_PROVIDER=fitlens-repo
@@ -80,7 +98,15 @@ if ! exists gcloud sql instances describe "$SQL_INSTANCE"; then
   # Backups at 21:00 UTC = 02:30 IST.
   gcloud sql instances create "$SQL_INSTANCE" --region="$REGION" --database-version=POSTGRES_17 \
     --edition=ENTERPRISE --tier="$SQL_TIER" --storage-size=10 --storage-auto-increase \
-    --backup-start-time=21:00 --deletion-protection
+    --backup-start-time=21:00 --enable-point-in-time-recovery --deletion-protection
+else
+  CURRENT_TIER="$(gcloud sql instances describe "$SQL_INSTANCE" --format='value(settings.tier)')"
+  if [ "$CURRENT_TIER" != "$SQL_TIER" ]; then
+    echo "Moving $SQL_INSTANCE from $CURRENT_TIER to $SQL_TIER (restarts the database for a few minutes)"
+    gcloud sql instances patch "$SQL_INSTANCE" --tier="$SQL_TIER" --quiet
+  fi
+  [ "$(gcloud sql instances describe "$SQL_INSTANCE" --format='value(settings.backupConfiguration.pointInTimeRecoveryEnabled)')" = True ] ||
+    gcloud sql instances patch "$SQL_INSTANCE" --enable-point-in-time-recovery --quiet
 fi
 exists gcloud sql databases describe fitlens --instance="$SQL_INSTANCE" ||
   gcloud sql databases create fitlens --instance="$SQL_INSTANCE"
@@ -142,9 +168,52 @@ else
   ask_secret OPENAI_API_KEY "OpenAI API key (sk-...)"
 fi
 
+# Optional: stored when given (env var or prompt), skipped with Enter. Never required by this script.
+ask_optional_secret() {
+  secret_exists "$1" && { echo "secret $1 exists"; return; }
+  local value="${!1:-}"
+  if [ -z "$value" ] && [ -t 0 ]; then
+    read -rsp "$2 (Enter to skip): " value
+    echo
+  fi
+  if [ -n "$value" ]; then put_secret "$1" "$value"; else echo "secret $1 skipped"; fi
+}
+
+step "Sign in with Apple (optional; required for the iOS App Store)"
+ask_optional_secret APPLE_TEAM_ID "Apple Team ID"
+ask_optional_secret APPLE_KEY_ID "Sign in with Apple key ID"
+if ! secret_exists APPLE_PRIVATE_KEY; then
+  key_file="${APPLE_PRIVATE_KEY_FILE:-}"
+  if [ -z "$key_file" ] && [ -t 0 ]; then read -rp "Path to AuthKey_<id>.p8 (Enter to skip): " key_file; fi
+  if [ -n "$key_file" ]; then
+    [ -f "$key_file" ] || die "no such file: $key_file"
+    gcloud secrets create APPLE_PRIVATE_KEY --replication-policy=automatic --data-file="$key_file" >/dev/null
+    echo "secret APPLE_PRIVATE_KEY stored"
+  else
+    echo "secret APPLE_PRIVATE_KEY skipped"
+  fi
+else
+  echo "secret APPLE_PRIVATE_KEY exists"
+fi
+
+step "RevenueCat / FITR8 Pro (optional)"
+ask_optional_secret REVENUECAT_SECRET_KEY "RevenueCat secret API key (sk_...)"
+if secret_exists REVENUECAT_SECRET_KEY && ! secret_exists REVENUECAT_WEBHOOK_AUTH; then
+  # The Authorization header RevenueCat sends with each webhook: paste it into RevenueCat once.
+  put_secret REVENUECAT_WEBHOOK_AUTH "$(openssl rand -hex 32)"
+  echo "  RevenueCat → Integrations → Webhooks → Authorization header: read it with"
+  echo "  gcloud secrets versions access latest --secret=REVENUECAT_WEBHOOK_AUTH --project=$PROJECT_ID"
+fi
+
+APPLE_ON=false
+secret_exists APPLE_TEAM_ID && secret_exists APPLE_KEY_ID && secret_exists APPLE_PRIVATE_KEY && APPLE_ON=true
+REVENUECAT_ON=false
+secret_exists REVENUECAT_SECRET_KEY && secret_exists REVENUECAT_WEBHOOK_AUTH && REVENUECAT_ON=true
+
 step "IAM"
 SECRETS=(DATABASE_URL AUTH_SECRET AUTH_GOOGLE_ID AUTH_GOOGLE_SECRET "$AI_KEY" S3_ENDPOINT S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY)
-for s in "${SECRETS[@]}"; do
+OPTIONAL_SECRETS=(APPLE_TEAM_ID APPLE_KEY_ID APPLE_PRIVATE_KEY REVENUECAT_SECRET_KEY REVENUECAT_WEBHOOK_AUTH)
+for s in "${SECRETS[@]}" "${OPTIONAL_SECRETS[@]}"; do
   secret_exists "$s" || continue
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:$RUNTIME_SA" \
     --role=roles/secretmanager.secretAccessor >/dev/null
@@ -186,13 +255,28 @@ VARS=(
   "GCP_SQL_CONNECTION=$SQL_CONNECTION"
   "S3_BUCKET=$BUCKET"
   "PUBLIC_URL=$PUBLIC_URL"
+  "API_PUBLIC_URL=https://$API_DOMAIN"
+  "AUTH_COOKIE_DOMAIN=$COOKIE_DOMAIN"
   "AI_PROVIDER=$AI_PROVIDER"
+  "API_MIN_INSTANCES=$API_MIN_INSTANCES"
+  "APPLE_CLIENT_ID=$([ "$APPLE_ON" = true ] && echo com.fitr8.app)"
+  "REVENUECAT_ENABLED=$REVENUECAT_ON"
 )
-if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
-  for v in "${VARS[@]}"; do gh variable set "${v%%=*}" --repo "$GITHUB_REPO" --body "${v#*=}"; done
+# Variables need admin on the repository; without it, print them for a repo admin (infra/owner-setup.sh
+# sets the web/API ones) instead of stopping halfway.
+if command -v gh >/dev/null && gh auth status >/dev/null 2>&1 &&
+  [ "$(gh api "repos/$GITHUB_REPO" --jq .permissions.admin 2>/dev/null)" = true ]; then
+  for v in "${VARS[@]}"; do
+    if [ -n "${v#*=}" ]; then
+      gh variable set "${v%%=*}" --repo "$GITHUB_REPO" --body "${v#*=}"
+    else
+      gh variable delete "${v%%=*}" --repo "$GITHUB_REPO" >/dev/null 2>&1 || true
+    fi
+  done
   echo "set on $GITHUB_REPO"
 else
-  echo "Set these under GitHub → Settings → Secrets and variables → Actions → Variables:"
+  echo "Not an admin of $GITHUB_REPO here. A repo admin sets these (Settings → Secrets and variables →"
+  echo "Actions → Variables), or runs infra/owner-setup.sh for the web/API ones:"
   printf '  %s\n' "${VARS[@]}"
 fi
 
@@ -204,6 +288,9 @@ if [ "${#MISSING[@]}" -gt 0 ]; then
   exit 1
 fi
 
+step "API domain (https://$API_DOMAIN)"
+PROJECT_ID="$PROJECT_ID" DOMAIN="$API_DOMAIN" REGION="$REGION" "$(dirname "$0")/api-domain.sh"
+
 step "Done"
-echo "Next: push to main (or run the Deploy workflow). Then seed foods/exercises once:"
-echo "  gcloud run jobs execute fitlens-migrate --project=$PROJECT_ID --region=$REGION --args=npx,prisma,db,seed --wait"
+echo "Next: the manual items in docs/RELEASE.md (DNS record, Google redirect URI, Vercel and Expo tokens),"
+echo "then check everything with:  PROJECT_ID=$PROJECT_ID infra/release-check.sh"

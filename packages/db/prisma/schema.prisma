@@ -206,6 +206,7 @@ model AuthCode {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt])
+  @@index([userId])
   @@map("auth_codes")
 }
 
@@ -298,6 +299,7 @@ model DailyTarget {
   goal Goal? @relation(fields: [goalId], references: [id], onDelete: SetNull)
 
   @@index([userId, effectiveFrom])
+  @@index([goalId])
   @@map("daily_targets")
 }
 
@@ -441,6 +443,7 @@ model MealItem {
   food    Food?   @relation(fields: [foodId], references: [id], onDelete: SetNull)
 
   @@index([mealLogId])
+  @@index([foodId])
   @@map("meal_items")
 }
 
@@ -497,6 +500,7 @@ model WorkoutLog {
   plan WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
+  @@index([planId])
   @@map("workout_logs")
 }
 

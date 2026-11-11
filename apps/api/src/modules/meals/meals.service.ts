@@ -58,11 +58,12 @@ export class MealsService {
     if (input.source === "PHOTO" && !input.photoKey.startsWith(`meals/${userId}/`)) {
       throw new AppError(403, "Photo does not belong to you");
     }
-    // Photos use a daily scan; typed meals are free (design 9c).
-    if (input.source === "PHOTO") await this.quota.assertCanScanPhoto(userId);
-    if (input.source === "TEXT") await this.quota.assertWithinTextCap(userId);
-
-    const date = input.date ? parseDateOnly(input.date) : await this.users.today(userId);
+    // Photos use a daily scan; typed meals are free (design 9c). Checked alongside the date lookup.
+    const [date] = await Promise.all([
+      input.date ? parseDateOnly(input.date) : this.users.today(userId),
+      input.source === "PHOTO" ? this.quota.assertCanScanPhoto(userId) : null,
+      input.source === "TEXT" ? this.quota.assertWithinTextCap(userId) : null,
+    ]);
 
     if (input.source === "MANUAL") {
       const log = await this.prisma.mealLog.create({

@@ -15,7 +15,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://www.fitr8.com"
+        "EXPO_PUBLIC_API_URL": "https://api.fitr8.com"
       },
       "channel": "preview"
     },
@@ -23,7 +23,7 @@
       "extends": "base",
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://www.fitr8.com"
+        "EXPO_PUBLIC_API_URL": "https://api.fitr8.com"
       },
       "channel": "production"
     }

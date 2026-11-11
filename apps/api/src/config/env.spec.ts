@@ -102,6 +102,40 @@ describe("parseEnv", () => {
     );
   });
 
+  it("serves the API from the web's origin unless told otherwise", () => {
+    expect(parseEnv(base).API_PUBLIC_URL).toBe("http://localhost:3000");
+    // Templates leave unused values empty: "" means unset, not an invalid URL.
+    expect(
+      parseEnv({ ...base, API_PUBLIC_URL: "", AUTH_COOKIE_DOMAIN: "" }).AUTH_COOKIE_DOMAIN,
+    ).toBeUndefined();
+    // Local split: web :3000, API :4000. Same host, so no cookie domain is needed.
+    expect(parseEnv({ ...base, API_PUBLIC_URL: "http://localhost:4000" }).API_PUBLIC_URL).toBe(
+      "http://localhost:4000",
+    );
+  });
+
+  it("needs a shared cookie domain when the web and the API are different hosts", () => {
+    const split = {
+      ...deployed,
+      PUBLIC_URL: "https://www.fitr8.com",
+      API_PUBLIC_URL: "https://api.fitr8.com",
+    };
+    expect(() => parseEnv(split)).toThrow(/AUTH_COOKIE_DOMAIN: required when the web/);
+    expect(parseEnv({ ...split, AUTH_COOKIE_DOMAIN: ".fitr8.com" }).AUTH_COOKIE_DOMAIN).toBe(
+      ".fitr8.com",
+    );
+    expect(() => parseEnv({ ...split, AUTH_COOKIE_DOMAIN: ".other.com" })).toThrow(
+      /AUTH_COOKIE_DOMAIN: must cover both www.fitr8.com/,
+    );
+    expect(() =>
+      parseEnv({
+        ...split,
+        AUTH_COOKIE_DOMAIN: ".fitr8.com",
+        API_PUBLIC_URL: "http://api.fitr8.com",
+      }),
+    ).toThrow(/API_PUBLIC_URL: must be https/);
+  });
+
   it("keeps the hard session limit above the idle windows", () => {
     expect(() => parseEnv({ ...base, SESSION_MAX_DAYS: "60" })).toThrow(/SESSION_MAX_DAYS/);
   });

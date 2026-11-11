@@ -1,15 +1,14 @@
 name: Deploy
 
-# After CI passes on main: build images, run database migrations, then roll out.
-# API → Google Cloud Run (asia-south1). One-time setup: infra/gcp/setup.sh, which creates everything and sets
-# these repository variables (Settings → Secrets and variables → Actions → Variables):
-#   GCP_PROJECT_ID, GCP_REGION, GCP_WIF_PROVIDER, GCP_DEPLOYER_SA, GCP_RUNTIME_SA, GCP_SQL_CONNECTION,
-#   S3_BUCKET, PUBLIC_URL, AI_PROVIDER (openai | anthropic; default openai)
-# GitHub signs in to Google with OIDC (Workload Identity Federation); there are no service account keys.
-# App secrets (database, auth, AI key, Cloudflare R2) live only in Secret Manager and are mounted by name:
-# nothing secret is stored in GitHub or printed in logs. Extra env set in the Cloud Run console
-# (AI_DAILY_LIMIT, CORS_ORIGINS, OFF_CONTACT…) survives deploys: this workflow only updates what it lists.
-#   secrets.WEB_DEPLOY_HOOK_URL  optional: deploy hook for the web image (skip if web is on Vercel)
+# After CI passes on main: images → database migrations → API (Cloud Run) → web (Vercel) → app OTA.
+# Each step starts only when the one before succeeded, so clients never call an API that isn't live.
+#
+# Everything environment-specific is a repository variable or secret; nothing here needs editing.
+# The full list, and the one-time setup that fills it in, is docs/RELEASE.md (infra/gcp/setup.sh sets
+# the GCP variables; infra/release-check.sh verifies all of it).
+#
+# GitHub signs in to Google with OIDC (Workload Identity Federation): no service account keys.
+# App secrets live only in Secret Manager and are mounted by name: never stored in GitHub or logged.
 on:
   workflow_run:
     workflows: [CI]
@@ -25,6 +24,7 @@ permissions:
   contents: read
   packages: write
   id-token: write
+  actions: read
 
 env:
   SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
@@ -34,6 +34,7 @@ jobs:
   api-images:
     if: ${{ vars.GCP_PROJECT_ID != '' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,7 +44,7 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOYER_SA }}
       - uses: google-github-actions/setup-gcloud@v3
-      - run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+      - run: gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
       - uses: docker/setup-buildx-action@v3
       # Same Dockerfile, two targets: the API runtime and the `prisma migrate deploy` release step.
       - uses: docker/build-push-action@v6
@@ -66,6 +67,7 @@ jobs:
   migrate:
     needs: api-images
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: production
     steps:
       - uses: google-github-actions/auth@v3
@@ -74,14 +76,14 @@ jobs:
           service_account: ${{ vars.GCP_DEPLOYER_SA }}
       - uses: google-github-actions/setup-gcloud@v3
       # Runs inside Google next to the database (Cloud SQL socket), so the database has no public access.
-      # The same job seeds foods/exercises once: gcloud run jobs execute fitlens-migrate --args=npx,prisma,db,seed
+      # Seeding foods/exercises is a separate, manual step (docs/RELEASE.md).
       - name: prisma migrate deploy
         run: >-
           gcloud run jobs deploy fitlens-migrate
-          --project=${{ vars.GCP_PROJECT_ID }} --region=${{ vars.GCP_REGION }}
-          --image=${{ env.REGISTRY }}/migrate:${{ env.SHA }}
-          --service-account=${{ vars.GCP_RUNTIME_SA }}
-          --set-cloudsql-instances=${{ vars.GCP_SQL_CONNECTION }}
+          --project="${{ vars.GCP_PROJECT_ID }}" --region="${{ vars.GCP_REGION }}"
+          --image="${{ env.REGISTRY }}/migrate:${{ env.SHA }}"
+          --service-account="${{ vars.GCP_RUNTIME_SA }}"
+          --set-cloudsql-instances="${{ vars.GCP_SQL_CONNECTION }}"
           --set-secrets=DATABASE_URL=DATABASE_URL:latest
           --max-retries=0 --task-timeout=10m
           --execute-now --wait
@@ -89,6 +91,7 @@ jobs:
   api:
     needs: migrate
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     environment: production
     steps:
       - uses: google-github-actions/auth@v3
@@ -96,44 +99,126 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
           service_account: ${{ vars.GCP_DEPLOYER_SA }}
       - uses: google-github-actions/setup-gcloud@v3
-      # db-f1-micro allows 25 connections: DATABASE_POOL_MAX (5) × max instances (3) leaves room for migrations.
+
+      # Optional features are switched on by repository variables, and their secrets must exist in
+      # Secret Manager first (infra/gcp/setup.sh creates them). The API refuses to boot on a half
+      # configuration, so a mistake here fails the deploy instead of shipping.
+      - name: Build the service configuration
+        id: config
+        env:
+          AI_PROVIDER: ${{ vars.AI_PROVIDER || 'openai' }}
+          APPLE_CLIENT_ID: ${{ vars.APPLE_CLIENT_ID }}
+          REVENUECAT: ${{ vars.REVENUECAT_ENABLED }}
+          PAYWALL: ${{ vars.PAYWALL_ENABLED || 'false' }}
+        run: |
+          envs="APP_ENV=production,APP_ROLE=api,DATABASE_POOL_MAX=5,AI_PROVIDER=$AI_PROVIDER"
+          envs+=",PUBLIC_URL=${{ vars.PUBLIC_URL }},API_PUBLIC_URL=${{ vars.API_PUBLIC_URL }}"
+          envs+=",AUTH_COOKIE_DOMAIN=${{ vars.AUTH_COOKIE_DOMAIN }},PAYWALL_ENABLED=$PAYWALL"
+          envs+=",S3_REGION=auto,S3_BUCKET=${{ vars.S3_BUCKET }},S3_FORCE_PATH_STYLE=true"
+
+          secrets="DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest"
+          secrets+=",AUTH_GOOGLE_ID=AUTH_GOOGLE_ID:latest,AUTH_GOOGLE_SECRET=AUTH_GOOGLE_SECRET:latest"
+          secrets+=",S3_ENDPOINT=S3_ENDPOINT:latest,S3_ACCESS_KEY_ID=S3_ACCESS_KEY_ID:latest"
+          secrets+=",S3_SECRET_ACCESS_KEY=S3_SECRET_ACCESS_KEY:latest"
+          if [ "$AI_PROVIDER" = anthropic ]; then
+            secrets+=",ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest"
+          else
+            secrets+=",OPENAI_API_KEY=OPENAI_API_KEY:latest"
+          fi
+          if [ -n "$APPLE_CLIENT_ID" ]; then
+            envs+=",APPLE_CLIENT_ID=$APPLE_CLIENT_ID"
+            secrets+=",APPLE_TEAM_ID=APPLE_TEAM_ID:latest,APPLE_KEY_ID=APPLE_KEY_ID:latest"
+            secrets+=",APPLE_PRIVATE_KEY=APPLE_PRIVATE_KEY:latest"
+          fi
+          if [ "$REVENUECAT" = true ]; then
+            secrets+=",REVENUECAT_WEBHOOK_AUTH=REVENUECAT_WEBHOOK_AUTH:latest"
+            secrets+=",REVENUECAT_SECRET_KEY=REVENUECAT_SECRET_KEY:latest"
+          fi
+          {
+            echo "envs=$envs"
+            echo "secrets=$secrets"
+          } >> "$GITHUB_OUTPUT"
+
+      # db-f1-micro allows 25 connections; a dedicated-core tier (setup.sh default) allows far more:
+      # DATABASE_POOL_MAX (5) × max instances stays well inside either, leaving room for migrations.
+      # min-instances ≥ 1 keeps one instance warm (no cold start on the first meal scan); cpu-boost
+      # speeds up the starts that still happen.
       - name: Deploy to Cloud Run
         run: >-
           gcloud run deploy fitlens-api
-          --project=${{ vars.GCP_PROJECT_ID }} --region=${{ vars.GCP_REGION }}
-          --image=${{ env.REGISTRY }}/api:${{ env.SHA }}
-          --service-account=${{ vars.GCP_RUNTIME_SA }}
+          --project="${{ vars.GCP_PROJECT_ID }}" --region="${{ vars.GCP_REGION }}"
+          --image="${{ env.REGISTRY }}/api:${{ env.SHA }}"
+          --service-account="${{ vars.GCP_RUNTIME_SA }}"
           --allow-unauthenticated
           --port=4000 --cpu=1 --memory=512Mi --concurrency=40 --timeout=300
-          --min-instances=0 --max-instances=3
-          --set-cloudsql-instances=${{ vars.GCP_SQL_CONNECTION }}
+          --min-instances="${{ vars.API_MIN_INSTANCES || '1' }}"
+          --max-instances="${{ vars.API_MAX_INSTANCES || '3' }}"
+          --cpu-boost
+          --set-cloudsql-instances="${{ vars.GCP_SQL_CONNECTION }}"
           --startup-probe=httpGet.path=/api/health/live,periodSeconds=2,failureThreshold=15
           --liveness-probe=httpGet.path=/api/health/live,periodSeconds=30
-          --update-env-vars=APP_ENV=production,APP_ROLE=api,PUBLIC_URL=${{ vars.PUBLIC_URL }},DATABASE_POOL_MAX=5,AI_PROVIDER=${{ vars.AI_PROVIDER || 'openai' }},S3_REGION=auto,S3_BUCKET=${{ vars.S3_BUCKET }},S3_FORCE_PATH_STYLE=true
-          --update-secrets=DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest,AUTH_GOOGLE_ID=AUTH_GOOGLE_ID:latest,AUTH_GOOGLE_SECRET=AUTH_GOOGLE_SECRET:latest,${{ vars.AI_PROVIDER == 'anthropic' && 'ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest' || 'OPENAI_API_KEY=OPENAI_API_KEY:latest' }},S3_ENDPOINT=S3_ENDPOINT:latest,S3_ACCESS_KEY_ID=S3_ACCESS_KEY_ID:latest,S3_SECRET_ACCESS_KEY=S3_SECRET_ACCESS_KEY:latest
-      - name: Smoke test
-        run: |
-          url="$(gcloud run services describe fitlens-api --project=${{ vars.GCP_PROJECT_ID }} --region=${{ vars.GCP_REGION }} --format='value(status.url)')"
-          curl -fsS "$url/api/health"
-          echo
-          echo "API: $url  (set the web app's API_INTERNAL_URL to this)" >> "$GITHUB_STEP_SUMMARY"
+          --update-env-vars="${{ steps.config.outputs.envs }}"
+          --update-secrets="${{ steps.config.outputs.secrets }}"
 
-  # After the API so new pages never call endpoints that aren't live yet (still runs if the API is not on GCP).
+      - name: Smoke test
+        env:
+          API_PUBLIC_URL: ${{ vars.API_PUBLIC_URL }}
+        run: |
+          url="$(gcloud run services describe fitlens-api --project="${{ vars.GCP_PROJECT_ID }}" --region="${{ vars.GCP_REGION }}" --format='value(status.url)')"
+          curl -fsS --retry 5 --retry-all-errors "$url/api/health"
+          echo
+          if [ -n "$API_PUBLIC_URL" ]; then
+            # Through the load balancer and certificate the clients use.
+            curl -fsS --retry 5 --retry-all-errors "$API_PUBLIC_URL/api/health"
+            echo
+          fi
+          echo "API: ${API_PUBLIC_URL:-$url}" >> "$GITHUB_STEP_SUMMARY"
+
+  # After the API, so new pages never call endpoints that aren't live yet. Vercel's own Git
+  # deployments for main are off (apps/web/vercel.json); this job is the production web deploy.
   web:
     needs: [api-images, migrate, api]
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      HAS_VERCEL: ${{ secrets.VERCEL_TOKEN != '' }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.SHA }}
+
+      - uses: pnpm/action-setup@v4
+        if: env.HAS_VERCEL == 'true'
+      - uses: actions/setup-node@v4
+        if: env.HAS_VERCEL == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # Builds here with the project's Vercel settings and env (NEXT_PUBLIC_API_URL), then uploads.
+      - name: Deploy to Vercel (production)
+        if: env.HAS_VERCEL == 'true'
+        run: |
+          npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
+          url="$(npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          echo "Web: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      # Without a Vercel token: the container image path (any host that runs a Docker image).
       - uses: docker/setup-buildx-action@v3
+        if: env.HAS_VERCEL != 'true'
       - uses: docker/login-action@v3
+        if: env.HAS_VERCEL != 'true'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - id: meta
+        if: env.HAS_VERCEL != 'true'
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}/web
@@ -141,15 +226,82 @@ jobs:
             type=sha,format=long
             type=raw,value=latest
       - uses: docker/build-push-action@v6
+        if: env.HAS_VERCEL != 'true'
         with:
           context: .
           file: apps/web/Dockerfile
           push: true
+          build-args: NEXT_PUBLIC_API_URL=${{ vars.API_PUBLIC_URL }}
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
       - name: Trigger deploy hook
+        if: env.HAS_VERCEL != 'true'
         env:
           WEB_HOOK: ${{ secrets.WEB_DEPLOY_HOOK_URL }}
         run: |
-          [ -n "$WEB_HOOK" ] && curl -fsS -X POST "$WEB_HOOK" && echo "Web deploy triggered" || echo "No web hook configured"
+          if [ -n "$WEB_HOOK" ]; then curl -fsS -X POST "$WEB_HOOK" && echo "Web deploy triggered"
+          else echo "::warning::No VERCEL_TOKEN or WEB_DEPLOY_HOOK_URL: the web was built but not deployed"; fi
+
+  # Over-the-air JS update for installed app builds, after the API they call is live. Only when app
+  # code changed since the last successful deploy. Native changes need a new store build instead
+  # (mobile-release.yml, after bumping `version` in apps/mobile/app.json).
+  app-update:
+    needs: [api, web]
+    if: ${{ !cancelled() && needs.api.result == 'success' && needs.web.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HAS_EXPO: ${{ secrets.EXPO_TOKEN != '' }}
+    strategy:
+      matrix:
+        channel: [preview, production]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+          fetch-depth: 0
+
+      - name: Did the app change?
+        id: changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prev="$(gh run list --repo "${{ github.repository }}" --workflow deploy.yml --branch main \
+            --status success --limit 1 --json headSha --jq '.[0].headSha // empty')"
+          if [ "$HAS_EXPO" != true ]; then
+            echo "::warning::No EXPO_TOKEN secret: skipping the OTA update"; echo "app=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$prev" ] || ! git cat-file -e "$prev^{commit}" 2>/dev/null; then
+            echo "No earlier successful deploy to compare with: publishing"; echo "app=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$prev" "$SHA" -- apps/mobile packages/contracts; then
+            echo "App unchanged since $prev"; echo "app=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: pnpm/action-setup@v4
+        if: steps.changed.outputs.app == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.changed.outputs.app == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: expo/expo-github-action@v8
+        if: steps.changed.outputs.app == 'true'
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - if: steps.changed.outputs.app == 'true'
+        run: pnpm install --frozen-lockfile && pnpm turbo run build --filter=@fitr8/contracts
+
+      # --environment loads the EAS environment variables (RevenueCat keys, API URL) into the bundle,
+      # exactly as a store build of that profile would. The commit message goes in through env, never
+      # pasted into the script (quotes broke it; inlined text is a script-injection risk).
+      - name: Publish update
+        if: steps.changed.outputs.app == 'true'
+        working-directory: apps/mobile
+        env:
+          COMMIT_MESSAGE: ${{ github.event.workflow_run.head_commit.message || github.sha }}
+        run: >-
+          eas update --channel ${{ matrix.channel }} --environment ${{ matrix.channel }}
+          --message "$(printf '%s\n' "$COMMIT_MESSAGE" | head -n 1)" --non-interactive

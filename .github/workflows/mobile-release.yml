@@ -1,0 +1,64 @@
+name: Mobile release (store build)
+
+# New native app builds on EAS, optionally sent to App Store Connect / Google Play when done.
+# Run from GitHub → Actions → "Mobile release" → Run workflow. Needed when native code changed (a new
+# Expo module, permission or SDK): bump `version` in apps/mobile/app.json first, since OTA updates
+# only reach builds with the same runtime version. JS-only changes ship as OTA updates from deploy.yml.
+#
+# Needs: secret EXPO_TOKEN; EAS environment variables per profile (EXPO_PUBLIC_REVENUECAT_*);
+# store credentials and submit settings in EAS (docs/RELEASE.md).
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform
+        type: choice
+        options: [all, ios, android]
+        default: all
+      profile:
+        description: Build profile (eas.json)
+        type: choice
+        options: [production, preview]
+        default: production
+      submit:
+        description: Submit to the stores when the build finishes (production only)
+        type: boolean
+        default: false
+
+concurrency:
+  group: mobile-release-${{ inputs.profile }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck the app before spending a build
+        run: pnpm turbo run typecheck --filter=@fitr8/mobile
+      # Builds run on EAS servers; --no-wait returns once queued (follow it on expo.dev). With
+      # --auto-submit, EAS submits the finished build using the submit profile of the same name.
+      - name: Queue EAS build
+        working-directory: apps/mobile
+        env:
+          PLATFORM: ${{ inputs.platform }}
+          PROFILE: ${{ inputs.profile }}
+          SUBMIT: ${{ inputs.submit && inputs.profile == 'production' }}
+        run: |
+          args=(--platform "$PLATFORM" --profile "$PROFILE" --non-interactive --no-wait)
+          if [ "$SUBMIT" = true ]; then args+=(--auto-submit); fi
+          eas build "${args[@]}"

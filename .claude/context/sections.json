@@ -1,0 +1,60 @@
+{
+  "sections": [
+    {
+      "name": "api",
+      "file": "api.md",
+      "summary": "NestJS backend: routes, auth, billing/Pro, AI extraction + coach loop, storage, env, tests",
+      "paths": ["apps/api/"]
+    },
+    {
+      "name": "web",
+      "file": "web.md",
+      "summary": "Next 16 web: landing, onboarding, read-only /home, proxy, auth via cookie, dead app screens",
+      "paths": ["apps/web/"]
+    },
+    {
+      "name": "mobile",
+      "file": "mobile.md",
+      "summary": "Expo app: screens, auth (Google/Apple), API usage, RevenueCat paywall, release/OTA config",
+      "paths": ["apps/mobile/"]
+    },
+    {
+      "name": "packages",
+      "file": "packages.md",
+      "summary": "domain rules, contracts (zod), db schema/migrations/seed",
+      "paths": ["packages/"]
+    },
+    {
+      "name": "infra",
+      "file": "infra.md",
+      "summary": "CI, deploy (Cloud Run), EAS OTA, Docker, local scripts, env templates",
+      "paths": [
+        ".github/",
+        "scripts/",
+        "infra/",
+        "docker-compose.yml",
+        "turbo.json",
+        "package.json",
+        "pnpm-workspace.yaml",
+        ".env.example",
+        ".env.production.example",
+        "apps/api/Dockerfile",
+        "apps/web/Dockerfile",
+        "apps/mobile/eas.json",
+        "apps/mobile/app.json"
+      ]
+    },
+    {
+      "name": "risks",
+      "file": "risks.md",
+      "summary": "verified bugs and ship risks, ranked; doc-vs-code drift (hand-maintained)",
+      "paths": []
+    },
+    {
+      "name": "decisions",
+      "file": "decisions.md",
+      "summary": "open product/ops questions and decisions made (hand-maintained)",
+      "paths": []
+    }
+  ]
+}

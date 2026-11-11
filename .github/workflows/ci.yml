@@ -31,6 +31,8 @@ jobs:
       # e2e tests create/migrate/seed this database themselves
       TEST_DATABASE_URL: postgresql://fitlens:fitlens@localhost:5432/fitlens_test?schema=public
       DATABASE_URL: postgresql://fitlens:fitlens@localhost:5432/fitlens?schema=public
+      # Scratch database for the migration drift check (Prisma may wipe it).
+      SHADOW_DATABASE_URL: postgresql://fitlens:fitlens@localhost:5432/fitlens_shadow?schema=public
       TURBO_TELEMETRY_DISABLED: 1
     steps:
       - uses: actions/checkout@v4
@@ -59,11 +61,30 @@ jobs:
       - name: Prisma schema
         run: pnpm --filter @fitr8/db exec prisma validate
 
+      # Fails when schema.prisma changed without a migration (or a migration was edited by hand):
+      # production would otherwise run code against a database that doesn't match it.
+      - name: Migrations match the schema
+        run: |
+          PGPASSWORD=fitlens psql -h localhost -U fitlens -d fitlens -c "CREATE DATABASE fitlens_shadow"
+          pnpm db:drift
+
       - name: Lint, typecheck, test, build (all workspaces)
         run: pnpm turbo run lint typecheck test build --cache-dir=.turbo
 
       - name: Repo scripts (local bootstrap helpers)
         run: pnpm test:scripts
+
+  workflows:
+    name: Workflows and shell scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # actionlint also runs shellcheck on every `run:` script.
+      - name: actionlint
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
+      - name: shellcheck (infra scripts)
+        run: docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:v0.10.0 infra/gcp/*.sh infra/*.sh
 
   docker:
     name: Docker images build
@@ -80,5 +101,6 @@ jobs:
           context: .
           file: apps/${{ matrix.app }}/Dockerfile
           push: false
+          build-args: ${{ matrix.app == 'web' && 'NEXT_PUBLIC_API_URL=https://api.fitr8.com' || '' }}
           cache-from: type=gha,scope=${{ matrix.app }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}

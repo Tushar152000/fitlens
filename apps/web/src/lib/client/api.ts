@@ -1,5 +1,6 @@
-/** Browser-side JSON fetch for our same-origin /api routes (Next rewrites them to @fitr8/api). Throws ApiError with the server's message. */
+/** Browser-side JSON fetch to @fitr8/api ("/api/…" paths), with the session cookie. Throws ApiError with the server's message. */
 import { ApiError } from "@/lib/api-error";
+import { apiUrl } from "@/lib/api-url";
 
 export { ApiError };
 
@@ -7,7 +8,8 @@ export async function api<T>(url: string, init?: RequestInit & { json?: unknown 
   const { json, ...rest } = init ?? {};
   let res: Response;
   try {
-    res = await fetch(url, {
+    res = await fetch(url.startsWith("/") ? apiUrl(url) : url, {
+      credentials: "include",
       ...rest,
       headers:
         json !== undefined ? { "Content-Type": "application/json", ...rest.headers } : rest.headers,

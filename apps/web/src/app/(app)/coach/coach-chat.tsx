@@ -19,6 +19,7 @@ import { Chip } from "@/components/ui";
 import { api } from "@/lib/client/api";
 import { cn } from "@/lib/cn";
 import { applyEvent, fromView, parseSse, type ChatMessage, type ToolChip } from "./stream";
+import { apiUrl } from "@/lib/api-url";
 
 const SUGGESTIONS = [
   "What should I eat for dinner?",
@@ -96,8 +97,9 @@ export function CoachChat({
     abortRef.current = controller;
     let res: Response;
     try {
-      res = await fetch("/api/coach/chat", {
+      res = await fetch(apiUrl("/api/coach/chat"), {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
         body: JSON.stringify(conversationId ? { conversationId, message } : { message }),
         signal: controller.signal,

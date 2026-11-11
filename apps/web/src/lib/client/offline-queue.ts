@@ -1,4 +1,5 @@
 import type { MealType } from "@fitr8/domain/format";
+import { apiUrl } from "@/lib/api-url";
 
 /** Typed meals saved while offline (design: "queue typed meals locally"). Per device, best effort. */
 export interface QueuedMeal {
@@ -42,8 +43,9 @@ export async function flushQueue(): Promise<number> {
   let sent = 0;
   for (const m of items) {
     try {
-      const res = await fetch("/api/meals", {
+      const res = await fetch(apiUrl("/api/meals"), {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ source: "TEXT", mealType: m.mealType, text: m.text, date: m.date }),
       });

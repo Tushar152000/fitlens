@@ -44,3 +44,6 @@ npm-debug.log*
 
 # Recorded demo videos (large binaries; share them, don’t commit them)
 /videos/
+
+# Claude knowledge-base per-session edit logs
+.claude/context/.session/

@@ -13,5 +13,7 @@ export default defineConfig({
   },
   datasource: {
     url: process.env["DATABASE_URL"],
+    // Only `pnpm db:drift` (migrations vs schema) needs it: a scratch database Prisma may wipe.
+    shadowDatabaseUrl: process.env["SHADOW_DATABASE_URL"],
   },
 });

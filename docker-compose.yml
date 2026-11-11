@@ -45,6 +45,7 @@ services:
       # A production build on your machine: local rules (dev sign-in, http, no Google needed).
       APP_ENV: local
       PUBLIC_URL: http://localhost:3000
+      API_PUBLIC_URL: http://localhost:4000
       DATABASE_URL: postgresql://fitlens:fitlens@postgres:5432/fitlens?schema=public
       REDIS_URL: redis://redis:6379
       S3_ENDPOINT: http://minio:9000
@@ -71,7 +72,10 @@ services:
 
   web:
     profiles: [app]
-    build: { context: ., dockerfile: apps/web/Dockerfile }
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args: { NEXT_PUBLIC_API_URL: http://localhost:4000 }
     environment:
       API_INTERNAL_URL: http://api:4000
     ports: ["3000:3000"]

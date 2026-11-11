@@ -1,10 +1,11 @@
 # Deploying FITR8
 
 The backend runs on **Google Cloud** (`asia-south1`, Mumbai). CI builds and ships everything from this repo.
+**Step-by-step release (tokens, settings, the pre-release check): [RELEASE.md](RELEASE.md).** This page is the reference.
 
 | Piece                | Runs on                                                                     | Notes                                                       |
 | -------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| API (`APP_ROLE=api`) | Cloud Run service `fitlens-api`, image in Artifact Registry                 | Scales 0 → 3 instances                                      |
+| API (`APP_ROLE=api`) | Cloud Run service `fitlens-api`, image in Artifact Registry                 | 1 → 3 instances (`API_MIN_INSTANCES` / `API_MAX_INSTANCES`) |
 | Migrations           | Cloud Run job `fitlens-migrate` (`--target migrate` of the same Dockerfile) | Runs before every rollout                                   |
 | Database             | Cloud SQL Postgres 17 `fitlens-db` (`db-f1-micro`, daily backups)           | Reached only through the Cloud SQL socket; no open networks |
 | Photos               | Cloudflare R2 bucket `fitlens-meals` (S3-compatible API)                    | Private; clients use signed URLs                            |
@@ -12,7 +13,9 @@ The backend runs on **Google Cloud** (`asia-south1`, Mumbai). CI builds and ship
 | Queue/locks          | none yet (`REDIS_URL` unset: jobs run inline in the request)                | Add Redis + a worker service when needed                    |
 | Web                  | `ghcr.io/<repo>/web` (Next standalone), or Vercel with root `apps/web`      | Not on GCP                                                  |
 
-Clients reach everything through **one public origin** (the web app). The web server proxies `/api/*` to the API at request time, so cookies are first-party and Google's redirect URI stays `https://<web>/api/auth/callback/google`. The mobile app also uses that origin (`EXPO_PUBLIC_API_URL` in `apps/mobile/eas.json`).
+**One backend, its own domain.** The NestJS API is served at `https://api.fitr8.com`; the web (`https://www.fitr8.com`) has no API routes or proxy. Browsers call the API directly (CORS allows `PUBLIC_URL`, with credentials), the web's server rendering calls it with the user's cookie, and the app calls it with a bearer token (`EXPO_PUBLIC_API_URL` in `apps/mobile/eas.json`). The API sets the session cookie for `.fitr8.com` (`AUTH_COOKIE_DOMAIN`) so both hosts see it. Google's redirect URI is `https://api.fitr8.com/api/auth/callback/google`.
+
+**API domain:** Cloud Run domain mapping isn't available in asia-south1 (and is preview-only), so `api.fitr8.com` goes through a global external HTTPS load balancer: run `PROJECT_ID=fitlens-prod DOMAIN=api.fitr8.com infra/gcp/api-domain.sh` once, add the printed A record to DNS, wait for the certificate to become ACTIVE.
 
 ## 1. Photo storage (Cloudflare R2)
 
@@ -62,7 +65,7 @@ Push to `main` (or run **Deploy** manually). The workflow creates the job and se
 gcloud run jobs execute fitlens-migrate --project=fitlens-prod --region=asia-south1 --args=npx,prisma,db,seed --wait
 ```
 
-The run summary prints the API URL (`https://fitlens-api-….run.app`); point the web app's `API_INTERNAL_URL` at it.
+The run summary prints the Cloud Run URL (`https://fitlens-api-….run.app`); the public address is `https://api.fitr8.com` (load balancer, above).
 
 ## 4. API configuration
 
@@ -90,9 +93,9 @@ Health: startup and liveness probes hit `GET /api/health/live`; `GET /api/health
 
 ## 5. Web
 
-**Vercel:** import the repo, root directory `apps/web`, framework Next.js; install command `pnpm install --frozen-lockfile`, build command `cd ../.. && pnpm turbo run build --filter=@fitr8/web`. Env: `API_INTERNAL_URL=https://<api-host>` (the API's own URL; browsers never call it directly).
+**Vercel:** import the repo, root directory `apps/web`, framework Next.js; install command `pnpm install --frozen-lockfile`, build command `cd ../.. && pnpm turbo run build --filter=@fitr8/web`. Env: `NEXT_PUBLIC_API_URL=https://api.fitr8.com` (used by the browser and, unless `API_INTERNAL_URL` is set, by server rendering). It's inlined at build time, so redeploy the web after changing it.
 
-**Container:** run `ghcr.io/<repo>/web:latest` with `API_INTERNAL_URL`, port 3000; set `WEB_DEPLOY_HOOK_URL`.
+**Container:** build with `--build-arg NEXT_PUBLIC_API_URL=https://api.fitr8.com`, run on port 3000 (optionally `API_INTERNAL_URL`); set `WEB_DEPLOY_HOOK_URL`.
 
 ## 6. Sign in with Apple (iOS app)
 
@@ -103,15 +106,16 @@ account deletion revokes Apple sign-ins. Full steps: [STORE.md §2](STORE.md).
 
 ## 7. Google sign-in
 
-Authorised redirect URI: `https://YOUR-WEB-ORIGIN/api/auth/callback/google` (the same URI serves web and app sign-in). While the consent screen is in Testing only listed test users can sign in; publishing needs no verification for name/email/photo scopes.
+Authorised redirect URI: `https://api.fitr8.com/api/auth/callback/google` (`$API_PUBLIC_URL/api/auth/callback/google`; the same URI serves web and app sign-in). While the consent screen is in Testing only listed test users can sign in; publishing needs no verification for name/email/photo scopes.
 
 ## 8. Release flow
 
-Push to `main` → CI (lint, typecheck, tests, image builds) → Deploy workflow: API and migrate images pushed to Artifact Registry → `fitlens-migrate` job runs `prisma migrate deploy` → `fitlens-api` rolls out and is smoke-tested → web image and hook. Migrations run before the new code starts, so write them backwards-compatible (add columns nullable/defaulted first, drop in a later release). Roll back with `gcloud run services update-traffic fitlens-api --to-revisions=<previous>=100`.
+Push to `main` → CI (format, migration drift, lint, typecheck, tests, workflow lint, image builds) → Deploy workflow: API and migrate images pushed to Artifact Registry → `fitlens-migrate` job runs `prisma migrate deploy` → `fitlens-api` rolls out and is smoke-tested (Cloud Run URL and `API_PUBLIC_URL`) → web deployed to Vercel (`VERCEL_TOKEN`; otherwise the ghcr image + hook) → EAS update. Migrations run before the new code starts, so write them backwards-compatible (add columns nullable/defaulted first, drop in a later release). Roll back with `gcloud run services update-traffic fitlens-api --to-revisions=<previous>=100`.
 
-Mobile: pushes touching `apps/mobile` or `packages/contracts` publish an EAS update to the `preview` channel; store builds with `cd apps/mobile && eas build --profile production`.
+Mobile: the Deploy workflow's last job publishes an EAS update to the `preview` and `production` channels (with that EAS environment's variables) when `apps/mobile` or `packages/contracts` changed since the last successful deploy. Store builds: Actions → "Mobile release".
 
 ## 9. Check
 
-- `https://<web>/api/health` → `{"status":"ok","db":"ok","redis":"ok"|"disabled"}`
+- `infra/release-check.sh` (everything) or `LIVE_ONLY=1 … infra/release-check.sh` (live web + API only).
+- `https://api.fitr8.com/api/health` → `{"status":"ok","db":"ok","redis":"ok"|"disabled"}`
 - Sign in, onboard, snap a meal, scan a barcode, ask the coach "how am I doing today?".

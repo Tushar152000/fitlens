@@ -30,11 +30,13 @@ export class ScanQuotaService {
    * typed meals, "usuals", not-food results and our own failures never do.
    */
   async scanUsage(userId: string) {
-    const { since, resetsAt } = await this.userDayStart(userId);
+    const [{ since, resetsAt }, { plan, paywall, scans: limit }] = await Promise.all([
+      this.userDayStart(userId),
+      this.billing.limits(userId),
+    ]);
     const used = await this.prisma.aiCall.count({
       where: { userId, countsAsScan: true, createdAt: { gte: since } },
     });
-    const { plan, paywall, scans: limit } = await this.billing.limits(userId);
     return {
       used,
       limit,
