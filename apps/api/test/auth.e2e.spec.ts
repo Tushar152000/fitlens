@@ -700,4 +700,48 @@ describe("auth configuration", () => {
       await t.close();
     }
   });
+
+  it("shares the session with the web when the API has its own host", async () => {
+    const t = await createTestApp({
+      env: {
+        PUBLIC_URL: "https://www.fitr8.test",
+        API_PUBLIC_URL: "https://api.fitr8.test",
+        AUTH_COOKIE_DOMAIN: ".fitr8.test",
+      },
+    });
+    try {
+      const res = await t
+        .http()
+        .post("/api/auth/dev")
+        .send({ email: `${randomUUID()}@test.fitlens` })
+        .expect(200);
+      const cookie = setCookies(res)[0]!;
+      // __Host- forbids Domain, so a cookie both hosts can read is __Secure- with the site's domain.
+      expect(cookie).toMatch(/^__Secure-fitlens_session=/);
+      expect(cookie).toMatch(/; Domain=\.?fitr8\.test/i);
+      expect(cookie).toMatch(/; Secure/);
+
+      // Google sends users back to the API's host; the sign-in state stays host-only there.
+      const start = await t.http().get("/api/auth/google").expect(302);
+      const google = new URL(start.headers.location as string);
+      expect(google.searchParams.get("redirect_uri")).toBe(
+        "https://api.fitr8.test/api/auth/callback/google",
+      );
+      expect(setCookies(start)[0]).not.toMatch(/Domain=/i);
+
+      // Signing out clears the same domain cookie, or the browser would keep it.
+      const token = cookieValue(res, "__Secure-fitlens_session")!;
+      const out = await t
+        .http()
+        .post("/api/auth/signout")
+        .set("Origin", "https://www.fitr8.test")
+        .set("Cookie", `__Secure-fitlens_session=${token}`)
+        .expect(204);
+      expect(setCookies(out).find((c) => c.startsWith("__Secure-fitlens_session="))).toMatch(
+        /Domain=\.?fitr8\.test/i,
+      );
+    } finally {
+      await t.close();
+    }
+  });
 });

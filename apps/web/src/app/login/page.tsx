@@ -8,6 +8,7 @@ import { marketingFontVars } from "@/lib/fitr8-fonts";
 import { currentUser } from "@/lib/server/api";
 import { signInProviders } from "@/lib/server/providers";
 import { HeroPlate } from "./hero-plate";
+import { apiUrl } from "@/lib/api-url";
 
 export const metadata = { title: "Log in — FITR8" };
 
@@ -73,7 +74,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           )}
           {available.google && (
             <a
-              href={`/api/auth/google?returnTo=${encodeURIComponent(next)}`}
+              href={apiUrl(`/api/auth/google?returnTo=${encodeURIComponent(next)}`)}
               className={googleButton}
             >
               <GoogleMark />

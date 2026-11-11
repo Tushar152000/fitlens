@@ -7,24 +7,32 @@ import { SIGN_IN_TTL_MS } from "./auth.policy.js";
 export type TokenSource = "cookie" | "bearer";
 
 /**
- * Every cookie the API sets. Over https the names carry browser-enforced prefixes:
- * `__Host-` (Secure, Path=/, no Domain: can't be set or shadowed by a sibling subdomain) for the
- * session, `__Secure-` for the short-lived sign-in state, which is scoped to /api/auth.
+ * Every cookie the API sets. Over https the names carry browser-enforced prefixes. The session is
+ * `__Host-` (Secure, Path=/, no Domain) when the web and the API share a host; with AUTH_COOKIE_DOMAIN
+ * (web on www, API on api.) it is `__Secure-` with that Domain, so the web's server can forward it.
+ * The short-lived sign-in state is always host-only on the API, scoped to /api/auth.
  */
 @Injectable()
 export class AuthCookies {
   private readonly secure: boolean;
+  private readonly domain: string | undefined;
   readonly sessionName: string;
   readonly stateName: string;
 
   constructor(@InjectEnv() env: Env) {
-    this.secure = env.PUBLIC_URL.startsWith("https://");
-    this.sessionName = this.secure ? "__Host-fitlens_session" : "fitlens_session";
+    this.secure = env.API_PUBLIC_URL.startsWith("https://");
+    this.domain = env.AUTH_COOKIE_DOMAIN;
+    const sessionPrefix = !this.secure ? "" : this.domain ? "__Secure-" : "__Host-";
+    this.sessionName = `${sessionPrefix}fitlens_session`;
     this.stateName = this.secure ? "__Secure-fitlens_signin" : "fitlens_signin";
   }
 
   private base(path: string): CookieOptions {
     return { httpOnly: true, secure: this.secure, sameSite: "lax", path };
+  }
+
+  private session(): CookieOptions {
+    return { ...this.base("/"), ...(this.domain ? { domain: this.domain } : {}) };
   }
 
   /** `Authorization: Bearer` (the app) wins over the cookie (the browser). */
@@ -44,11 +52,11 @@ export class AuthCookies {
    * expiry. So an active user's cookie never needs re-issuing on ordinary requests.
    */
   setSession(res: Response, token: string, absoluteExpiresAt: Date) {
-    res.cookie(this.sessionName, token, { ...this.base("/"), expires: absoluteExpiresAt });
+    res.cookie(this.sessionName, token, { ...this.session(), expires: absoluteExpiresAt });
   }
 
   clearSession(res: Response) {
-    res.clearCookie(this.sessionName, this.base("/"));
+    res.clearCookie(this.sessionName, this.session());
   }
 
   /** Sealed sign-in state for the Google round trip. Lax still sends it on Google's top-level redirect back. */

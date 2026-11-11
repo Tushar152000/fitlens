@@ -118,7 +118,7 @@ export class AuthService {
 
   /** Must match the "Authorized redirect URI" in the Google Cloud console. */
   get googleRedirectUri(): string {
-    return new URL("/api/auth/callback/google", this.env.PUBLIC_URL).href;
+    return new URL("/api/auth/callback/google", this.env.API_PUBLIC_URL).href;
   }
 
   providers(): ProvidersDto {

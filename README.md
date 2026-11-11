@@ -5,12 +5,13 @@ Snap a photo of your meal → AI detects foods and portions → you confirm → 
 **Stack:** TypeScript everywhere · pnpm workspaces + Turborepo · **NestJS 12** API (the only backend) · **Next.js 16** PWA · **Expo 57** app · PostgreSQL + Prisma 7 · Redis + BullMQ · S3-compatible storage · Claude (structured extraction + agent loop) · Vitest + Supertest · GitHub Actions · Docker.
 
 ```
-             ┌──────────────┐        ┌──────────────┐
-  browser ──►│  apps/web    │  /api  │              │──► PostgreSQL
-             │  Next.js PWA │───────►│  apps/api    │──► Redis (jobs, locks)
-             └──────────────┘ proxy  │  NestJS      │──► S3 / R2 / MinIO
-  phone ────────────────────────────►│  one service │──► Claude
-             apps/mobile (Expo)      └──────────────┘
+             ┌──────────────┐ pages  ┌──────────────┐
+  browser ──►│  apps/web    │ (SSR)  │              │──► PostgreSQL (Prisma)
+     │       │  Next.js PWA │───────►│  apps/api    │──► Redis (jobs, locks)
+     │       └──────────────┘        │  NestJS      │──► S3 / R2 / MinIO (photos)
+     └──── /api/* (cookie) ─────────►│  the only    │──► Claude or OpenAI
+  phone ──── /api/* (bearer) ───────►│  backend     │
+             apps/mobile (Expo)      └──────────────┘  api.fitr8.com
                                         ▲ same image, APP_ROLE=worker
                                         └── queue consumers
 ```
@@ -27,7 +28,7 @@ apps/
     src/infra       Prisma, Redis, BullMQ JobQueue, S3 storage
     src/modules     bounded contexts: auth users plan meals foods water workouts progress coach ai health
     test/           e2e specs (real app + Postgres, mock AI)
-  web/          Next.js PWA — UI only; proxies /api to the API at request time
+  web/          Next.js PWA — UI only; calls the API directly (no API routes or proxy)
   mobile/       Expo app (iOS/Android/web) — UI only; EAS builds and OTA updates
 packages/
   domain/       pure rules: nutrition, training engine, dates, formatting, barcode/label maths (+ tests)
@@ -119,9 +120,9 @@ Request schemas: `packages/contracts`. Errors: `{ "error": "message", "details"?
 
 ## CI/CD
 
-- **CI** (`.github/workflows/ci.yml`, every PR and push to main): install → prettier check → Prisma validate → `turbo run lint typecheck test build` with a Postgres service → Docker image builds for api and web.
-- **Deploy** (`deploy.yml`, after CI passes on main): push `ghcr.io/<repo>/api` and `/web` images (sha + latest) → `prisma migrate deploy` against production → trigger deploy hooks. See [docs/DEPLOY.md](docs/DEPLOY.md).
-- **Mobile** (`eas-update.yml`): OTA update to the `preview` channel when the app or contracts change.
-- Dependabot keeps npm and Actions dependencies current.
+- **CI** (`.github/workflows/ci.yml`, every PR and push to main): prettier → Prisma validate → migrations-vs-schema drift check → `turbo run lint typecheck test build` with Postgres → actionlint + shellcheck → Docker builds for api and web.
+- **Deploy** (`deploy.yml`, after CI passes on main): images → `prisma migrate deploy` → API on Cloud Run (smoke-tested) → web on Vercel → EAS OTA update for `preview` and `production` when app code changed.
+- **Mobile release** (`mobile-release.yml`, manual): EAS store builds, optional auto-submit.
+- First-time setup, tokens and the pre-release check: **[docs/RELEASE.md](docs/RELEASE.md)**. Dependabot keeps npm and Actions dependencies current.
 
 > Food values in `packages/db/prisma/seed.ts` are approximate placeholders. Replace them with IFCT 2017 / INDB data before launch. FITR8 is not medical advice.

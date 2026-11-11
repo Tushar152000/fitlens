@@ -122,6 +122,11 @@ function ensureEnvFile() {
     text = unsetEnv(text, "AUTH_URL");
     step("Renamed AUTH_URL → PUBLIC_URL");
   }
+  // The API has its own origin (the web no longer proxies /api): Google returns to the API's port.
+  if (!env.get("API_PUBLIC_URL")) {
+    text = setEnv(text, "API_PUBLIC_URL", `http://localhost:${env.get("PORT") || API_PORT}`);
+    step("Set API_PUBLIC_URL (the API's own address)");
+  }
   const appEnv = env.get("APP_ENV");
   if (appEnv && appEnv !== "local") {
     fail(`.env has APP_ENV="${appEnv}". The local stack needs APP_ENV="local" (or unset).`);
@@ -309,7 +314,8 @@ const MOBILE_ENV_MARKER = "# Where the app reaches the API in development";
  */
 function ensureMobileEnv() {
   const ip = lanAddress();
-  const url = ip ? `http://${ip}:${WEB_PORT}` : null;
+  // The app talks to the API directly (the web has no /api of its own).
+  const url = ip ? `http://${ip}:${apiPort()}` : null;
   if (!existsSync(MOBILE_ENV)) {
     if (!url)
       return note("No LAN address found; set EXPO_PUBLIC_API_URL in apps/mobile/.env yourself");
@@ -392,9 +398,9 @@ async function startMobile(extraArgs) {
   if (!Number.isInteger(port) || port <= 0) fail("--port needs a number");
   ensureMobileEnv();
   await freePorts([{ port, label: "Metro" }]);
-  if (!(await portInUse(WEB_PORT))) {
+  if (!(await portInUse(apiPort()))) {
     note(
-      `Nothing on :${WEB_PORT} yet. Start \`pnpm dev\` in another terminal so the app can reach the API.`,
+      `Nothing on :${apiPort()} yet. Start \`pnpm dev\` in another terminal so the app can reach the API.`,
     );
   }
   const build = pnpm(

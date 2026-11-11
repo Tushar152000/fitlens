@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 # FITR8 web (Next.js standalone). Build from the repo root:  docker build -f apps/web/Dockerfile -t fitr8-web .
-# Runtime env: API_INTERNAL_URL (where this server reaches the API).
+# Build arg: NEXT_PUBLIC_API_URL (the API's public origin, inlined for the browser).
+# Runtime env: API_INTERNAL_URL (optional private address for server rendering).
 ARG NODE_VERSION=22
 
 FROM node:${NODE_VERSION}-alpine AS base
@@ -16,7 +17,8 @@ COPY --from=pruner /repo/out/json/ .
 COPY .npmrc ./
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store pnpm install --frozen-lockfile
 COPY --from=pruner /repo/out/full/ .
-ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_API_URL=http://localhost:4000
+ENV NEXT_TELEMETRY_DISABLED=1 NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN pnpm turbo run build --filter=@fitr8/web
 
 FROM node:${NODE_VERSION}-alpine AS runner

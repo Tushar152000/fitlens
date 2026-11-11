@@ -4,6 +4,7 @@ import { formatInt } from "@fitr8/domain/format";
 import { requireOnboardedViewer, serverApi, serverApiOrNull } from "@/lib/server/api";
 import type { DashboardDto, PlanDto, UsageDto } from "@fitr8/contracts";
 import { DangerZone, PlanCard, Reminders, SignOutButton } from "./profile-controls";
+import { apiUrl } from "@/lib/api-url";
 
 export const metadata = { title: "Profile — FITR8" };
 
@@ -154,7 +155,7 @@ export default async function ProfilePage() {
 
         <Group title="Your data">
           <a
-            href="/api/export"
+            href={apiUrl("/api/export")}
             className="flex min-h-12 items-center justify-between rounded-card px-4 font-semibold transition-colors hover:bg-sunken"
           >
             <span className="flex items-center gap-2">

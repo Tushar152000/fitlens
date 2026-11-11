@@ -5,18 +5,19 @@ This is the contract for every change, human or AI. When code and this file disa
 ## 1. System shape
 
 ```
-             ┌──────────────┐        ┌──────────────┐
-  browser ──►│  apps/web    │  /api  │              │──► PostgreSQL (Prisma)
-             │  Next.js PWA │───────►│  apps/api    │──► Redis (BullMQ jobs, locks)
-             └──────────────┘ proxy  │  NestJS      │──► S3 / R2 / MinIO (photos)
-  phone ────────────────────────────►│  one service │──► Claude or OpenAI (extraction + coach agent)
-             apps/mobile (Expo)      └──────────────┘
+             ┌──────────────┐ pages  ┌──────────────┐
+  browser ──►│  apps/web    │ (SSR)  │              │──► PostgreSQL (Prisma)
+     │       │  Next.js PWA │───────►│  apps/api    │──► Redis (jobs, locks)
+     │       └──────────────┘        │  NestJS      │──► S3 / R2 / MinIO (photos)
+     └──── /api/* (cookie) ─────────►│  the only    │──► Claude or OpenAI
+  phone ──── /api/* (bearer) ───────►│  backend     │
+             apps/mobile (Expo)      └──────────────┘  api.fitr8.com
                                         ▲ same image, APP_ROLE=worker
-                                        └── queue consumers (meal analysis …)
+                                        └── queue consumers
 ```
 
 - **One backend.** `apps/api` is the only process that talks to the database, storage, queue or an LLM. Web and mobile are clients of the same HTTP API (`/api/*`).
-- **Web is a pure client.** Next.js server components call the API with the user's cookie forwarded (`apps/web/src/lib/server/api.ts`); the browser calls `/api/*` on its own origin, which Next rewrites to the API. The web app holds no secrets and no business rules.
+- **Web is a pure client.** It has no API routes, proxy or rewrites. The browser calls the API directly at `NEXT_PUBLIC_API_URL` (`https://api.fitr8.com`) with its session cookie; server components call it with the user's cookie forwarded (`apps/web/src/lib/server/api.ts`). The session cookie is set by the API for `.fitr8.com` (`AUTH_COOKIE_DOMAIN`), so both hosts see it. The web app holds no secrets and no business rules.
 - **Two runtime roles, one codebase.** `dist/main.js` serves HTTP (`APP_ROLE=api`), `dist/worker.js` consumes queues (`APP_ROLE=worker`), `APP_ROLE=all` does both for local dev and small deployments. Scale them separately.
 
 ## 2. Repository layout
@@ -98,9 +99,9 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 
 ### 3.6 Authentication (modules/auth)
 
-Google is the only sign-in method today. Web and app have the same features; only the transport of the session differs.
+Google (web and app) and Sign in with Apple (iOS app) are the sign-in methods; dev email sign-in exists only locally. Web and app have the same features; only the transport of the session differs.
 
-- **Sessions are opaque, database-backed and revocable.** A 256-bit random token; the `sessions` row stores only its SHA-256, so the table can't be replayed. Web carries it in an httpOnly, SameSite=Lax cookie (`__Host-fitlens_session` over https); the app sends `Authorization: Bearer`. Idle expiry slides (30 days web, 90 app, touched at most once a day so authentication is one indexed read) under a hard 365-day cap. Signing out, revoking a device or deleting the account deletes rows, effective immediately. Not JWTs, because those can't be revoked before they expire.
+- **Sessions are opaque, database-backed and revocable.** A 256-bit random token; the `sessions` row stores only its SHA-256, so the table can't be replayed. Web carries it in an httpOnly, SameSite=Lax cookie (`__Secure-fitlens_session` with `Domain=.fitr8.com` when web and API are different hosts, else `__Host-fitlens_session`); the app sends `Authorization: Bearer`. Idle expiry slides (30 days web, 90 app, touched at most once a day so authentication is one indexed read) under a hard 365-day cap. Signing out, revoking a device or deleting the account deletes rows, effective immediately. Not JWTs, because those can't be revoked before they expire.
 - **Google flow (both clients):** authorization code with PKCE S256, a `state` and an OIDC `nonce`. Those three, plus where to go next, are sealed (AES-256-GCM, key derived from `AUTH_SECRET` per purpose) in a 10-minute cookie scoped to `/api/auth`. The callback checks state against the cookie, redeems the code with the verifier, verifies the ID token (signature via Google's JWKS, issuer, audience, expiry), then the nonce. Google sits behind the `OidcProvider` port (`GOOGLE_OIDC`); e2e tests inject a fake.
 - **Identity linking:** by provider subject (`auth_identities`), never by email alone. A new subject links to an existing user only when Google says the email is verified and that user has no other Google identity; otherwise a new user is created (through `UsersService`, which owns `users`). Concurrent first sign-ins retry on the unique constraint.
 - **App hand-off:** `/auth/mobile/start` always goes through Google (no "already signed in" shortcut a hostile app could exploit). The callback redirects to the app's scheme (`fitlens://`, plus `exp://` outside production) with a one-time code stored hashed in `auth_codes`, bound to the app's PKCE challenge, valid 2 minutes. `/auth/mobile/token` deletes the code before checking it, so it works once.

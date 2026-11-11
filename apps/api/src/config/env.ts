@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+/** Deployment templates often leave a variable as "" — treat that as unset. */
+const emptyAsUndefined = (v: unknown) => (v === "" ? undefined : v);
 const optional = z
   .string()
   .optional()
@@ -56,8 +58,22 @@ export const EnvSchema = z
     PORT: z.coerce.number().int().positive().default(4000),
     LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 
-    /** The public origin clients use (web domain; it proxies /api to this service). Builds OAuth redirect URIs. */
+    /** The web app's public origin: where sign-in returns users, and a trusted browser origin (CORS, CSRF). */
     PUBLIC_URL: z.string().url().default("http://localhost:3000"),
+    /** This API's own public origin, e.g. https://api.fitr8.com. Builds OAuth redirect URIs. Defaults to PUBLIC_URL. */
+    API_PUBLIC_URL: z.preprocess(emptyAsUndefined, z.string().url().optional()),
+    /**
+     * Domain for the session cookie when the web and the API are different hosts of one site, e.g.
+     * `.fitr8.com` for www + api. Unset: a host-only cookie on the API's host (same host, or localhost
+     * on different ports — cookies ignore the port).
+     */
+    AUTH_COOKIE_DOMAIN: z.preprocess(
+      emptyAsUndefined,
+      z
+        .string()
+        .regex(/^\.?[a-z0-9-]+(\.[a-z0-9-]+)+$/i, "a domain like .fitr8.com")
+        .optional(),
+    ),
     /** Extra browser origins allowed to call the API directly (comma separated), e.g. Expo web on :8081. */
     CORS_ORIGINS: z
       .string()
@@ -140,6 +156,7 @@ export const EnvSchema = z
       AUTH_DEV_LOGIN: env.AUTH_DEV_LOGIN ?? (APP_ENV === "local" || APP_ENV === "test"),
       AI_EXTRACTION_MODEL: env.AI_EXTRACTION_MODEL ?? DEFAULT_MODELS[env.AI_PROVIDER],
       AI_COACH_MODEL: env.AI_COACH_MODEL ?? DEFAULT_MODELS[env.AI_PROVIDER],
+      API_PUBLIC_URL: env.API_PUBLIC_URL ?? env.PUBLIC_URL,
     };
   })
   .superRefine((env, ctx) => {
@@ -179,13 +196,34 @@ export const EnvSchema = z
           message: `required ${where} with Sign in with Apple on (account deletion must revoke it): set APPLE_TEAM_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY`,
         });
       }
-      if (!env.PUBLIC_URL.startsWith("https://")) {
+      for (const key of ["PUBLIC_URL", "API_PUBLIC_URL"] as const) {
+        if (!env[key].startsWith("https://")) {
+          ctx.addIssue({
+            code: "custom",
+            path: [key],
+            message: `must be https ${where} (session cookies are Secure)`,
+          });
+        }
+      }
+    }
+    const webHost = new URL(env.PUBLIC_URL).hostname;
+    const apiHost = new URL(env.API_PUBLIC_URL).hostname;
+    if (env.AUTH_COOKIE_DOMAIN) {
+      const domain = env.AUTH_COOKIE_DOMAIN.replace(/^\./, "").toLowerCase();
+      const covers = (host: string) => host === domain || host.endsWith(`.${domain}`);
+      if (!covers(webHost) || !covers(apiHost)) {
         ctx.addIssue({
           code: "custom",
-          path: ["PUBLIC_URL"],
-          message: `must be https ${where} (session cookies are Secure)`,
+          path: ["AUTH_COOKIE_DOMAIN"],
+          message: `must cover both ${webHost} (PUBLIC_URL) and ${apiHost} (API_PUBLIC_URL)`,
         });
       }
+    } else if (webHost !== apiHost) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["AUTH_COOKIE_DOMAIN"],
+        message: `required when the web (${webHost}) and the API (${apiHost}) are different hosts, so the web can read the session`,
+      });
     }
     if (
       isDeployed(env) &&
