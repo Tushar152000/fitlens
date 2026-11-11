@@ -28,6 +28,7 @@
     "db:generate": "pnpm --filter @fitr8/db generate",
     "db:migrate": "pnpm --filter @fitr8/db migrate",
     "db:deploy": "pnpm --filter @fitr8/db deploy:migrations",
+    "db:drift": "pnpm --filter @fitr8/db drift",
     "db:seed": "pnpm --filter @fitr8/db seed",
     "db:studio": "pnpm --filter @fitr8/db studio"
   },
