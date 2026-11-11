@@ -3,7 +3,8 @@
 # The Google Cloud side is done by infra/gcp/setup.sh; this finishes what needs repo-admin and
 # Vercel rights. Safe to re-run. Changes nothing in Google Cloud.
 #
-#   infra/owner-setup.sh
+#   infra/owner-setup.sh          (from the repo)
+#   bash owner-setup.sh           (or as a standalone file: no clone needed)
 #
 # Needs: gh (logged in, admin on the repo), Node 22 (for `npx vercel`), and a Vercel login
 # (`npx vercel login`). Optional env: GITHUB_REPO, VERCEL_PROJECT (the project's name in Vercel),
@@ -22,8 +23,14 @@ SITE="${SITE:-fitr8.com}"
 API_HOST="api.$SITE"
 API_URL="https://$API_HOST"
 COOKIE_DOMAIN=".$SITE"
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-WEB="$ROOT/apps/web"
+# Inside the repo, link apps/web (its .vercel folder is git-ignored); standalone, a scratch folder.
+ROOT="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)"
+if [ -d "$ROOT/apps/web" ]; then
+  WEB="$ROOT/apps/web"
+else
+  WEB="${TMPDIR:-/tmp}/fitr8-vercel-link"
+  mkdir -p "$WEB"
+fi
 vercel() { npx --yes vercel@latest "$@" ${VERCEL_SCOPE:+--scope "$VERCEL_SCOPE"}; }
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
@@ -31,6 +38,7 @@ die() { printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 ask() { local v; read -rp "$1" v; printf '%s' "$v"; }
 
 step "Checks"
+command -v node >/dev/null || die "Node.js is needed (for npx vercel): https://nodejs.org"
 if ! command -v gh >/dev/null || ! gh auth status >/dev/null 2>&1; then die "gh is not logged in: gh auth login"; fi
 [ "$(gh api "repos/$REPO" --jq .permissions.admin)" = true ] ||
   die "your GitHub account is not an admin of $REPO (variables and secrets need admin)"
@@ -78,7 +86,9 @@ if [ -z "$ip" ] && command -v gcloud >/dev/null; then
   ip="$(gcloud compute addresses describe fitlens-api-ip --global --project=fitlens-prod --format='value(address)' 2>/dev/null || true)"
 fi
 [ -n "$ip" ] || ip="$(ask "API load balancer IP (from infra/gcp/setup.sh): ")"
-current="$(getent ahostsv4 "$API_HOST" 2>/dev/null | awk 'NR==1{print $1}')"
+# getent on Linux, dig on macOS.
+current="$( (getent ahostsv4 "$API_HOST" 2>/dev/null || dig +short A "$API_HOST" 2>/dev/null) |
+  awk '/^[0-9.]+/{print $1; exit}')"
 if [ "$current" = "$ip" ]; then
   echo "$API_HOST already resolves to $ip"
 elif [ "$(ask "Add A record $API_HOST → $ip in Vercel DNS for $SITE? [y/N] ")" = y ]; then
