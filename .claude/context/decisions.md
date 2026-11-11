@@ -12,6 +12,8 @@ Record decisions as `YYYY-MM-DD — decision — why`. Move a question to Decide
 - 2026-11-11 — Database stays PostgreSQL on Cloud SQL; move from `db-f1-micro` to a dedicated-core tier before launch; scale later by tier → HA → replicas → AlloyDB (all Postgres-compatible).
 - 2026-11-11 — Ship everything together in one release after local verification.
 
+- 2026-11-11 — Testing phase cost mode: Cloud SQL back to `db-f1-micro` (backups + PITR kept) and Cloud Run min instances 0, until testing ends. Then: `gcloud sql instances patch fitlens-db --project=fitlens-prod --tier=db-custom-1-3840` and repo var `API_MIN_INSTANCES=1`. Until then run setup.sh with `SQL_TIER=db-f1-micro` (its default would upgrade).
+
 ## Open (need the owner's answer)
 
 - Is the web staying read-only? Delete the unreachable web app screens (~6k lines) or revive a desktop shell?
