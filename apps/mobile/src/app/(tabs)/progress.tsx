@@ -119,7 +119,10 @@ function CheckinForm({ lastWeightKg, lastWaistCm }: { lastWeightKg: number | nul
       setStatus("saved");
       setWeight("");
       setWaist("");
+      // A new weight can change the plan's targets, which today and the plan screen show.
       queryClient.invalidateQueries({ queryKey: ["progress"] });
+      queryClient.invalidateQueries({ queryKey: ["plan"] });
+      queryClient.invalidateQueries({ queryKey: ["day"] });
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Couldn't save. Try again.");
       setStatus("idle");

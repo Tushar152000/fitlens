@@ -4,13 +4,13 @@ Paths relative to `apps/mobile/`. expo ~57, react-native 0.86, react 19.2, expo-
 
 ## Navigation (`src/app/_layout.tsx`)
 
-SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loading". `Stack.Protected`: `login` signed-out only; `onboarding` when signed in (also "edit goal"); `(tabs)`, `log`, `briefing`, `history`, `coach`, `pro` (modal) when signed in + `me.onboarded`. `index.tsx` redirects. Tabs: today, workout, progress, profile; custom `components/tab-bar.tsx` centre camera → `/log`. Log stack: `log/index` (photo), `log/type`, `log/[id]`, `log/barcode/{index,[code]}`, `log/label/{index,[id]}`. No `+not-found`, no `auth` route (possible "Unmatched route" for `fitlens://auth?code=` on Android — unverified).
+SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loading". `Stack.Protected`: `login` signed-out only; `onboarding` when signed in (also "edit goal"); `(tabs)`, `log`, `briefing`, `history`, `coach`, `pro` (modal) when signed in + `me.onboarded`. `index.tsx` redirects. Tabs: today, workout, progress, profile; custom `components/tab-bar.tsx` centre camera → `/log`. Log stack: `log/index` (photo), `log/type`, `log/[id]`, `log/barcode/{index,[code]}`, `log/label/{index,[id]}`. No `+not-found`, no `auth` route; `src/app/+native-intent.tsx` `redirectSystemPath` rewrites `fitlens://auth?…` (Google sign-in return) to `/` so the router never shows "Unmatched route" (`openAuthSessionAsync` still reads the URL).
 
 ## Auth (`src/lib/auth.tsx`, `token-store.ts`, `api.ts`)
 
 - Bearer token in SecureStore key `fitlens.session` (localStorage on web preview). No refresh; server session slides (90 d idle).
 - Any 401 with a token → `clear()`: RevenueCat logOut, drop token, `queryClient.clear()`, delete stored token + coach conversation id.
-- Startup `readToken` → `/api/me`; `.catch(() => signedOut)` at `auth.tsx:84` treats offline as signed out (bug).
+- Startup `readToken` → `/api/me`; 401 → signed out, any other failure → `status: "offline"` (`_layout.tsx` `OfflineStart`, "Try again" → `retry()`). `clear()` also cancels water reminders.
 - Google: PKCE → `openAuthSessionAsync(${API_URL}/api/auth/mobile/start?challenge&redirect=Linking.createURL("auth"))` → `POST /api/auth/mobile/token`. Production API rejects `exp://`, so Google fails in Expo Go against prod.
 - Apple (iOS only, if `isAvailableAsync()` and `providers.apple`): raw nonce → sha256 to Apple → `POST /api/auth/apple`.
 - Dev login if `providers.dev`.
@@ -35,7 +35,7 @@ SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loadin
 - Keys only from `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `_ANDROID_KEY`; `purchasesAvailable = Boolean(key)`. Not in eas.json (must be EAS env vars).
 - `Purchases.configure({apiKey, appUserID: me.id})` lazily after `/api/me`; later `logIn`; sign-out `logOut`. No CustomerInfo listener; server is authoritative.
 - Buy: `purchasePackage` → POST `/api/billing/refresh` → invalidate billing/usage → refresh me. Restore similar.
-- **App never reads `paywall` or `limits.labelScans`**; upsell shown whenever SDK key exists. Label 402 not handled (only 429). Profile header hardcodes "Free plan" (`src/app/(tabs)/profile.tsx:94`); PlanCard below is correct. Fallback prices hardcoded `pro.tsx:208`; "Coming soon" benefits listed.
+- Upsell (profile PlanCard "Go Pro", photo-scan `AiLimitSheet`) only when `usage.paywall && purchasesAvailable`; header pill reads `usage.plan`. `limits.labelScans` unread; label 402 not handled (only 429). Purchase OK + `/billing/refresh` failure → `syncPending` note, no error. Fallback prices hardcoded in `pro.tsx`; "Coming soon" benefits listed.
 
 ## Release config
 

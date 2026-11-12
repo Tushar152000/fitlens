@@ -8,8 +8,8 @@ Baseline: HEAD 107c0ee, 2026-11-11.
 1. ✔ **Coach daily cap counts tool_result rows.** `apps/api/src/modules/coach/coach.service.ts:66` counts every `role:"user"` row; tool results are stored as `role:"user"`. Tool-using messages cost 2+. Free (paywall on) ≈ 2 real messages, not 5. e2e seeds fake rows so doesn't catch it.
 2. ✔ **Auth cleanup never runs in prod.** `auth-cleanup.service.ts:33` skips `APP_ROLE=api`; prod runs only api. Sessions/codes/events grow forever; "90-day retention" false.
 3. FIXED (uncommitted): OTA now runs as the last Deploy job, after the API, with `--environment` per channel (preview + production).
-4. ✔ **Mobile ignores `paywall`.** Upsell whenever SDK key exists → can sell Pro whose benefits free users already have (store risk). Label 402 and coach 429 have no Pro CTA. ✔ Profile header hardcoded "Free plan" (`apps/mobile/src/app/(tabs)/profile.tsx:94`).
-5. ✔ **Offline launch signs user out** (`apps/mobile/src/lib/auth.tsx:84`).
+4. PARTLY FIXED (uncommitted, 2026-11-12): profile plan card + photo-scan limit sheet now show Pro only when `usage.paywall` and an SDK key; profile header pill reads `usage.plan`. Still open: label 402 and coach 429 have no Pro CTA; `pro.tsx` itself doesn't check `paywall` (only reachable from gated buttons).
+5. FIXED (uncommitted, 2026-11-12): offline launch → `status: "offline"` + retry screen (`_layout.tsx` `OfflineStart`); only a 401 signs out.
 6. **Rate-limit IP**: clients now hit the API directly through the HTTPS load balancer; verify `req.ip` is the client after deploy (`trust proxy` 1 vs LB + Google front end hops). Web SSR still forwards the browser's `x-forwarded-for`. Throttler + coach lock per instance (no Redis).
 7. FIXED (uncommitted): Apple, RevenueCat, PAYWALL, min instances are repo variables + Secret Manager via setup.sh; verified by `infra/release-check.sh`.
 
@@ -19,7 +19,7 @@ Baseline: HEAD 107c0ee, 2026-11-11.
 9. POST `/water` before onboarding inserts then 404s (also coach `log_water`).
 10. HEIC accepted for upload but extractors can't read it. Presigned PUT unbounded size; `getImage` buffers before 10 MB check. Photos not deleted on meal delete.
 11. Barcode hijack: unverified label-scan Food claims a barcode → everyone else gets not_found, permanent after account delete (`submittedById` no FK). OFF imports `isVeg: true` always.
-12. Mobile: purchase OK but `/billing/refresh` 502 → error shown, user may rebuy. Water notifications survive sign-out. Lunch/dinner reminders never delivered. OfflineBanner promises sync that doesn't exist. Missing invalidations after onboarding/checkin/scans. `history.tsx` `selected!` crash on empty.
+12. Mobile: lunch/dinner reminders never delivered. OfflineBanner promises sync that doesn't exist. FIXED 2026-11-12 (uncommitted): purchase-then-refresh-failure shows "payment received" instead of an error; water reminders cancelled in `auth.tsx` `clear()`; invalidations after onboarding (all), check-in (plan, day), scans (`refreshDay` → usage); `history.tsx` empty guard.
 13. Food visibility: `buildItem`/`logItems` with a `foodId` skip the unreviewed-label check that `quickAdd` has.
 14. OpenAI coach: no compaction and no history cap → long threads eventually fail.
 15. Sandbox purchases grant Pro in prod (intentional for App Review; TestFlight testers get real Pro).

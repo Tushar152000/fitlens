@@ -16,8 +16,11 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect } from "react";
+import { WifiOff } from "lucide-react-native";
+import { useEffect, useState } from "react";
+import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Button, Text } from "@/components/ui";
 import { OfflineBanner } from "@/components/offline-banner";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { queryClient, wireQueryLifecycle } from "@/lib/query";
@@ -64,6 +67,7 @@ function Routes() {
     if (status !== "loading") SplashScreen.hideAsync();
   }, [status]);
   if (status === "loading") return null;
+  if (status === "offline") return <OfflineStart />;
 
   const signedIn = status === "signedIn";
   const onboarded = Boolean(me?.onboarded);
@@ -85,5 +89,28 @@ function Routes() {
         <Stack.Screen name="pro" options={{ presentation: "modal" }} />
       </Stack.Protected>
     </Stack>
+  );
+}
+
+/** A saved session but no connection at launch: keep the session and let the user retry. */
+function OfflineStart() {
+  const { retry } = useAuth();
+  const [busy, setBusy] = useState(false);
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.ground, justifyContent: "center", padding: 24, gap: 16 }}>
+      <WifiOff size={32} color={colors.ink3} />
+      <Text variant="h1">You&apos;re offline</Text>
+      <Text color={colors.ink2}>FITR8 couldn&apos;t reach the server. Check your connection and try again.</Text>
+      <Button
+        loading={busy}
+        onPress={async () => {
+          setBusy(true);
+          await retry();
+          setBusy(false);
+        }}
+      >
+        Try again
+      </Button>
+    </View>
   );
 }
