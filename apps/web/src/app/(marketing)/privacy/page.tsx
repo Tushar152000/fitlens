@@ -82,9 +82,9 @@ export default function PrivacyPage() {
           was logged, e.g. photo or barcode), “messaged the coach” and “started FITR8 Pro”, plus
           device, app version and approximate location derived from your IP address. Events are
           linked to a random FITR8 account ID, never your name or email, and never include health
-          values such as weight, calories, measurements, meal contents, photos or coach messages.
-          On the website, analytics cookies are set only if you allow them in the cookie banner. In
-          the app, analytics is collected without the device advertising ID.
+          values such as weight, calories, measurements, meal contents, photos or coach messages. On
+          the website, analytics cookies are set only if you allow them in the cookie banner. In the
+          app, analytics is collected without the device advertising ID.
         </li>
         <li>
           Camera or photo-library access only when you choose to capture or select an image. The

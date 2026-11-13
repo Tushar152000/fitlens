@@ -52,8 +52,7 @@ export function AnalyticsChoice() {
   if (!GA_ID || consent === undefined) return null;
   return (
     <p>
-      Analytics cookies are currently <b>{consent === "granted" ? "on" : "off"}</b> in this
-      browser.{" "}
+      Analytics cookies are currently <b>{consent === "granted" ? "on" : "off"}</b> in this browser.{" "}
       <button
         type="button"
         className="font-semibold text-brand underline"
