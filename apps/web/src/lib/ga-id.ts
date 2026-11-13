@@ -3,4 +3,4 @@
  * Public by design: it appears in every page that loads gtag. Empty = no analytics, no cookie banner.
  * Setup: docs/ANALYTICS.md.
  */
-export const GA_MEASUREMENT_ID: string = "";
+export const GA_MEASUREMENT_ID: string = "G-VBQ9FSLRPP";

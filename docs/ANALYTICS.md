@@ -54,8 +54,8 @@ Privacy setup:
 
 ### 2. Website
 
-Put the Measurement ID in `apps/web/src/lib/ga-id.ts`:
-`export const GA_MEASUREMENT_ID: string = "G-…";` and merge; the next web deploy turns it on.
+Done: `G-VBQ9FSLRPP` (stream "FITR8 website", www.fitr8.com) is set in `apps/web/src/lib/ga-id.ts`.
+The web deploy after merge turns it on; no environment variables. To change it, edit that constant.
 
 ### 3. App
 
