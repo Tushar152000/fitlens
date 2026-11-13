@@ -28,4 +28,5 @@ export function refreshDay() {
   queryClient.invalidateQueries({ queryKey: ["workout"] });
   queryClient.invalidateQueries({ queryKey: ["usuals"] });
   queryClient.invalidateQueries({ queryKey: ["history"] });
+  queryClient.invalidateQueries({ queryKey: ["usage"] }); // photo / label scans count against today's limit
 }

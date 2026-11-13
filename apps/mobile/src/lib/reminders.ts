@@ -81,6 +81,12 @@ async function cancelWater(Notifications: typeof NotificationsModule) {
   );
 }
 
+/** On sign-out / account delete: the next person on this phone must not get the last user's reminders. */
+export async function cancelWaterReminders() {
+  const Notifications = notifications();
+  if (Notifications) await cancelWater(Notifications);
+}
+
 /**
  * Bring scheduled water reminders in line with the setting and today's progress.
  * `leftMl` is what's still to drink today (0 or less = target reached, skip today).

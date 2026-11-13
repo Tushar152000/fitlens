@@ -91,7 +91,7 @@ export default function ProfileScreen() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <View style={styles.planPill}>
               <Text weight={600} size={13} color={colors.ink2}>
-                Free plan
+                {usage.data?.plan === "PRO" ? "FITR8 Pro" : "Free plan"}
               </Text>
             </View>
             {streak > 0 && (
@@ -373,9 +373,12 @@ function PlanCard({ usage }: { usage: UsageDto }) {
           <Text size={13} color={colors.ink3}>
             Typing meals and relogging usuals are always free.
           </Text>
-          <Button variant="strong" icon={Crown} onPress={() => router.push("/pro")}>
-            {purchasesAvailable ? "Go Pro" : "FITR8 Pro: coming soon"}
-          </Button>
+          {/* Paywall off: free users already have today's limits, so there is nothing to sell yet. */}
+          {usage.paywall && purchasesAvailable && (
+            <Button variant="strong" icon={Crown} onPress={() => router.push("/pro")}>
+              Go Pro
+            </Button>
+          )}
         </>
       )}
     </View>

@@ -33,6 +33,8 @@ import {
   TileGroup,
 } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
+import { track } from "@/lib/analytics";
+import { queryClient } from "@/lib/query";
 import { useMe } from "@/lib/auth";
 import {
   emptyDraft,
@@ -135,6 +137,9 @@ function OnboardingForm({ initial, returning }: { initial: Partial<OnboardingDra
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata";
       // Keep the "building your plan" moment on screen long enough to read (min 2.6 s).
       await Promise.all([api("/api/onboarding", { json: toPayload(draft, timezone) }), wait(2600)]);
+      // A new goal changes targets, the workout plan and everything derived from them.
+      void queryClient.invalidateQueries();
+      if (!returning) track("onboarding_complete", { platform: "app" });
       setBuilt(true);
       await wait(700);
       router.replace("/onboarding/plan");

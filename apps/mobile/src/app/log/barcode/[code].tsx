@@ -9,6 +9,7 @@ import { Linking, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { BackHeader } from "@/components/back-header";
 import { Button, Card, FieldError, Screen, Segmented, Stepper, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { formatInt, formatQty, MEAL_LABEL, type MealType } from "@/lib/format";
 import { mealFromParam } from "@/lib/meal-param";
 import { refreshDay } from "@/lib/query";
@@ -69,6 +70,7 @@ function ProductScreen({ food, code, mealType }: { food: FoodDto; code: string; 
             ? { foodId: food.id, mealType, quantity: servings, unit: "serving", grams: amountG }
             : { foodId: food.id, mealType, quantity: grams, unit: "g", grams },
       });
+      track("meal_logged", { method: "barcode" });
       refreshDay();
       router.dismissTo("/today");
     } catch (e) {

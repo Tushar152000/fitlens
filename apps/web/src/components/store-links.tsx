@@ -1,5 +1,6 @@
 import { Smartphone } from "lucide-react";
 import Image from "next/image";
+import { StoreBadgeLink } from "@/components/store-badge-link";
 import { cn } from "@/lib/cn";
 
 /**
@@ -23,7 +24,7 @@ export function StoreBadges({ className, shadow }: { className?: string; shadow?
   return (
     <div className={cn("flex flex-wrap gap-3", className)}>
       {ios && (
-        <a href={ios} target="_blank" rel="noreferrer">
+        <StoreBadgeLink href={ios} store="app_store">
           <Image
             src="/landing/badge-app-store.png"
             alt="Download on the App Store"
@@ -31,10 +32,10 @@ export function StoreBadges({ className, shadow }: { className?: string; shadow?
             height={38}
             className={badge}
           />
-        </a>
+        </StoreBadgeLink>
       )}
       {android && (
-        <a href={android} target="_blank" rel="noreferrer">
+        <StoreBadgeLink href={android} store="play_store">
           <Image
             src="/landing/badge-google-play.png"
             alt="Get it on Google Play"
@@ -42,7 +43,7 @@ export function StoreBadges({ className, shadow }: { className?: string; shadow?
             height={38}
             className={badge}
           />
-        </a>
+        </StoreBadgeLink>
       )}
     </div>
   );

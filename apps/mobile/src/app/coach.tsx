@@ -7,6 +7,7 @@ import { BackHeader } from "@/components/back-header";
 import { Line } from "@/components/skeletons";
 import { Button, Card, Chip, FieldError, Text } from "@/components/ui";
 import { api, ApiError, apiStream } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { readConversationId, writeConversationId } from "@/lib/coach-store";
 import { queryClient } from "@/lib/query";
 import { colors, fonts, gutter, radius } from "@/lib/theme";
@@ -121,6 +122,7 @@ export default function CoachScreen() {
     let dropped = false;
     try {
       const body: CoachChatInput = { conversationId: conversationId ?? undefined, message };
+      track("coach_message", {});
       await apiStream<CoachStreamEvent>("/api/coach/chat", {
         json: body,
         signal: ctrl.signal,

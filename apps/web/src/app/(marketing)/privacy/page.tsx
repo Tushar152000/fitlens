@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AnalyticsChoice } from "@/components/analytics";
 import { CONTACT_EMAIL } from "../_components/faq";
 import { LegalPage } from "../_components/legal-page";
 
@@ -13,7 +14,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy Policy"
-      updated="10 November 2026"
+      updated="13 November 2026"
       intro={
         <p className="!mt-0 !text-lg">
           FITR8 helps you track food, water, workouts and fitness progress. Some of this information
@@ -73,8 +74,17 @@ export default function PrivacyPage() {
           to 90 days.
         </li>
         <li>
-          Essential sign-in cookies on the website. The current codebase does not include
-          third-party analytics or advertising SDKs or tracking cookies.
+          Essential sign-in cookies on the website. No advertising SDKs or advertising cookies.
+        </li>
+        <li>
+          <b>Usage analytics (Google Analytics):</b> which pages and screens are used and coarse
+          product events such as “signed in”, “finished onboarding”, “logged a meal” (with how it
+          was logged, e.g. photo or barcode), “messaged the coach” and “started FITR8 Pro”, plus
+          device, app version and approximate location derived from your IP address. Events are
+          linked to a random FITR8 account ID, never your name or email, and never include health
+          values such as weight, calories, measurements, meal contents, photos or coach messages.
+          On the website, analytics cookies are set only if you allow them in the cookie banner. In
+          the app, analytics is collected without the device advertising ID.
         </li>
         <li>
           Camera or photo-library access only when you choose to capture or select an image. The
@@ -129,6 +139,11 @@ export default function PrivacyPage() {
         </li>
         <li>
           <b>Google and Apple:</b> account authentication.
+        </li>
+        <li>
+          <b>Google Analytics (Google Analytics 4 and Firebase Analytics):</b> usage analytics as
+          described in section 2, when enabled for the deployment.
+          <AnalyticsChoice />
         </li>
         <li>
           <b>Open Food Facts:</b> barcode numbers are queried to retrieve packaged-food information.

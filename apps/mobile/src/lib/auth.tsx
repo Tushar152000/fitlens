@@ -4,15 +4,22 @@ import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { AuthTokenDto, DevLoginDto } from "@fitr8/contracts";
+import { setAnalyticsUser, track } from "./analytics";
 import { api, ApiError, setApiToken, setUnauthorizedHandler } from "./api";
 import { API_URL } from "./config";
 import { queryClient } from "./query";
 import { writeConversationId } from "./coach-store";
 import { forgetPurchaser, identifyPurchaser } from "./purchases";
+import { cancelWaterReminders } from "./reminders";
 import { readToken, writeToken } from "./token-store";
 import type { Me } from "./types";
 
-type AuthState = { status: "loading"; me: null } | { status: "signedOut"; me: null } | { status: "signedIn"; me: Me };
+type AuthState =
+  | { status: "loading"; me: null }
+  | { status: "signedOut"; me: null }
+  /** A saved session exists but /api/me couldn't be reached (offline, server down): keep it and offer a retry. */
+  | { status: "offline"; me: null }
+  | { status: "signedIn"; me: Me };
 
 type AuthContextValue = AuthState & {
   signIn: () => Promise<void>;
@@ -23,6 +30,8 @@ type AuthContextValue = AuthState & {
   signOut: () => Promise<void>;
   /** Re-reads /api/me, e.g. after onboarding finishes. */
   refresh: () => Promise<void>;
+  /** From the offline screen: try /api/me again with the saved session. */
+  retry: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -55,7 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "loading", me: null });
 
   const clear = useCallback(async () => {
-    await forgetPurchaser();
+    setAnalyticsUser(null);
+    await Promise.all([forgetPurchaser(), cancelWaterReminders().catch(() => undefined)]);
     setApiToken(null);
     queryClient.clear(); // never show the last user's data to the next one
     await Promise.all([writeToken(null), writeConversationId(null)]);
@@ -66,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const me = await api<Me>("/api/me");
       setState({ status: "signedIn", me });
+      setAnalyticsUser(me.id);
       // Ties store purchases to this account; never blocks the app if RevenueCat is unreachable.
       identifyPurchaser(me.id).catch(() => undefined);
     } catch (err) {
@@ -81,7 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const saved = await readToken();
       if (!saved) return setState({ status: "signedOut", me: null });
       setApiToken(saved);
-      await load().catch(() => setState({ status: "signedOut", me: null }));
+      // Only a 401 (handled in load) signs out; any other failure keeps the session for a retry.
+      await load().catch(() => setState({ status: "offline", me: null }));
     })();
   }, [clear, load]);
 
@@ -99,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setApiToken(token);
     await writeToken(token);
     await load();
+    track("login", { method: "google" });
   }, [load]);
 
   const appleSignIn = useCallback(async () => {
@@ -133,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setApiToken(token);
     await writeToken(token);
     await load();
+    track("login", { method: "apple" });
   }, [load]);
 
   const devSignIn = useCallback(
@@ -141,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setApiToken(token);
       await writeToken(token);
       await load();
+      track("login", { method: "dev" });
     },
     [load],
   );
@@ -150,9 +165,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clear();
   }, [clear]);
 
+  const retry = useCallback(async () => {
+    await load().catch(() => setState({ status: "offline", me: null }));
+  }, [load]);
+
   const value = useMemo(
-    () => ({ ...state, signIn, appleSignIn, devSignIn, signOut, refresh: load }),
-    [state, signIn, appleSignIn, devSignIn, signOut, load],
+    () => ({ ...state, signIn, appleSignIn, devSignIn, signOut, refresh: load, retry }),
+    [state, signIn, appleSignIn, devSignIn, signOut, load, retry],
   );
   return <AuthContext value={value}>{children}</AuthContext>;
 }
