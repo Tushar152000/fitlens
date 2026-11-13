@@ -12,7 +12,7 @@ import {
 } from "@expo-google-fonts/figtree";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
@@ -22,6 +22,7 @@ import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Button, Text } from "@/components/ui";
 import { OfflineBanner } from "@/components/offline-banner";
+import { trackScreen } from "@/lib/analytics";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { queryClient, wireQueryLifecycle } from "@/lib/query";
 import { configureNotifications } from "@/lib/reminders";
@@ -63,6 +64,13 @@ export default function RootLayout() {
 /** Signed out → login; signed in but not onboarded → onboarding only; otherwise the app. */
 function Routes() {
   const { status, me } = useAuth();
+  // Route pattern (e.g. "log/[id]"), never ids; groups like "(tabs)" dropped.
+  const screen = useSegments()
+    .filter((s) => !s.startsWith("("))
+    .join("/");
+  useEffect(() => {
+    if (status === "signedIn" || status === "signedOut") trackScreen(screen || "index");
+  }, [screen, status]);
   useEffect(() => {
     if (status !== "loading") SplashScreen.hideAsync();
   }, [status]);

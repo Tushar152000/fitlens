@@ -8,3 +8,4 @@ export * from "./requests.js";
 export * from "./ai.js";
 export * from "./coach.js";
 export * from "./responses.js";
+export type * from "./analytics.js";

@@ -14,7 +14,7 @@ Subpath exports (`package.json`): `./nutrition ./training ./dates ./format ./bar
 ## @fitr8/contracts (`packages/contracts/src`, zod 4)
 
 - `requests.ts`: Onboarding, UploadUrl, CreateMeal (PHOTO/TEXT/MANUAL), ConfirmMeal, Recheck, Checkin, ParseItems, Relog, GoalOption, Reminders, PreferredName, WaterAdd, QuickAdd, LabelScan, LabelSave, Energy, WorkoutLog, LogItems.
-- `auth.ts` (GoogleStartQuery, MobileStartQuery, MobileToken, AppleSignIn, DevLogin; ProvidersDto, AuthTokenDto, SessionDto), `billing.ts` (RevenueCatWebhookSchema passthrough, BillingDto), `coach.ts` (CoachChatSchema, CoachStreamEvent), `ai.ts` (MealAnalysisSchema, LabelReadSchema), `responses.ts` (all DTOs, `Jsonify`).
+- `auth.ts` (GoogleStartQuery, MobileStartQuery, MobileToken, AppleSignIn, DevLogin; ProvidersDto, AuthTokenDto, SessionDto), `billing.ts` (RevenueCatWebhookSchema passthrough, BillingDto), `coach.ts` (CoachChatSchema, CoachStreamEvent), `ai.ts` (MealAnalysisSchema, LabelReadSchema), `responses.ts` (all DTOs, `Jsonify`), `analytics.ts` (type-only `AnalyticsEvents` map shared by web + app GA; `export type *`).
 - Loose spots: `OnboardingSchema.timezone` any string (invalid IANA → 500); `ConfirmMealSchema.items` no max; `mealAnalysisJsonSchema`/`labelReadJsonSchema` unused. No tests in this package.
 
 ## @fitr8/db (`packages/db`)

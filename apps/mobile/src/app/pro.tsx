@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Button, FieldError, Screen, Text } from "@/components/ui";
 import { api } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { useAuth } from "@/lib/auth";
 import { openLegal } from "@/lib/legal";
 import { buyPlan, proPlans, purchasesAvailable, restorePurchases, type ProPlan } from "@/lib/purchases";
@@ -56,6 +57,7 @@ export default function ProScreen() {
     setError(null);
     try {
       if (await buyPlan(plan)) {
+        track("pro_purchase", { period: plan.period });
         setDone(true);
         await afterStore().catch(() => setSyncPending(true));
       }

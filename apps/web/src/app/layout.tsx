@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Figtree } from "next/font/google";
+import { Analytics } from "@/components/analytics";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     >
       <body suppressHydrationWarning className="antialiased">
         {children}
+        <Analytics />
       </body>
     </html>
   );

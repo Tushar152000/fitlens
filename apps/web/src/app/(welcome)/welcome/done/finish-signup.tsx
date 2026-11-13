@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PlanBuilding } from "@/components/onboarding/plan-building";
+import { track } from "@/lib/client/analytics";
 import { api, ApiError } from "@/lib/client/api";
 import { toPayload, validateStep } from "@/lib/onboarding/draft";
 import { stashPending, takePending } from "@/lib/onboarding/pending";
@@ -46,6 +47,7 @@ export function FinishSignup({ onboarded }: { onboarded: boolean }) {
           api("/api/onboarding", { method: "POST", json: toPayload(pending.draft, timezone) }),
           wait(2600),
         ]);
+        track("onboarding_complete", { platform: "web" });
         setBuilt(true);
         await wait(700);
         window.location.replace("/onboarding/plan?flow=welcome");

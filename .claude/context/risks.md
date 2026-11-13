@@ -15,6 +15,8 @@ Baseline: HEAD 107c0ee, 2026-11-11.
 
 ## Medium
 
+- **iOS build with RN Firebase unverified (2026-11-13).** `app.config.ts` forces iOS `useFrameworks: "dynamic"` (RN Firebase v27 requirement; officially tested on Expo 58, we are on 57). Never built for iOS here (Linux); first EAS iOS build may fail in pods (worklets, purchases). Android release build verified.
+
 8. 500s instead of 400: unvalidated `?date` (meals, dashboard), invalid onboarding timezone, workout plan find-then-create race (P2002; GET `/water` + `/workouts/today` in parallel), label save twice (duplicate Food / P2002), OFF timeout.
 9. POST `/water` before onboarding inserts then 404s (also coach `log_water`).
 10. HEIC accepted for upload but extractors can't read it. Presigned PUT unbounded size; `getImage` buffers before 10 MB check. Photos not deleted on meal delete.

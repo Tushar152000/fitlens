@@ -8,6 +8,7 @@ import { BackHeader } from "@/components/back-header";
 import { QueryError } from "@/components/query-error";
 import { Button, Card, FieldError, Screen, Segmented, Text } from "@/components/ui";
 import { api } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { setEnergy, useEnergy } from "@/lib/energy";
 import { formatInt } from "@/lib/format";
 import { workoutQuery } from "@/lib/queries";
@@ -58,6 +59,7 @@ function Briefing({ data, energy, switching }: { data: TodayWorkout; energy: Ene
         await api("/api/meals/log-items", { json: { mealType: "SNACK", items: data.snack.log.items } });
       }
       setSnackState("done");
+      track("meal_logged", { method: data.snack.log.kind === "usual" ? "usual" : "type" });
       refreshDay();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't log it. Try again.");

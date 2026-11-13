@@ -23,6 +23,7 @@ import { Analysing, Failed, Found } from "@/components/log/meal-states";
 import { QueryError } from "@/components/query-error";
 import { Button, Card, FieldError, MealItemEditor, Switch, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { confirmAction } from "@/lib/confirm";
 import { formatInt, MEAL_LABEL } from "@/lib/format";
 import { fromItems, scaleRow, setRowGrams, toConfirmPayload, totals, type Row } from "@/lib/meal-rows";
@@ -132,6 +133,8 @@ function Editor({
     setError(null);
     try {
       await api(`/api/meals/${meal.id}`, { method: "PUT", json: toConfirmPayload(rows, withGhee, note) });
+      // Editing an already-saved meal is not a new log.
+      if (meal.status !== "CONFIRMED") track("meal_logged", { method: meal.source === "PHOTO" ? "photo" : "type" });
       refreshDay();
       router.dismissTo("/today");
     } catch (e) {

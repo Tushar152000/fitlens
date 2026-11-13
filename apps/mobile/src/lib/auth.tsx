@@ -4,6 +4,7 @@ import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { AuthTokenDto, DevLoginDto } from "@fitr8/contracts";
+import { setAnalyticsUser, track } from "./analytics";
 import { api, ApiError, setApiToken, setUnauthorizedHandler } from "./api";
 import { API_URL } from "./config";
 import { queryClient } from "./query";
@@ -63,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "loading", me: null });
 
   const clear = useCallback(async () => {
+    setAnalyticsUser(null);
     await Promise.all([forgetPurchaser(), cancelWaterReminders().catch(() => undefined)]);
     setApiToken(null);
     queryClient.clear(); // never show the last user's data to the next one
@@ -74,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const me = await api<Me>("/api/me");
       setState({ status: "signedIn", me });
+      setAnalyticsUser(me.id);
       // Ties store purchases to this account; never blocks the app if RevenueCat is unreachable.
       identifyPurchaser(me.id).catch(() => undefined);
     } catch (err) {
@@ -108,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setApiToken(token);
     await writeToken(token);
     await load();
+    track("login", { method: "google" });
   }, [load]);
 
   const appleSignIn = useCallback(async () => {
@@ -142,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setApiToken(token);
     await writeToken(token);
     await load();
+    track("login", { method: "apple" });
   }, [load]);
 
   const devSignIn = useCallback(
@@ -150,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setApiToken(token);
       await writeToken(token);
       await load();
+      track("login", { method: "dev" });
     },
     [load],
   );

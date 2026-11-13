@@ -1,6 +1,6 @@
 # apps/mobile — Expo app (the real product surface)
 
-Paths relative to `apps/mobile/`. expo ~57, react-native 0.86, react 19.2, expo-router ~57, expo-updates ~57, react-native-purchases ^10.13, @tanstack/react-query 5. typedRoutes + reactCompiler on. No app.config/babel config; `/ios` `/android` are CNG (gitignored).
+Paths relative to `apps/mobile/`. expo ~57, react-native 0.86, react 19.2, expo-router ~57, expo-updates ~57, react-native-purchases ^10.13, @tanstack/react-query 5. typedRoutes + reactCompiler on. No babel config. `app.config.ts` extends app.json: always adds `expo-build-properties` (iOS `useFrameworks: "dynamic"`, required by RN Firebase v27 SPM); adds `@react-native-firebase/{app,analytics}` + `googleServicesFile` only when both `GOOGLE_SERVICES_JSON`/`GOOGLE_SERVICE_INFO_PLIST` (EAS file env) or local `google-services.json` + `GoogleService-Info.plist` exist. `/ios` `/android` are CNG (gitignored).
 
 ## Navigation (`src/app/_layout.tsx`)
 
@@ -39,7 +39,7 @@ SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loadin
 
 ## Release config
 
-- `app.json`: name FITR8, slug/scheme `fitlens`, owner `mrdoodler`, bundle/package `com.fitr8.app`, version `0.2.0`, `runtimeVersion: {policy: "appVersion"}` (bump version for ANY native change), `usesAppleSignIn`, camera/photo strings, RECORD_AUDIO blocked.
+- `app.json`: name FITR8, slug/scheme `fitlens`, owner `mrdoodler`, bundle/package `com.fitr8.app`, version `0.3.0` (Firebase native modules), `runtimeVersion: {policy: "appVersion"}` (bump version for ANY native change), `usesAppleSignIn`, camera/photo strings, RECORD_AUDIO + `com.google.android.gms.permission.AD_ID` blocked.
 - `eas.json`: `appVersionSource: remote`; base node 22.22.0 / pnpm 10.34.6; `preview` internal APK channel `preview`; `production` autoIncrement channel `production`; both `EXPO_PUBLIC_API_URL=https://api.fitr8.com`. No development profile / dev client.
 - Unused native deps: expo-device, expo-glass-effect, @expo/ui, expo-symbols, expo-system-ui, expo-constants.
 - OTA: see infra.md (`eas-update.yml`).
@@ -47,6 +47,10 @@ SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loadin
 ## Notifications
 
 Water reminders = local notifications (`src/lib/reminders.ts`), not cancelled on sign-out/delete. Lunch/dinner reminders saved server-side only; nothing delivers them.
+
+## Analytics (`src/lib/analytics.ts`, docs/ANALYTICS.md)
+
+Firebase Analytics, lazily `require`d; no-op on web preview, in Expo Go, or when `getApps()` is empty (no config files in the build). `track(name, params)` typed by `AnalyticsEvents` (contracts). `trackScreen` from `_layout.tsx` `Routes` (`useSegments`, groups dropped, route patterns only). `setAnalyticsUser(me.id)` in `auth.tsx` `load`, null in `clear`. Events: login (google/apple/dev after `load`), onboarding_complete (`onboarding/index.tsx`, not when `returning`), meal_logged (`log/[id].tsx` only if status ≠ CONFIRMED, `log/type.tsx` relog, barcode quick-add, label save, briefing snack), coach_message (`coach.tsx` send), pro_purchase (`pro.tsx`). `firebase.json`: adid/ssaid collection + automatic screen reporting off.
 
 ## Tests
 

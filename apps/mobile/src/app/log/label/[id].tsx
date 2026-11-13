@@ -9,6 +9,7 @@ import { BackHeader } from "@/components/back-header";
 import { QueryError } from "@/components/query-error";
 import { Button, Card, FieldError, NumberField, Screen, Stepper, Text } from "@/components/ui";
 import { api } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { formatInt, MEAL_LABEL, type MealType } from "@/lib/format";
 import { labelAddsUp } from "@/lib/label";
 import { mealFromParam } from "@/lib/meal-param";
@@ -82,6 +83,7 @@ function CheckLabel({ scan, mealType }: { scan: ScanDto; mealType: MealType }) {
           isLiquid: false,
         },
       });
+      track("meal_logged", { method: "label" });
       refreshDay();
       router.dismissTo("/today");
     } catch (e) {

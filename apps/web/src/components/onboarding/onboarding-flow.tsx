@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { DevLogin } from "@/components/dev-login";
+import { track } from "@/lib/client/analytics";
 import { api, ApiError } from "@/lib/client/api";
 import {
   emptyDraft,
@@ -183,6 +184,7 @@ function Flow({
         api("/api/onboarding", { method: "POST", json: toPayload(draft, timezone) }),
         wait(2600),
       ]);
+      if (mode !== "edit") track("onboarding_complete", { platform: "web" });
       setBuilt(true);
       await wait(700);
       router.push(`/onboarding/plan?flow=${mode}`);

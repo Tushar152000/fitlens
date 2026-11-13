@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ModeTabs } from "@/components/log/mode-tabs";
 import { Button, Chip, FieldError, Text } from "@/components/ui";
 import { api } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { formatInt, MEAL_LABEL, MEAL_TYPES, mealTitle, type MealType } from "@/lib/format";
 import { mealFromParam } from "@/lib/meal-param";
 import { refreshDay } from "@/lib/query";
@@ -47,6 +48,7 @@ export default function TypeMealScreen() {
     setError(null);
     try {
       await api("/api/meals/relog", { json: { mealId: u.mealId, mealType } });
+      track("meal_logged", { method: "usual" });
       refreshDay();
       router.dismissTo("/today");
     } catch (err) {
