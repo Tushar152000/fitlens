@@ -6,7 +6,7 @@ vi.mock("@next/third-parties/google", () => ({ sendGAEvent }));
 /** Fresh module per test: GA_ID and the consent memo are read once per module load. */
 async function load(gaId: string | undefined, stored: string | null) {
   vi.resetModules();
-  vi.stubEnv("NEXT_PUBLIC_GA_MEASUREMENT_ID", gaId ?? "");
+  vi.doMock("@/lib/ga-id", () => ({ GA_MEASUREMENT_ID: gaId ?? "" }));
   const store = new Map<string, string>(stored ? [["fitr8.analytics-consent", stored]] : []);
   vi.stubGlobal("localStorage", {
     getItem: (k: string) => store.get(k) ?? null,
@@ -21,7 +21,7 @@ async function load(gaId: string | undefined, stored: string | null) {
 describe("web analytics consent", () => {
   beforeEach(() => sendGAEvent.mockClear());
   afterEach(() => {
-    vi.unstubAllEnvs();
+    vi.doUnmock("@/lib/ga-id");
     vi.unstubAllGlobals();
   });
 

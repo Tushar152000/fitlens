@@ -47,11 +47,11 @@ Web ignores Pro: never reads `MeDto.plan`, `UsageDto.plan/paywall`, `/api/billin
 
 ## Env
 
-`NEXT_PUBLIC_API_URL` (browser + SSR fallback; build time), `API_INTERNAL_URL` (optional SSR override), `APP_STORE_URL`, `PLAY_STORE_URL`, `NEXT_PUBLIC_GA_MEASUREMENT_ID` (build time; empty = no GA, no banner).
+`NEXT_PUBLIC_API_URL` (browser + SSR fallback; build time), `API_INTERNAL_URL` (optional SSR override), `APP_STORE_URL`, `PLAY_STORE_URL`. GA Measurement ID is a constant, not env: `lib/ga-id.ts` `GA_MEASUREMENT_ID` (empty = no GA, no banner).
 
 ## Analytics (docs/ANALYTICS.md)
 
-`lib/client/analytics.ts`: `GA_ID`, consent in localStorage `fitr8.analytics-consent` (`useConsent` via useSyncExternalStore; blocked storage = no choice), `setConsent("denied")` sets `ga-disable-<id>` + deletes `_ga*` cookies, `track()` only when GA_ID and granted (`sendGAEvent`). `components/analytics.tsx`: `<Analytics/>` in root layout renders banner until a choice, `<GoogleAnalytics>` (@next/third-parties 16.3.6) only when granted; `AnalyticsChoice` on `/privacy`. Events: calculator_used (calculator CTA), store_click (`components/store-badge-link.tsx`), onboarding_complete (onboarding-flow non-edit, finish-signup). No web `login` event (Google sign-in is a server redirect).
+`lib/client/analytics.ts`: `GA_ID` (from `lib/ga-id.ts`), consent in localStorage `fitr8.analytics-consent` (`useConsent` via useSyncExternalStore; blocked storage = no choice), `setConsent("denied")` sets `ga-disable-<id>` + deletes `_ga*` cookies, `track()` only when GA_ID and granted (`sendGAEvent`). `components/analytics.tsx`: `<Analytics/>` in root layout renders banner until a choice, `<GoogleAnalytics>` (@next/third-parties 16.3.6) only when granted; `AnalyticsChoice` on `/privacy`. Events: calculator_used (calculator CTA), store_click (`components/store-badge-link.tsx`), onboarding_complete (onboarding-flow non-edit, finish-signup). No web `login` event (Google sign-in is a server redirect).
 
 ## Tests
 

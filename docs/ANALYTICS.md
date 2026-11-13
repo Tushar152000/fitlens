@@ -3,8 +3,10 @@
 One Google Analytics 4 property, two data streams: the **website** (gtag) and the **app** (Firebase
 Analytics, Android + iOS). Both send the same event names, so reports line up.
 
-Everything is **off until configured**: without the IDs below, no Google script loads on the web,
-no cookie banner shows, and app builds contain no Firebase configuration.
+Everything is **off until configured**: while the Measurement ID constant is empty and the Firebase
+files aren't committed, no Google script loads on the web, no cookie banner shows, and app builds
+contain no Firebase configuration. Nothing comes from environment variables: these IDs are public
+(the Measurement ID is in every page's source; the Firebase files only identify the project).
 
 ## What is sent
 
@@ -52,23 +54,16 @@ Privacy setup:
 
 ### 2. Website
 
-Vercel → project → Settings → Environment Variables → Production:
-`NEXT_PUBLIC_GA_MEASUREMENT_ID=G-…`, then redeploy (it is inlined at build time).
-Local: same key in the root `.env` (see `.env.example`).
+Put the Measurement ID in `apps/web/src/lib/ga-id.ts`:
+`export const GA_MEASUREMENT_ID: string = "G-…";` and merge; the next web deploy turns it on.
 
 ### 3. App
 
-The config files are not secret, but keep them out of git and give them to EAS as **file**
-environment variables (expo.dev → project → Environment variables → `production` and `preview`):
-
-| Name                        | Type | Value                      |
-| --------------------------- | ---- | -------------------------- |
-| `GOOGLE_SERVICES_JSON`      | File | `google-services.json`     |
-| `GOOGLE_SERVICE_INFO_PLIST` | File | `GoogleService-Info.plist` |
-
-`apps/mobile/app.config.ts` switches Firebase on only when **both** files are present (the Firebase
-config plugin fails the build otherwise). For a local build, put both files in `apps/mobile/` (they
-are gitignored) and run `npx expo prebuild --clean`.
+Commit both downloaded files to `apps/mobile/` (next to `app.json`):
+`apps/mobile/google-services.json` and `apps/mobile/GoogleService-Info.plist`.
+`apps/mobile/app.config.ts` switches Firebase on only when **both** are present (the Firebase config
+plugin fails the build otherwise). In the Google Cloud console, restrict the API keys inside them to
+the Android package / iOS bundle `com.fitr8.app` (Firebase does this for new projects).
 
 This is native code: it ships in a **new store build** (app version 0.3.0+), never as an OTA update.
 

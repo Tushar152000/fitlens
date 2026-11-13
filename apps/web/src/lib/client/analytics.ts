@@ -3,13 +3,14 @@
 import type { AnalyticsEventName, AnalyticsEvents } from "@fitr8/contracts";
 import { sendGAEvent } from "@next/third-parties/google";
 import { useSyncExternalStore } from "react";
+import { GA_MEASUREMENT_ID } from "@/lib/ga-id";
 
 /**
- * Google Analytics 4 on the website (docs/ANALYTICS.md). Off unless NEXT_PUBLIC_GA_MEASUREMENT_ID
- * is set at build time, and then only after the visitor accepts the analytics banner: no Google
- * script loads and no GA cookie is set before that.
+ * Google Analytics 4 on the website (docs/ANALYTICS.md). Off while `GA_MEASUREMENT_ID`
+ * (`lib/ga-id.ts`) is empty, and then only after the visitor accepts the analytics banner: no
+ * Google script loads and no GA cookie is set before that.
  */
-export const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || null;
+export const GA_ID = GA_MEASUREMENT_ID || null;
 
 export type Consent = "granted" | "denied";
 const KEY = "fitr8.analytics-consent";

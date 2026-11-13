@@ -41,7 +41,3 @@ example
 # generated native folders
 /ios
 /android
-
-# Firebase config (Google Analytics): EAS file env vars in CI, local copies only (docs/ANALYTICS.md)
-google-services.json
-GoogleService-Info.plist

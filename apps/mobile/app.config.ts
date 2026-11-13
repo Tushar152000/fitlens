@@ -8,20 +8,18 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
  * config files exist. The Firebase config plugin fails the build without them, so until then the
  * app builds exactly as before and `src/lib/analytics.ts` sends nothing.
  *
- * Files come from EAS file environment variables (`GOOGLE_SERVICES_JSON`, `GOOGLE_SERVICE_INFO_PLIST`)
- * or, locally, from `google-services.json` / `GoogleService-Info.plist` next to this file.
- * Setup: docs/ANALYTICS.md.
+ * The files are committed next to this file (`google-services.json`, `GoogleService-Info.plist`);
+ * they identify the Firebase project and are not secrets. Setup: docs/ANALYTICS.md.
  */
-function configFile(fromEnv: string | undefined, localName: string): string | undefined {
-  if (fromEnv && existsSync(fromEnv)) return fromEnv;
-  return existsSync(resolve(__dirname, localName)) ? `./${localName}` : undefined;
+function configFile(name: string): string | undefined {
+  return existsSync(resolve(__dirname, name)) ? `./${name}` : undefined;
 }
 
 type Plugin = string | [string, Record<string, unknown>];
 
 export default ({ config }: ConfigContext): ExpoConfig => {
-  const android = configFile(process.env.GOOGLE_SERVICES_JSON, "google-services.json");
-  const ios = configFile(process.env.GOOGLE_SERVICE_INFO_PLIST, "GoogleService-Info.plist");
+  const android = configFile("google-services.json");
+  const ios = configFile("GoogleService-Info.plist");
   // The plugin needs both platforms' files whichever platform is being built.
   const firebase = Boolean(android && ios);
   const plugins: Plugin[] = [

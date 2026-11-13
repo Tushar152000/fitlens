@@ -22,7 +22,7 @@ The public `/privacy` and `/terms` pages were updated against the current source
 - Account sign-in uses Google and Apple; account records are database-backed.
 - Meal/label photos are stored through the S3-compatible storage adapter. AI extraction and coach calls can use OpenAI or Anthropic depending on `AI_PROVIDER`.
 - Barcode lookups use Open Food Facts. Subscription processing is implemented through RevenueCat when configured.
-- Google Analytics (2026-11-13): web GA4 loads only after cookie-banner consent and only when `NEXT_PUBLIC_GA_MEASUREMENT_ID` is set; the app uses Firebase Analytics only in builds with the Firebase config files, without the advertising ID. Events never carry health values (`packages/contracts/src/analytics.ts`, `docs/ANALYTICS.md`). No advertising SDKs. The mobile app blocks Android microphone recording. Web camera capture requests video only (`audio: false`).
+- Google Analytics (2026-11-13): web GA4 loads only after cookie-banner consent and only when `GA_MEASUREMENT_ID` in `apps/web/src/lib/ga-id.ts` is set; the app uses Firebase Analytics only in builds with the Firebase config files, without the advertising ID. Events never carry health values (`packages/contracts/src/analytics.ts`, `docs/ANALYTICS.md`). No advertising SDKs. The mobile app blocks Android microphone recording. Web camera capture requests video only (`audio: false`).
 - Auth-event cleanup retains sign-in events for 90 days. This is not the same as a general user-data or backup-retention schedule.
 
 ## India data-protection reference

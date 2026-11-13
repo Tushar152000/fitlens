@@ -1,6 +1,6 @@
 # apps/mobile — Expo app (the real product surface)
 
-Paths relative to `apps/mobile/`. expo ~57, react-native 0.86, react 19.2, expo-router ~57, expo-updates ~57, react-native-purchases ^10.13, @tanstack/react-query 5. typedRoutes + reactCompiler on. No babel config. `app.config.ts` extends app.json: always adds `expo-build-properties` (iOS `useFrameworks: "dynamic"`, required by RN Firebase v27 SPM); adds `@react-native-firebase/{app,analytics}` + `googleServicesFile` only when both `GOOGLE_SERVICES_JSON`/`GOOGLE_SERVICE_INFO_PLIST` (EAS file env) or local `google-services.json` + `GoogleService-Info.plist` exist. `/ios` `/android` are CNG (gitignored).
+Paths relative to `apps/mobile/`. expo ~57, react-native 0.86, react 19.2, expo-router ~57, expo-updates ~57, react-native-purchases ^10.13, @tanstack/react-query 5. typedRoutes + reactCompiler on. No babel config. `app.config.ts` extends app.json: always adds `expo-build-properties` (iOS `useFrameworks: "dynamic"`, required by RN Firebase v27 SPM); adds `@react-native-firebase/{app,analytics}` + `googleServicesFile` only when both committed files `google-services.json` + `GoogleService-Info.plist` exist next to app.json (no env vars). `/ios` `/android` are CNG (gitignored).
 
 ## Navigation (`src/app/_layout.tsx`)
 
