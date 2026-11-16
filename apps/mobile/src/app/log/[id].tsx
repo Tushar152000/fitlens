@@ -3,7 +3,7 @@ import { NATIVE_DRIVER } from "@/lib/motion";
 import { MealSkeleton } from "@/components/skeletons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft, NotebookPen, Plus, Sparkles, Trash2 } from "lucide-react-native";
+import { ChevronLeft, NotebookPen, Plus, Redo2, Sparkles, Trash2, Undo2 } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   Animated,
@@ -26,8 +26,11 @@ import { api, ApiError } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import { confirmAction } from "@/lib/confirm";
 import { formatInt, MEAL_LABEL } from "@/lib/format";
+import { choiceParams, dayFromParam, dayLabel } from "@/lib/meal-param";
 import { fromItems, scaleRow, setRowGrams, toConfirmPayload, totals, type Row } from "@/lib/meal-rows";
 import { refreshDay } from "@/lib/query";
+import { useHistory } from "@/lib/use-history";
+import { showDay } from "@/lib/view-day";
 import { colors, fonts, radius } from "@/lib/theme";
 import type { MealDetailDto } from "@fitr8/contracts";
 
@@ -109,8 +112,14 @@ function Editor({
   const analysing = meal.status === "PENDING" || meal.status === "ANALYZING";
   const saved = meal.status === "CONFIRMED";
   const initial = fromItems(meal.items);
-  const [rows, setRows] = useState<Row[]>(initial.rows);
-  const [ghee, setGhee] = useState(saved ? initial.ghee : Boolean(meal.aiRaw?.hiddenFatLikely) || initial.ghee);
+  // Items and the ghee switch share one undo / redo history.
+  const edits = useHistory<{ rows: Row[]; ghee: boolean }>({
+    rows: initial.rows,
+    ghee: saved ? initial.ghee : Boolean(meal.aiRaw?.hiddenFatLikely) || initial.ghee,
+  });
+  const { rows, ghee } = edits.value;
+  const setRows = (f: (all: Row[]) => Row[]) => edits.set((e) => ({ ...e, rows: f(e.rows) }));
+  const setGhee = (g: boolean) => edits.set((e) => ({ ...e, ghee: g }));
   const [note, setNote] = useState(meal.note ?? "");
   // Design 8 → 9: after a live analysis, show "Found N items" until the user taps Review.
   const [found, setFound] = useState(live && meal.status === "READY" && initial.rows.length > 0);
@@ -126,6 +135,13 @@ function Editor({
   const withGhee = ghee && gheeRelevant;
   const sum = totals(rows, withGhee);
   const mealLabel = MEAL_LABEL[meal.mealType].toLowerCase();
+  // A forgotten meal logged for an earlier day: say which day, and go back to it after saving.
+  const pastDay = dayFromParam(meal.date.slice(0, 10));
+  const limitParams = choiceParams(meal.mealType, pastDay);
+  const backToDay = () => {
+    showDay(pastDay);
+    router.dismissTo("/today");
+  };
   const manual = meal.source === "TEXT" && !meal.inputText;
 
   async function save() {
@@ -136,7 +152,7 @@ function Editor({
       // Editing an already-saved meal is not a new log.
       if (meal.status !== "CONFIRMED") track("meal_logged", { method: meal.source === "PHOTO" ? "photo" : "type" });
       refreshDay();
-      router.dismissTo("/today");
+      backToDay();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Couldn't save. Try again.");
       setSaving(false);
@@ -164,11 +180,18 @@ function Editor({
   }
 
   async function remove() {
-    if (!(await confirmAction("Delete this meal?", "It comes off today's totals.", "Delete"))) return;
+    if (
+      !(await confirmAction(
+        "Delete this meal?",
+        `It comes off ${pastDay ? `${dayLabel(pastDay).toLowerCase()}'s` : "today's"} totals.`,
+        "Delete",
+      ))
+    )
+      return;
     try {
       await api(`/api/meals/${meal.id}`, { method: "DELETE" });
       refreshDay();
-      router.dismissTo("/today");
+      backToDay();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't delete. Try again.");
     }
@@ -223,11 +246,18 @@ function Editor({
                   {meal.aiNotes}
                 </Text>
               )}
-              {rows.length > 0 && !manual && (
-                <Text size={13} color={colors.ink3}>
-                  Check portions — tap − or + to adjust.
+              {pastDay && (
+                <Text weight={600} size={13} color={colors.brand}>
+                  {dayLabel(pastDay) === "Yesterday" ? "Logging for yesterday" : `Logging for ${dayLabel(pastDay)}`}
                 </Text>
               )}
+              <View style={styles.row}>
+                <Text size={13} color={colors.ink3} style={{ flex: 1 }}>
+                  {rows.length > 0 && !manual ? "Check portions — tap − or + to adjust." : ""}
+                </Text>
+                <HistoryButton label="Undo" icon={Undo2} onPress={edits.undo} disabled={!edits.canUndo} />
+                <HistoryButton label="Redo" icon={Redo2} onPress={edits.redo} disabled={!edits.canRedo} />
+              </View>
 
               <View style={{ gap: 10, marginTop: 4 }}>
                 {rows.map((row, i) => (
@@ -303,13 +333,13 @@ function Editor({
             </View>
             <View style={{ flexDirection: "row", gap: 12 }}>
               <Text weight={600} size={13} color={colors.protein} tabular>
-                P {formatInt(sum.proteinG)} g
+                {formatInt(sum.proteinG)} g protein
               </Text>
               <Text weight={600} size={13} color={colors.carbsText} tabular>
-                C {formatInt(sum.carbsG)} g
+                {formatInt(sum.carbsG)} g carbs
               </Text>
               <Text weight={600} size={13} color={colors.fat} tabular>
-                F {formatInt(sum.fatG)} g
+                {formatInt(sum.fatG)} g fat
               </Text>
             </View>
           </View>
@@ -320,7 +350,7 @@ function Editor({
         </View>
       )}
 
-      <AiLimitSheet open={limitOpen} onClose={() => setLimitOpen(false)} mealType={meal.mealType} usage={limit} />
+      <AiLimitSheet open={limitOpen} onClose={() => setLimitOpen(false)} params={limitParams} usage={limit} />
       <AddItemSheet
         open={addOpen}
         mealType={meal.mealType}
@@ -331,6 +361,36 @@ function Editor({
         }}
       />
     </KeyboardAvoidingView>
+  );
+}
+
+/** Undo / redo for the items on this screen (nothing is saved until "Save"). */
+function HistoryButton({
+  label,
+  icon: Icon,
+  onPress,
+  disabled,
+}: {
+  label: "Undo" | "Redo";
+  icon: typeof Undo2;
+  onPress: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${label} last change`}
+      accessibilityState={{ disabled }}
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={6}
+      style={[styles.history, disabled && { opacity: 0.35 }]}
+    >
+      <Icon size={16} color={colors.ink2} />
+      <Text weight={600} size={13} color={colors.ink2}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -398,6 +458,7 @@ function ScanLine({ height }: { height: number }) {
 
 const styles = StyleSheet.create({
   back: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  history: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 6 },
   delete: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8, marginRight: -8 },
   row: { flexDirection: "row", alignItems: "center", gap: 16 },
   note: {

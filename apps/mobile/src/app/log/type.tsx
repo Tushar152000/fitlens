@@ -1,26 +1,28 @@
 import { useQuery } from "@tanstack/react-query";
 import type { UsualDto } from "@fitr8/contracts";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { ChevronRight, Info, Repeat, X } from "lucide-react-native";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MealWhen } from "@/components/log/meal-when";
 import { ModeTabs } from "@/components/log/mode-tabs";
-import { Button, Chip, FieldError, Text } from "@/components/ui";
+import { Button, FieldError, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { track } from "@/lib/analytics";
-import { formatInt, MEAL_LABEL, MEAL_TYPES, mealTitle, type MealType } from "@/lib/format";
-import { mealFromParam } from "@/lib/meal-param";
+import { formatInt, MEAL_LABEL, mealTitle } from "@/lib/format";
+import { useMealChoice } from "@/lib/meal-param";
 import { refreshDay } from "@/lib/query";
+import { showDay } from "@/lib/view-day";
 import { colors, fonts, radius } from "@/lib/theme";
 
 export type Usual = UsualDto;
 
 /** Screen 7b: type what you ate, or relog a usual with one tap. Typing never uses a photo scan. */
 export default function TypeMealScreen() {
-  const params = useLocalSearchParams<{ meal?: string }>();
+  const { mealType, setMealType, date, setDate, dateBody, params } = useMealChoice();
   const insets = useSafeAreaInsets();
-  const [mealType, setMealType] = useState<MealType>(() => mealFromParam(params.meal));
+  const [missing, setMissing] = useState(false);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState<string | null>(null); // "text" or a usual's mealId
   const [error, setError] = useState<string | null>(null);
@@ -32,10 +34,13 @@ export default function TypeMealScreen() {
   async function submit() {
     const value = text.trim();
     setError(null);
+    if (!mealType) return setMissing(true);
     if (value.length < 2) return setError("Tell us what you ate, e.g. 2 roti and 1 katori dal");
     setBusy("text");
     try {
-      const log = await api<{ id: string }>("/api/meals", { json: { source: "TEXT", mealType, text: value } });
+      const log = await api<{ id: string }>("/api/meals", {
+        json: { source: "TEXT", mealType, text: value, ...dateBody },
+      });
       router.replace(`/log/${log.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't read that. Try again.");
@@ -44,12 +49,14 @@ export default function TypeMealScreen() {
   }
 
   async function relog(u: Usual) {
+    if (!mealType) return setMissing(true);
     setBusy(u.mealId);
     setError(null);
     try {
-      await api("/api/meals/relog", { json: { mealId: u.mealId, mealType } });
+      await api("/api/meals/relog", { json: { mealId: u.mealId, mealType, ...dateBody } });
       track("meal_logged", { method: "usual" });
       refreshDay();
+      showDay(date);
       router.dismissTo("/today");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't add that. Try again.");
@@ -75,16 +82,20 @@ export default function TypeMealScreen() {
           >
             <X size={26} color={colors.ink} />
           </Pressable>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-            {MEAL_TYPES.map((t) => (
-              <Chip key={t} selected={t === mealType} onPress={() => setMealType(t)}>
-                {MEAL_LABEL[t]}
-              </Chip>
-            ))}
-          </ScrollView>
         </View>
 
         <Text variant="h1">What did you eat?</Text>
+
+        <MealWhen
+          mealType={mealType}
+          onMealType={(m) => {
+            setMealType(m);
+            setMissing(false);
+          }}
+          date={date}
+          onDate={setDate}
+          missing={missing}
+        />
 
         <View style={{ gap: 8 }}>
           <TextInput
@@ -111,7 +122,9 @@ export default function TypeMealScreen() {
           <View style={{ gap: 8, marginTop: 8 }}>
             <Text variant="h2">Your usuals</Text>
             <Text size={13} color={colors.ink3}>
-              One tap adds it to {MEAL_LABEL[mealType].toLowerCase()}. No AI scan used.
+              {mealType
+                ? `One tap adds it to ${MEAL_LABEL[mealType].toLowerCase()}. No AI scan used.`
+                : "Pick a meal above, then one tap adds it. No AI scan used."}
             </Text>
             {usuals.data!.map((u) => (
               <Pressable
@@ -129,7 +142,7 @@ export default function TypeMealScreen() {
                     {mealTitle(u.names, "Meal")}
                   </Text>
                   <Text size={13} color={colors.ink3} tabular>
-                    {formatInt(u.kcal)} kcal · P {u.proteinG} g{u.count > 1 ? ` · logged ${u.count}×` : ""}
+                    {formatInt(u.kcal)} kcal · {u.proteinG} g protein{u.count > 1 ? ` · logged ${u.count}×` : ""}
                   </Text>
                 </View>
                 <Text weight={600} size={13} color={colors.brand}>
@@ -146,7 +159,7 @@ export default function TypeMealScreen() {
         <Button onPress={submit} loading={busy === "text"} disabled={busy !== null && busy !== "text"}>
           Get calories
         </Button>
-        <ModeTabs current="type" mealType={mealType} tone="light" />
+        <ModeTabs current="type" params={params} tone="light" />
       </View>
     </KeyboardAvoidingView>
   );

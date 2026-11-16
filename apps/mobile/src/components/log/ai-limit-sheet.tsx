@@ -4,7 +4,6 @@ import { Crown, Keyboard } from "lucide-react-native";
 import { View } from "react-native";
 import { Sheet } from "@/components/sheet";
 import { Button, Card, Text } from "@/components/ui";
-import type { MealType } from "@/lib/format";
 import { purchasesAvailable } from "@/lib/purchases";
 import { colors } from "@/lib/theme";
 
@@ -14,12 +13,13 @@ export type ScanUsage = UsageDto;
 export function AiLimitSheet({
   open,
   onClose,
-  mealType,
+  params,
   usage,
 }: {
   open: boolean;
   onClose: () => void;
-  mealType: MealType;
+  /** The meal and day picked so far, carried to typing. */
+  params: { meal?: string; date?: string };
   usage: ScanUsage | null;
 }) {
   const limit = usage?.limit ?? 3;
@@ -82,7 +82,7 @@ export function AiLimitSheet({
         icon={Keyboard}
         onPress={() => {
           onClose();
-          router.replace({ pathname: "/log/type", params: { meal: mealType } });
+          router.replace({ pathname: "/log/type", params });
         }}
       >
         Type my meal instead

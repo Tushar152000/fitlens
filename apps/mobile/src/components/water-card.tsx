@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Info, Undo2 } from "lucide-react-native";
+import { Info, Redo2, Undo2 } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { FieldError, Text } from "@/components/ui";
@@ -12,7 +12,7 @@ import type { WaterDay } from "@/lib/types";
 
 const L = (ml: number) => (Math.round(ml / 100) / 10).toFixed(1);
 
-/** Today's water plus add / undo, and keeps the phone's reminders in step with progress. */
+/** Today's water plus add / undo / redo, and keeps the phone's reminders in step with progress. */
 export function useWater() {
   const water = useQuery(waterQuery);
   const add = useMutation({
@@ -58,17 +58,31 @@ export function WaterBar({ day }: { day: WaterDay | undefined }) {
 }
 
 /**
- * Compact add row at the foot of the Today card: +250 ml, +500 ml, undo, and an info toggle
+ * Compact add row at the foot of the Today card: +250 ml, +500 ml, undo, redo, and an info toggle
  * that shows how the target was worked out.
  */
 export function WaterQuickAdd({ water }: { water: ReturnType<typeof useWater> }) {
   const [why, setWhy] = useState(false);
+  // Amounts taken off with Undo, newest last; Redo adds them back. A new add starts fresh.
+  const [undone, setUndone] = useState<number[]>([]);
   const d = water.water.data;
   if (!d) return null;
   const busy = water.add.isPending || water.undo.isPending;
   const last = d.logs.at(-1);
   const reached = d.consumedMl >= d.targetMl;
   const error = water.add.error ?? water.undo.error;
+  const redoMl = undone.at(-1);
+
+  const add = (ml: number) => water.add.mutate(ml, { onSuccess: () => setUndone([]) });
+  const undo = () => {
+    if (!last) return;
+    const ml = last.ml;
+    water.undo.mutate(last.id, { onSuccess: () => setUndone((u) => [...u, ml]) });
+  };
+  const redo = () => {
+    if (redoMl == null) return;
+    water.add.mutate(redoMl, { onSuccess: () => setUndone((u) => u.slice(0, -1)) });
+  };
 
   return (
     <View style={{ gap: 8 }}>
@@ -82,11 +96,16 @@ export function WaterQuickAdd({ water }: { water: ReturnType<typeof useWater> })
         >
           {reached ? "Target reached" : `${L(d.targetMl - d.consumedMl)} L left`}
         </Text>
-        <Chip label="+250 ml" a11y="Add a glass, 250 ml" onPress={() => water.add.mutate(250)} disabled={busy} />
-        <Chip label="+500 ml" a11y="Add a bottle, 500 ml" onPress={() => water.add.mutate(500)} disabled={busy} />
+        <Chip label="+250 ml" a11y="Add a glass, 250 ml" onPress={() => add(250)} disabled={busy} />
+        <Chip label="+500 ml" a11y="Add a bottle, 500 ml" onPress={() => add(500)} disabled={busy} />
         {last && (
-          <IconButton label={`Undo last ${last.ml} ml`} onPress={() => water.undo.mutate(last.id)} disabled={busy}>
+          <IconButton label={`Undo last ${last.ml} ml`} onPress={undo} disabled={busy}>
             <Undo2 size={16} color={colors.ink2} />
+          </IconButton>
+        )}
+        {redoMl != null && (
+          <IconButton label={`Redo ${redoMl} ml`} onPress={redo} disabled={busy}>
+            <Redo2 size={16} color={colors.ink2} />
           </IconButton>
         )}
         <IconButton

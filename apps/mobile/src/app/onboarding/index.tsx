@@ -443,7 +443,7 @@ function AboutStep({ draft, set, errors }: StepProps) {
             {
               value: "ATHLETE",
               label: "Athlete",
-              description: "Twice-a-day training or heavy labour",
+              description: "Twice-a-day training or a very physical job",
               icon: icon(Trophy),
             },
           ]}

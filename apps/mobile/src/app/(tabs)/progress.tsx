@@ -29,7 +29,7 @@ function insight(p: Progress) {
   const onTrack = Math.abs(actual - planned) <= 0.25;
   return {
     headline: onTrack ? `On track — targets stay at ${kcal}` : `Targets stay at ${kcal} for now`,
-    reason: `${signed(actual)} this week vs ${signed(planned)} planned (7-day averages).${
+    reason: `${signed(actual)} this week vs ${Math.abs(planned) < 0.05 ? "a steady weight" : signed(planned)} planned (7-day averages).${
       onTrack ? "" : " One week is noisy — we'll look at the next check-in before changing anything."
     }`,
   };

@@ -135,7 +135,7 @@ export default function ProfileScreen() {
                 <Text weight={700} size={13} color={colors.white}>
                   {formatInt(target.kcal)} kcal
                 </Text>{" "}
-                a day · P {target.proteinG} g · C {target.carbsG} g · F {target.fatG} g
+                a day · {target.proteinG} g protein · {target.carbsG} g carbs · {target.fatG} g fat
               </Text>
             </View>
           )}

@@ -55,7 +55,7 @@ export default function PlanScreen() {
     return <TooFast data={plan.data} onStart={start} starting={starting} />;
   }
 
-  const weekly = summary.plan.weeklyChangeKg;
+  const pace = paceLine(summary.plan.weeklyChangeKg, metric.weightKg, summary.plan.targetWeightKg);
   return (
     <Screen
       gutter={24}
@@ -73,7 +73,7 @@ export default function PlanScreen() {
         <View style={[styles.badge, { backgroundColor: colors.proteinSoft }]}>
           <CircleCheck size={16} color={colors.protein} />
           <Text weight={600} size={13} color={colors.protein}>
-            Realistic goal
+            {pace.atTarget && !recomp ? "At your target weight" : "Realistic goal"}
           </Text>
         </View>
       </View>
@@ -106,9 +106,7 @@ export default function PlanScreen() {
           </View>
           <ProjectionLine from={metric.weightKg} to={recomp ? metric.weightKg : summary.plan.targetWeightKg} />
           <Text size={13} color={colors.ink2}>
-            {recomp
-              ? "Weight stays steady while you lose fat and build muscle."
-              : `${weekly > 0 ? "+" : weekly < 0 ? "−" : ""}${Math.abs(weekly)} kg a week`}
+            {recomp ? "Weight stays steady while you lose fat and build muscle." : pace.text}
             {goal.targetBodyFatPct != null && ` · body fat ${summary.bodyFatPct ?? "?"}% → ${goal.targetBodyFatPct}%`}
           </Text>
         </Card>
@@ -144,6 +142,23 @@ export default function PlanScreen() {
       )}
     </Screen>
   );
+}
+
+/**
+ * The pace line under Now → Goal. A directional goal with no weight change (target equals current
+ * weight, or a medical / under-18 hold) reads as words, never "0 kg a week".
+ */
+function paceLine(weekly: number, nowKg: number, targetKg: number): { text: string; atTarget: boolean } {
+  if (Math.abs(weekly) >= 0.05) {
+    return { text: `${weekly > 0 ? "+" : "−"}${Math.abs(weekly)} kg a week`, atTarget: false };
+  }
+  if (Math.abs(targetKg - nowKg) < 0.5) {
+    return {
+      text: "You're already at your target weight, so there's no weight to change. Your plan keeps it steady.",
+      atTarget: true,
+    };
+  }
+  return { text: "Your weight stays steady for now.", atTarget: false };
 }
 
 type Choice = "KEEP_GOAL" | "KEEP_DATE";

@@ -145,8 +145,8 @@ export function OnboardingShell({
                     {formatInt(estimate.kcal)} kcal
                   </b>
                   <p className="text-ink-3 tabular-nums">
-                    {estimate.line} · P {estimate.proteinG} g · C {estimate.carbsG} g · F{" "}
-                    {estimate.fatG} g
+                    {estimate.line} · {estimate.proteinG} g protein · {estimate.carbsG} g carbs ·{" "}
+                    {estimate.fatG} g fat
                   </p>
                 </>
               ) : (

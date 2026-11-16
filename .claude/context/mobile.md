@@ -21,7 +21,7 @@ SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loadin
 
 | Screen     | Endpoints                                                                                                                                                         |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| today      | dashboard, workouts/today, water (+POST/DELETE water)                                                                                                             |
+| today      | dashboard (`?date=` for a past day), workouts/today, water (+POST/DELETE water; redo = re-POST the undone ml, local stack in `water-card.tsx`) |
 | workout    | workouts/today; POST workouts/logs (set state local only)                                                                                                         |
 | progress   | progress; POST checkins                                                                                                                                           |
 | profile    | plan, usage, dashboard, billing (if PRO); PATCH profile/reminders; export CSV → share; DELETE account                                                             |
@@ -29,6 +29,12 @@ SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loadin
 | pro        | billing; POST billing/refresh                                                                                                                                     |
 | log/*      | upload-url → PUT → POST meals; meals/:id poll 1 s ≤60 s; PUT/recheck/DELETE; foods?q; parse-items; barcode/:code (not URL-encoded); quick-add; label (+:id, save) |
 | onboarding | plan; POST onboarding; goal/option                                                                                                                                |
+
+## Meal type and day (2026-11-16)
+
+- Meal type is never guessed from the clock: `lib/meal-param.ts` `useMealChoice()` starts with `?meal=` or null; every save path (photo, type, usual relog, barcode quick-add, label save) refuses until picked and `components/log/meal-when.tsx` shows "Pick a meal first". Same component has "Which day?" chips: today + `MEAL_BACKFILL_DAYS` (7, mirrors domain) back; the choice rides route params (`meal`, `date`) across ModeTabs / AiLimitSheet / barcode → label.
+- Today tab: `DaySwitcher` (‹ day ›, up to 7 back) driven by `lib/view-day.ts` (useSyncExternalStore, null = today); past day hides water, workout and coach rows. Meals are grouped by Breakfast/Lunch/Snack/Dinner, each with its own add button carrying `meal` (+`date`). Saving a past-day meal calls `showDay(date)` so Today lands on that day. `nextMealType`/`mealTypeForHour` in `lib/format.ts` are now unused on mobile.
+- Meal review (`log/[id].tsx`): undo/redo of items + ghee via `lib/use-history.ts` (local, 50 steps); shows "Logging for …" for a past day.
 
 ## Pro (`src/lib/purchases.ts`, `src/app/pro.tsx`)
 

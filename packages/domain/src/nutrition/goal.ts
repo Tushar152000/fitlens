@@ -78,7 +78,10 @@ export function planGoal(
     adjustment = 0;
     weeklyChangeKg = 0;
   } else if (goal.type === "FAT_LOSS") {
-    if (totalChangeKg >= 0) warnings.push("Target is not below current weight; nothing to lose.");
+    if (totalChangeKg >= 0)
+      warnings.push(
+        "Your target isn't below your current weight, so this plan keeps your weight steady. Edit your goal to set a lower target, or choose Recomposition.",
+      );
     const maxWeeklyKg = (stats.weightKg * LIMITS.fatLossMaxRatePct) / 100;
     if (-weeklyChangeKg > maxWeeklyKg) {
       feasible = false;
@@ -95,7 +98,10 @@ export function planGoal(
       warnings.push("Deficit capped at 25% of maintenance calories.");
     }
   } else if (goal.type === "MUSCLE_GAIN") {
-    if (totalChangeKg <= 0) warnings.push("Target is not above current weight; nothing to gain.");
+    if (totalChangeKg <= 0)
+      warnings.push(
+        "Your target isn't above your current weight, so there's no weight to gain. Edit your goal to set a higher target, or choose Recomposition.",
+      );
     const maxWeeklyKg = (stats.weightKg * LIMITS.gainMaxRatePct) / 100;
     if (weeklyChangeKg > maxWeeklyKg) {
       feasible = false;
