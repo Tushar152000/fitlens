@@ -5,7 +5,9 @@ Do the steps in order once; after that every merge to `main` releases by itself.
 
 ```
 merge to main → CI (format, schema + migration drift, lint, typecheck, tests, build, workflow lint, images)
-             → Deploy: images → migrations → API (Cloud Run) → web (Vercel) → app OTA (EAS, if app code changed)
+             → Deploy: images → migrations → API (Cloud Run) → web (Vercel) → app OTA (EAS)
+               only the services whose code changed since the last successful deploy
+               (Actions → Deploy → Run workflow → "all" deploys everything)
 store builds → Actions → "Mobile release" (manual, when native code changed)
 ```
 

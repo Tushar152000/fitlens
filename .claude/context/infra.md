@@ -6,11 +6,13 @@ Every PR + push to main. Job `check` (Postgres 17): frozen install → `format:c
 
 ## Deploy `.github/workflows/deploy.yml` (single ordered pipeline)
 
-On successful CI `workflow_run` on main (or manual). WIF auth, no keys. `api-images` → `migrate` (Cloud Run job) → `api` → `web` → `app-update`.
+On successful CI `workflow_run` on main (or manual, input `all`). WIF auth, no keys. `changes` → `api-images` → `migrate` (Cloud Run job) → `api` → `web` → `app-update`.
+
+- `changes`: diffs against the last fully successful Deploy run's SHA (none/unknown or `all` ⇒ everything). api = apps/api, packages/db, shared (domain, contracts, tsconfig, lockfile, root package.json, turbo.json), deploy.yml; web = apps/web + shared + deploy.yml; app = apps/mobile, packages/contracts. Skipped upstream jobs don't block web/app (`!contains(needs.*.result, 'failure')`).
 
 - `api`: a shell step builds `--update-env-vars`/`--update-secrets` from repo vars: `AI_PROVIDER` picks the key secret; `APPLE_CLIENT_ID` set ⇒ Apple secrets mounted; `REVENUECAT_ENABLED=true` ⇒ RevenueCat secrets; `PAYWALL_ENABLED`. Always `PUBLIC_URL API_PUBLIC_URL AUTH_COOKIE_DOMAIN`. `--min-instances ${API_MIN_INSTANCES:-1}`, `--max-instances ${API_MAX_INSTANCES:-3}`, `--cpu-boost`. Smoke: run.app `/api/health` + `$API_PUBLIC_URL/api/health`.
 - `web`: Vercel CLI (`pull/build --prod/deploy --prebuilt`) when secret `VERCEL_TOKEN` (+ vars `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`); else ghcr image (build arg `NEXT_PUBLIC_API_URL`) + `WEB_DEPLOY_HOOK_URL`. `apps/web/vercel.json` disables Vercel's own Git deploys of `main` (PR previews stay).
-- `app-update`: matrix `preview`/`production`; only if secret `EXPO_TOKEN` and `apps/mobile`|`packages/contracts` changed since the last successful Deploy run's SHA; `eas update --channel X --environment X`.
+- `app-update`: matrix `preview`/`production`; when `changes.app` and secret `EXPO_TOKEN`; `eas update --channel X --environment X`.
 - The old ungated `eas-update.yml` is deleted. Store builds: `mobile-release.yml` (manual: platform, profile, optional auto-submit).
 
 ## Provisioning and checks

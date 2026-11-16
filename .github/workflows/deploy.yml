@@ -2,6 +2,8 @@ name: Deploy
 
 # After CI passes on main: images → database migrations → API (Cloud Run) → web (Vercel) → app OTA.
 # Each step starts only when the one before succeeded, so clients never call an API that isn't live.
+# Only services whose code changed since the last fully successful deploy are deployed (`changes`);
+# run it by hand with "all" to deploy everything.
 #
 # Everything environment-specific is a repository variable or secret; nothing here needs editing.
 # The full list, and the one-time setup that fills it in, is docs/RELEASE.md (infra/gcp/setup.sh sets
@@ -15,6 +17,11 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      all:
+        description: Deploy every service, changed or not
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-production
@@ -31,8 +38,49 @@ env:
   REGISTRY: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/fitlens
 
 jobs:
+  # What changed since the last deploy that fully succeeded? A failed or partial deploy doesn't count,
+  # so anything it didn't ship is compared again next time. Shared packages and the lockfile count for
+  # every service that uses them; a change to this workflow redeploys the API and the web.
+  changes:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      api: ${{ steps.diff.outputs.api }}
+      web: ${{ steps.diff.outputs.web }}
+      app: ${{ steps.diff.outputs.app }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+          fetch-depth: 0
+      - id: diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALL: ${{ inputs.all || false }}
+        run: |
+          prev="$(gh run list --repo "${{ github.repository }}" --workflow deploy.yml --branch main \
+            --status success --limit 1 --json headSha --jq '.[0].headSha // empty')"
+          everything=false
+          if [ "$ALL" = true ]; then
+            echo "Deploying everything (requested)"; everything=true
+          elif [ -z "$prev" ] || ! git cat-file -e "$prev^{commit}" 2>/dev/null; then
+            echo "No earlier successful deploy to compare with: deploying everything"; everything=true
+          else
+            echo "Changes since $prev:"; git diff --stat "$prev" "$SHA" | tail -n 1
+          fi
+          changed() { [ "$everything" = true ] || ! git diff --quiet "$prev" "$SHA" -- "$@"; }
+          shared=(packages/domain packages/contracts packages/tsconfig pnpm-lock.yaml package.json turbo.json)
+          api=false web=false app=false
+          changed apps/api packages/db "${shared[@]}" .github/workflows/deploy.yml && api=true
+          changed apps/web "${shared[@]}" .github/workflows/deploy.yml && web=true
+          changed apps/mobile packages/contracts && app=true
+          echo "api=$api web=$web app=$app" | tee -a "$GITHUB_STEP_SUMMARY"
+          { echo "api=$api"; echo "web=$web"; echo "app=$app"; } >> "$GITHUB_OUTPUT"
+
   api-images:
-    if: ${{ vars.GCP_PROJECT_ID != '' && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
+    needs: changes
+    if: ${{ vars.GCP_PROJECT_ID != '' && needs.changes.outputs.api == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -177,8 +225,8 @@ jobs:
   # After the API, so new pages never call endpoints that aren't live yet. Vercel's own Git
   # deployments for main are off (apps/web/vercel.json); this job is the production web deploy.
   web:
-    needs: [api-images, migrate, api]
-    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
+    needs: [changes, api-images, migrate, api]
+    if: ${{ !cancelled() && needs.changes.outputs.web == 'true' && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: production
@@ -243,12 +291,12 @@ jobs:
           if [ -n "$WEB_HOOK" ]; then curl -fsS -X POST "$WEB_HOOK" && echo "Web deploy triggered"
           else echo "::warning::No VERCEL_TOKEN or WEB_DEPLOY_HOOK_URL: the web was built but not deployed"; fi
 
-  # Over-the-air JS update for installed app builds, after the API they call is live. Only when app
-  # code changed since the last successful deploy. Native changes need a new store build instead
+  # Over-the-air JS update for installed app builds, after the API they call is live (or unchanged).
+  # Only when app code changed since the last successful deploy (`changes`). Native changes need a new store build instead
   # (mobile-release.yml, after bumping `version` in apps/mobile/app.json).
   app-update:
-    needs: [api, web]
-    if: ${{ !cancelled() && needs.api.result == 'success' && needs.web.result == 'success' }}
+    needs: [changes, api, web]
+    if: ${{ !cancelled() && needs.changes.outputs.app == 'true' && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -260,24 +308,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.SHA }}
-          fetch-depth: 0
 
-      - name: Did the app change?
+      - name: Expo token
         id: changed
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          prev="$(gh run list --repo "${{ github.repository }}" --workflow deploy.yml --branch main \
-            --status success --limit 1 --json headSha --jq '.[0].headSha // empty')"
-          if [ "$HAS_EXPO" != true ]; then
-            echo "::warning::No EXPO_TOKEN secret: skipping the OTA update"; echo "app=false" >> "$GITHUB_OUTPUT"
-          elif [ -z "$prev" ] || ! git cat-file -e "$prev^{commit}" 2>/dev/null; then
-            echo "No earlier successful deploy to compare with: publishing"; echo "app=true" >> "$GITHUB_OUTPUT"
-          elif git diff --quiet "$prev" "$SHA" -- apps/mobile packages/contracts; then
-            echo "App unchanged since $prev"; echo "app=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "app=true" >> "$GITHUB_OUTPUT"
-          fi
+          if [ "$HAS_EXPO" = true ]; then echo "app=true" >> "$GITHUB_OUTPUT"
+          else echo "::warning::No EXPO_TOKEN secret: skipping the OTA update"; echo "app=false" >> "$GITHUB_OUTPUT"; fi
 
       - uses: pnpm/action-setup@v4
         if: steps.changed.outputs.app == 'true'
