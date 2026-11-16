@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AiLimitSheet, type ScanUsage } from "@/components/log/ai-limit-sheet";
 import { Button, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
-import { mealFromParam } from "@/lib/meal-param";
+import { choiceParams, dayFromParam, mealFromParam } from "@/lib/meal-param";
 import { compressPhoto, uploadPhoto } from "@/lib/photo";
 import { colors, radius } from "@/lib/theme";
 
@@ -17,8 +17,9 @@ const LABEL_MAX_SIDE = 1600;
 
 /** Screen 7f: dark camera with a tall frame for the nutrition table. Uses 1 photo scan. */
 export default function LabelCamera() {
-  const params = useLocalSearchParams<{ meal?: string; barcode?: string; name?: string }>();
-  const mealType = mealFromParam(params.meal);
+  const params = useLocalSearchParams<{ meal?: string; date?: string; barcode?: string; name?: string }>();
+  // The meal and day are picked when the label values are checked; carry what's chosen so far.
+  const choice = choiceParams(mealFromParam(params.meal), dayFromParam(params.date));
   const insets = useSafeAreaInsets();
   const camera = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
@@ -38,7 +39,7 @@ export default function LabelCamera() {
       const scan = await api<{ id: string }>("/api/foods/label", {
         json: { photoKey, barcode: params.barcode, name: params.name },
       });
-      router.replace({ pathname: "/log/label/[id]", params: { id: scan.id, meal: mealType } });
+      router.replace({ pathname: "/log/label/[id]", params: { id: scan.id, ...choice } });
     } catch (e) {
       setPhase("idle");
       if (e instanceof ApiError && e.status === 429) {
@@ -145,7 +146,7 @@ export default function LabelCamera() {
         <View style={{ width: 48 }} />
       </View>
 
-      <AiLimitSheet open={limitOpen} onClose={() => setLimitOpen(false)} mealType={mealType} usage={limit} />
+      <AiLimitSheet open={limitOpen} onClose={() => setLimitOpen(false)} params={choice} usage={limit} />
     </View>
   );
 }

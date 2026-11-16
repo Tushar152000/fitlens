@@ -196,9 +196,17 @@ All 19 screens are drawn in the canvas (numbers match the artboard titles). Each
 ## Water (hydration)
 
 - **Target** (`src/lib/nutrition/water.ts`, unit-tested; never from an LLM): 33 ml × body weight, plus daily activity (sedentary 0, light 250, moderate 500, very active 750, athlete 1,000 ml), plus 500 ml on training days (from the week's workout plan); rounded to 100 ml, kept within 1.5–4.5 L. The card shows the reason with the numbers ("82 kg × 33 ml + 250 ml for light activity ≈ 3.0 L") and a goal tip. With `medicalFlag`, add "follow your doctor's fluid advice".
-- **In the Today card** (no separate card): a fourth bar **Water** under Protein / Carbs / Fat ("1.0 / 3.5 L", 8 px bar in `water`, full at target). Below "N eaten of N kcal target", one compact row: "2.5 L left" (water colour; protein-green "Target reached" at target), 32 px `water-soft` chips **+250 ml** and **+500 ml**, an undo icon for the last entry, and an info icon that toggles the target's reason and goal tip.
+- **In the Today card** (no separate card): a fourth bar **Water** under Protein / Carbs / Fat ("1.0 / 3.5 L", 8 px bar in `water`, full at target). Below "N eaten of N kcal target", one compact row: "2.5 L left" (water colour; protein-green "Target reached" at target), 32 px `water-soft` chips **+250 ml** and **+500 ml**, an undo icon for the last entry, a redo icon after an undo (adds the undone amount back; a new add clears it), and an info icon that toggles the target's reason and goal tip.
 - **Reminders** (Profile → Reminders, first row): "Water reminders · Every 2 hours, 9 am–9 pm, until you hit today's target". Local notifications scheduled by the app for the next 7 days; today's remaining ones are dropped once the target is reached. Copy: "Time for some water / A glass (250 ml) now. 1.8 L to go today."
 - **API:** `GET /api/water` (target, reason, tip, consumed, entries), `POST /api/water { ml }` (50–2,000), `DELETE /api/water/:id`; `PATCH /api/profile/reminders { water }`.
+
+## Meal type, day and undo (2026-11-16)
+
+- **Meal type is always the user's choice.** Log screens show "Which meal?" chips (Breakfast, Lunch, Snack, Dinner) with nothing selected, unless the user came from a button that names the meal ("Add lunch"). Saving without one shows "Pick a meal first: breakfast, lunch, snack or dinner" instead of guessing from the clock. Barcode and label screens ask on the product / check screen.
+- **Forgotten days.** "Which day?" chips under the meal chips: Today, Yesterday, then "Sat 15 Nov"… up to 7 days back (API rule `MEAL_BACKFILL_DAYS`). Today has a ‹ day › switcher (same window) with "Back to today"; a past day shows its ring, macros and meals, "Nothing logged for yesterday" when empty, and hides water, workout and coach. Saving a past-day meal returns to that day.
+- **Meals on Today** are grouped Breakfast → Lunch → Snack → Dinner with a kcal subtotal; each group ends in a dashed "Add lunch" / "Add more to lunch" button.
+- **Undo / redo** on the meal review screen (items and the ghee switch, local until Save), and on water.
+- **Macros are always written out** ("12 g protein · 30 g carbs · 8 g fat"), never P / C / F.
 
 ## Reminders (all types)
 

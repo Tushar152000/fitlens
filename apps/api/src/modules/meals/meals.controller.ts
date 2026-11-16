@@ -111,13 +111,13 @@ export class MealsController {
     return this.meals.quickAdd(userId, input);
   }
 
-  /** One-tap relog of a usual into today. */
+  /** One-tap relog of a usual into today (or a recent `date`). */
   @Post("meals/relog")
   relog(
     @UserId() userId: string,
-    @ZodBody(RelogSchema) { mealId, mealType }: RelogInput,
+    @ZodBody(RelogSchema) { mealId, mealType, date }: RelogInput,
   ): Promise<CreatedDto> {
-    return this.meals.relog(userId, mealId, mealType);
+    return this.meals.relog(userId, mealId, mealType, date);
   }
 
   /** Poll this while status is PENDING/ANALYZING. */

@@ -36,6 +36,8 @@ Web never touches tokens: the API sets an httpOnly cookie (prod `__Secure-fitlen
 
 ## Onboarding
 
+- `lib/onboarding/draft.ts` `weightDirectionProblem` (mirrored in mobile `onboarding-draft.ts`): step 2 blocks a weight target within 0.5 kg of current weight or the wrong way for the goal, pointing to Recomposition. Plan page `paceLine` shows words instead of "0 kg a week" ("At your target weight" badge).
+
 - Steps (`components/onboarding/onboarding-flow.tsx:34`): welcome = name, goal, about, training, signin; new/edit = goal, about, training.
 - Draft `lib/onboarding/draft.ts` (strings; `validateStep`; `toPayload()` → `OnboardingInput`; experience defaults BEGINNER, 3 days, 45 min; browser tz). Live estimate `lib/onboarding/estimate.ts` (domain `planGoal`, `bodyFatNavy`).
 - sessionStorage `lib/onboarding/pending.ts`: `fitr8.onboarding.calculator`, `fitr8.onboarding.pending` (read via `useSyncExternalStore`).
@@ -47,11 +49,15 @@ Web ignores Pro: never reads `MeDto.plan`, `UsageDto.plan/paywall`, `/api/billin
 
 ## Env
 
-`NEXT_PUBLIC_API_URL` (browser + SSR fallback; build time), `API_INTERNAL_URL` (optional SSR override), `APP_STORE_URL`, `PLAY_STORE_URL`.
+`NEXT_PUBLIC_API_URL` (browser + SSR fallback; build time), `API_INTERNAL_URL` (optional SSR override), `APP_STORE_URL`, `PLAY_STORE_URL`. GA Measurement ID is a constant, not env: `lib/ga-id.ts` `GA_MEASUREMENT_ID` (empty = no GA, no banner).
+
+## Analytics (docs/ANALYTICS.md)
+
+`lib/client/analytics.ts`: `GA_ID` (from `lib/ga-id.ts`), consent in localStorage `fitr8.analytics-consent` (`useConsent` via useSyncExternalStore; blocked storage = no choice), `setConsent("denied")` sets `ga-disable-<id>` + deletes `_ga*` cookies, `track()` only when GA_ID and granted (`sendGAEvent`). `components/analytics.tsx`: `<Analytics/>` in root layout renders banner until a choice, `<GoogleAnalytics>` (@next/third-parties 16.3.6) only when granted; `AnalyticsChoice` on `/privacy`. Events: calculator_used (calculator CTA), store_click (`components/store-badge-link.tsx`), onboarding_complete (onboarding-flow non-edit, finish-signup). No web `login` event (Google sign-in is a server redirect).
 
 ## Tests
 
-Vitest node env, `src/**/*.test.ts`: `lib/onboarding/{draft,estimate,pending}.test.ts`, `app/(app)/coach/stream.test.ts`, `app/(app)/log/[id]/rows.test.ts`. No component/E2E tests; untested: serverApi, offline queue, finish-signup, login `next` sanitiser.
+Vitest node env, `src/**/*.test.ts`: `lib/onboarding/{draft,estimate,pending}.test.ts`, `app/(app)/coach/stream.test.ts`, `app/(app)/log/[id]/rows.test.ts`, `lib/client/analytics.test.ts` (consent gating). No component/E2E tests; untested: serverApi, offline queue, finish-signup, login `next` sanitiser.
 
 ## Duplication
 

@@ -4,7 +4,6 @@ import { Crown, Keyboard } from "lucide-react-native";
 import { View } from "react-native";
 import { Sheet } from "@/components/sheet";
 import { Button, Card, Text } from "@/components/ui";
-import type { MealType } from "@/lib/format";
 import { purchasesAvailable } from "@/lib/purchases";
 import { colors } from "@/lib/theme";
 
@@ -14,12 +13,13 @@ export type ScanUsage = UsageDto;
 export function AiLimitSheet({
   open,
   onClose,
-  mealType,
+  params,
   usage,
 }: {
   open: boolean;
   onClose: () => void;
-  mealType: MealType;
+  /** The meal and day picked so far, carried to typing. */
+  params: { meal?: string; date?: string };
   usage: ScanUsage | null;
 }) {
   const limit = usage?.limit ?? 3;
@@ -53,7 +53,8 @@ export function AiLimitSheet({
         ))}
       </View>
       <Text color={colors.ink2}>Scans reset at {resets}. Typing a meal is free and doesn&apos;t use a scan.</Text>
-      {usage?.plan !== "PRO" && (
+      {/* Paywall off: Pro can't be bought, so don't advertise it. */}
+      {usage?.plan !== "PRO" && usage?.paywall && purchasesAvailable && (
         <Card dark style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Crown size={20} color={colors.brandGlow} />
@@ -63,11 +64,10 @@ export function AiLimitSheet({
           </View>
           <Text size={13} color="rgba(255,255,255,0.75)">
             30 photo scans a day, nutrition label reading and more coach messages.
-            {purchasesAvailable ? "" : " Coming soon."}
           </Text>
         </Card>
       )}
-      {usage?.plan !== "PRO" && purchasesAvailable && (
+      {usage?.plan !== "PRO" && usage?.paywall && purchasesAvailable && (
         <Button
           onPress={() => {
             onClose();
@@ -82,7 +82,7 @@ export function AiLimitSheet({
         icon={Keyboard}
         onPress={() => {
           onClose();
-          router.replace({ pathname: "/log/type", params: { meal: mealType } });
+          router.replace({ pathname: "/log/type", params });
         }}
       >
         Type my meal instead

@@ -12,6 +12,7 @@ pnpm + Turborepo monorepo: `apps/api` (NestJS, the only backend), `apps/web` (Ne
 - **Release / CI-CD:** `docs/RELEASE.md` (tokens and settings, `infra/gcp/setup.sh`, `infra/release-check.sh`); reference `docs/DEPLOY.md`.
 - **App store release:** `docs/STORE.md` (Sign in with Apple setup, reviewer access, listing, privacy answers).
 - **FITR8 Pro:** `docs/PREMIUM.md` (RevenueCat, plans and limits, paywall switch, setup).
+- **Analytics:** `docs/ANALYTICS.md` (Google Analytics: web gtag after consent, app Firebase; event list in `packages/contracts/src/analytics.ts`; never send health values).
 - **Workflows:** use the `fitr8-feature` skill for any feature/endpoint/table/screen, and `fitr8-coach-tool` for the AI coach. Run multi-step work through `fitr8-loop` (read → plan → make → verify until done).
 - **Knowledge base:** `.claude/context/` (start at `README.md`) holds verified, code-first notes per area plus `risks.md` and `decisions.md`. Read the relevant section before exploring; hooks flag stale sections and ask for a refresh after you change code.
 

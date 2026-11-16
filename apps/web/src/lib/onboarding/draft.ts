@@ -75,6 +75,27 @@ export const needsTarget = (d: OnboardingDraft) =>
   d.goalType !== undefined && d.goalType !== "RECOMPOSITION";
 export const wantsBodyFat = (d: OnboardingDraft) => needsTarget(d) && d.targetMode === "BODY_FAT";
 
+/**
+ * A weight target must point the way the goal does. The same weight (within 0.5 kg) or the wrong
+ * direction would give a "0 kg a week" plan, so point people to Recomposition or a new target.
+ */
+export function weightDirectionProblem(d: OnboardingDraft): string | undefined {
+  if (!needsTarget(d) || d.targetMode !== "WEIGHT") return undefined;
+  const target = num(d.targetWeightKg);
+  const weight = num(d.weightKg);
+  if (!target || !weight || !Number.isFinite(target) || !Number.isFinite(weight)) return undefined;
+  if (Math.abs(target - weight) < 0.5) {
+    return `That's already your target weight (${target} kg). Go back and choose Recomposition to keep this weight and improve your shape, or set a new target.`;
+  }
+  if (d.goalType === "FAT_LOSS" && target > weight) {
+    return `Your target (${target} kg) is above this weight. Go back and set a lower target, or choose Build muscle.`;
+  }
+  if (d.goalType === "MUSCLE_GAIN" && target < weight) {
+    return `Your target (${target} kg) is below this weight. Go back and set a higher target, or choose Lose fat.`;
+  }
+  return undefined;
+}
+
 /** Errors for one step (1–3). Empty object = OK to continue. */
 export function validateStep(step: number, d: OnboardingDraft, today = new Date()): DraftErrors {
   const e: DraftErrors = {};
@@ -108,6 +129,8 @@ export function validateStep(step: number, d: OnboardingDraft, today = new Date(
       e.waistCm = "Waist must be bigger than neck";
     }
     if (!d.activityLevel) e.activityLevel = "Pick the closest match";
+    const direction = weightDirectionProblem(d);
+    if (!e.weightKg && direction) e.weightKg = direction;
   }
   if (step === 3) {
     if (!d.dietType) e.dietType = "Pick your diet";

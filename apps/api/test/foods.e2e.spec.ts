@@ -241,6 +241,13 @@ describe("foods", () => {
         .send({ ...save, name: "x" })
         .expect(400);
       await stranger.agent.post(`/api/foods/label/${scan.body.id}/save`).send(save).expect(404);
+      // A future day is refused before the food is created.
+      const tomorrow = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
+      await owner.agent
+        .post(`/api/foods/label/${scan.body.id}/save`)
+        .send({ ...save, date: tomorrow })
+        .expect(400, { error: "You can't log a meal for a future day" });
+      expect(await t.prisma.food.count({ where: { name: save.name } })).toBe(0);
       const saved = await owner.agent
         .post(`/api/foods/label/${scan.body.id}/save`)
         .send(save)

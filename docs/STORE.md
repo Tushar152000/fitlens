@@ -109,7 +109,16 @@ Keep this table aligned with `/privacy`. Nothing is used for tracking or adverti
 | Photos (meals, labels; only ones the user takes or picks)                | Yes       | Yes            | App functionality                     |
 | Other user content (typed meals, coach messages)                         | Yes       | Yes            | App functionality                     |
 | Location, contacts, microphone, ads id                                   | No        | –              | –                                     |
-| Analytics / crash SDKs                                                   | None      | –              | –                                     |
+| Product interaction (screens viewed, coarse events), device/app info     | Yes*      | Yes (FITR8 id) | Analytics                             |
+| Crash SDKs                                                               | None      | –              | –                                     |
+
+\* Only in builds with Firebase configured (`docs/ANALYTICS.md`): Firebase Analytics (Google), no
+advertising ID (iOS `withoutAdIdSupport`, Android `AD_ID` permission blocked), no health values in
+events. Apple: **Usage Data → Product Interaction** and **Diagnostics/Other: Device ID = No**,
+purpose **Analytics**, linked to the user, **not** used for tracking (no ATT prompt needed). Play
+Data safety: **App activity → App interactions** and **Device or other IDs** (Firebase app
+instance id), purpose Analytics, collected, not shared for advertising. Without Firebase configured
+the row is "No".
 
 - Play Data safety: data is **encrypted in transit**; users can **request deletion** (in-app);
   service providers process data to run the service. Confirm the final provider list and the

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { Button, FieldError, Screen, Text } from "@/components/ui";
 import { api } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { useAuth } from "@/lib/auth";
 import { openLegal } from "@/lib/legal";
 import { buyPlan, proPlans, purchasesAvailable, restorePurchases, type ProPlan } from "@/lib/purchases";
@@ -32,6 +33,8 @@ export default function ProScreen() {
   const [busy, setBusy] = useState<"buy" | "restore" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  /** The store charged but our server couldn't confirm yet: never show an error that invites a second purchase. */
+  const [syncPending, setSyncPending] = useState(false);
 
   const plan = plans.data?.find((p) => p.period === picked) ?? plans.data?.[0];
   const monthly = plans.data?.find((p) => p.period === "month");
@@ -54,8 +57,9 @@ export default function ProScreen() {
     setError(null);
     try {
       if (await buyPlan(plan)) {
-        await afterStore();
+        track("pro_purchase", { period: plan.period });
         setDone(true);
+        await afterStore().catch(() => setSyncPending(true));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
@@ -91,7 +95,14 @@ export default function ProScreen() {
       gutter={24}
       footer={
         done || isPro ? (
-          <Button onPress={() => router.back()}>Done</Button>
+          <>
+            {syncPending && (
+              <Text size={13} color={colors.ink2} center>
+                Payment received. Pro will switch on in a moment; if it doesn&apos;t, use Restore purchases.
+              </Text>
+            )}
+            <Button onPress={() => router.back()}>Done</Button>
+          </>
         ) : (
           <>
             {error && <FieldError>{error}</FieldError>}

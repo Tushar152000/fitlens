@@ -1,7 +1,6 @@
 import { router } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/components/ui";
-import type { MealType } from "@/lib/format";
 import { colors, shadows } from "@/lib/theme";
 
 const MODES = [
@@ -15,11 +14,12 @@ export type LogMode = (typeof MODES)[number]["key"];
 /** Design 7: bottom pill tabs to switch how a meal is logged. The current mode is the white pill. */
 export function ModeTabs({
   current,
-  mealType,
+  params,
   tone = "dark",
 }: {
   current: LogMode;
-  mealType: MealType;
+  /** The meal and day picked so far, carried to the next mode. */
+  params: { meal?: string; date?: string };
   tone?: "dark" | "light";
 }) {
   const dark = tone === "dark";
@@ -35,7 +35,7 @@ export function ModeTabs({
             key={m.key}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            onPress={() => !active && router.replace({ pathname: m.pathname, params: { meal: mealType } })}
+            onPress={() => !active && router.replace({ pathname: m.pathname, params })}
             style={[
               styles.tab,
               active && { backgroundColor: dark ? colors.white : colors.surface },

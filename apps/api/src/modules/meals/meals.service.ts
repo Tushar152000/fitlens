@@ -60,7 +60,7 @@ export class MealsService {
     }
     // Photos use a daily scan; typed meals are free (design 9c). Checked alongside the date lookup.
     const [date] = await Promise.all([
-      input.date ? parseDateOnly(input.date) : this.users.today(userId),
+      this.users.mealDate(userId, input.date),
       input.source === "PHOTO" ? this.quota.assertCanScanPhoto(userId) : null,
       input.source === "TEXT" ? this.quota.assertWithinTextCap(userId) : null,
     ]);
@@ -205,7 +205,7 @@ export class MealsService {
   }
 
   /** Log known foods as one confirmed meal (e.g. the pre-workout snack). No AI, no scan used. */
-  async logItems(userId: string, { mealType, items }: LogItemsInput) {
+  async logItems(userId: string, { mealType, items, date }: LogItemsInput) {
     const foods = await this.prisma.food.findMany({
       where: { id: { in: items.map((i) => i.foodId) } },
     });
@@ -216,12 +216,18 @@ export class MealsService {
         this.items.buildItem({ ...i, name: byId.get(i.foodId)!.name }, { trustGrams: true }),
       ),
     );
-    const log = await this.createConfirmed(userId, { mealType, source: "TEXT", items: built });
+    const log = await this.createConfirmed(userId, {
+      mealType,
+      date,
+      source: "TEXT",
+      items: built,
+    });
     return { id: log.id };
   }
 
   /** Log one known food straight to a meal (barcode product "Add to snack"). No AI, no scan used. */
   async quickAdd(userId: string, input: QuickAddInput) {
+    const day = await this.users.mealDate(userId, input.date); // 400 before any lookup
     const food = await this.prisma.food.findUnique({ where: { id: input.foodId } });
     // Unreviewed label scans are visible to their submitter only.
     if (
@@ -242,24 +248,30 @@ export class MealsService {
     );
     const log = await this.createConfirmed(userId, {
       mealType: input.mealType,
+      date: day,
       source: "TEXT",
       items: [item],
     });
     return { id: log.id };
   }
 
-  /** One-tap relog of a usual: copies a confirmed meal into today. No AI call, no scan used. */
-  async relog(userId: string, mealId: string, mealType: MealTypeValue) {
-    const log = await this.usuals.relogMeal(userId, mealId, mealType);
+  /** One-tap relog of a usual: copies a confirmed meal into today (or `date`). No AI call, no scan used. */
+  async relog(userId: string, mealId: string, mealType: MealTypeValue, date?: string) {
+    const day = await this.users.mealDate(userId, date);
+    const log = await this.usuals.relogMeal(userId, mealId, mealType, day);
     if (!log) throw notFound("Meal");
     return { id: log.id };
   }
 
-  /** A confirmed meal for today from already-priced items (quick add, snack, label "Save and add"). */
+  /**
+   * A confirmed meal from already-priced items (quick add, snack, label "Save and add"), on today or
+   * on `date` (a YYYY-MM-DD string is checked against the backfill window; a Date is already checked).
+   */
   async createConfirmed(
     userId: string,
     input: {
       mealType: MealTypeValue;
+      date?: string | Date;
       source: "TEXT" | "PHOTO";
       photoKey?: string;
       items: BuiltItem[];
@@ -269,7 +281,8 @@ export class MealsService {
     return this.prisma.mealLog.create({
       data: {
         userId,
-        date: await this.users.today(userId),
+        date:
+          input.date instanceof Date ? input.date : await this.users.mealDate(userId, input.date),
         mealType: input.mealType,
         source: input.source,
         photoKey: input.photoKey,

@@ -9,17 +9,19 @@ import { Linking, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { BackHeader } from "@/components/back-header";
 import { Button, Card, FieldError, Screen, Segmented, Stepper, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
-import { formatInt, formatQty, MEAL_LABEL, type MealType } from "@/lib/format";
-import { mealFromParam } from "@/lib/meal-param";
+import { track } from "@/lib/analytics";
+import { MealWhen } from "@/components/log/meal-when";
+import { formatInt, formatQty, MEAL_LABEL } from "@/lib/format";
+import { choiceParams, dayFromParam, mealFromParam, useMealChoice } from "@/lib/meal-param";
 import { refreshDay } from "@/lib/query";
+import { showDay } from "@/lib/view-day";
 import { colors, fonts, radius } from "@/lib/theme";
 
 type Reason = "unknown" | "invalid" | "unreachable";
 
 /** Screens 7d (found) and 7e (not found) for one barcode. Barcode lookups never use a photo scan. */
 export default function ProductRoute() {
-  const params = useLocalSearchParams<{ code: string; meal?: string }>();
-  const mealType = mealFromParam(params.meal);
+  const params = useLocalSearchParams<{ code: string; meal?: string; date?: string }>();
   const product = useQuery({
     queryKey: ["barcode", params.code],
     queryFn: () => api<BarcodeProductDto>(`/api/foods/barcode/${params.code}`),
@@ -38,13 +40,21 @@ export default function ProductRoute() {
     const err = product.error;
     const status = err instanceof ApiError ? err.status : 0;
     const reason: Reason = status === 400 ? "invalid" : status === 404 || !err ? "unknown" : "unreachable";
-    return <NotFound code={params.code} mealType={mealType} reason={reason} />;
+    return (
+      <NotFound
+        code={params.code}
+        choice={choiceParams(mealFromParam(params.meal), dayFromParam(params.date))}
+        reason={reason}
+      />
+    );
   }
-  return <ProductScreen food={product.data.food} code={product.data.code} mealType={mealType} />;
+  return <ProductScreen food={product.data.food} code={product.data.code} />;
 }
 
 /** Design 7d: a known product. Amount in servings (0.5 steps) or grams (5 g steps). */
-function ProductScreen({ food, code, mealType }: { food: FoodDto; code: string; mealType: MealType }) {
+function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
+  const { mealType, setMealType, date, setDate, dateBody } = useMealChoice();
+  const [missing, setMissing] = useState(false);
   const hasServing = Boolean(food.servingSizeG);
   const measure = food.isLiquid ? "ml" : "g";
   const [mode, setMode] = useState<"SERVINGS" | "GRAMS">(hasServing ? "SERVINGS" : "GRAMS");
@@ -60,16 +70,19 @@ function ProductScreen({ food, code, mealType }: { food: FoodDto; code: string; 
   const displayName = food.name.replace(/ · \d+$/, "").replace(food.brand ? ` (${food.brand})` : /$^/, "");
 
   async function add() {
+    if (!mealType) return setMissing(true);
     setBusy(true);
     setError(null);
     try {
       await api("/api/meals/quick-add", {
         json:
           mode === "SERVINGS" && food.servingSizeG
-            ? { foodId: food.id, mealType, quantity: servings, unit: "serving", grams: amountG }
-            : { foodId: food.id, mealType, quantity: grams, unit: "g", grams },
+            ? { foodId: food.id, mealType, quantity: servings, unit: "serving", grams: amountG, ...dateBody }
+            : { foodId: food.id, mealType, quantity: grams, unit: "g", grams, ...dateBody },
       });
+      track("meal_logged", { method: "barcode" });
       refreshDay();
+      showDay(date);
       router.dismissTo("/today");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't add it. Try again.");
@@ -109,7 +122,7 @@ function ProductScreen({ food, code, mealType }: { food: FoodDto; code: string; 
           </View>
           {error && <FieldError>{error}</FieldError>}
           <Button onPress={add} loading={busy}>
-            {`Add to ${MEAL_LABEL[mealType].toLowerCase()}`}
+            {mealType ? `Add to ${MEAL_LABEL[mealType].toLowerCase()}` : "Add to a meal"}
           </Button>
         </>
       }
@@ -182,6 +195,17 @@ function ProductScreen({ food, code, mealType }: { food: FoodDto; code: string; 
           </View>
         </Card>
 
+        <MealWhen
+          mealType={mealType}
+          onMealType={(m) => {
+            setMealType(m);
+            setMissing(false);
+          }}
+          date={date}
+          onDate={setDate}
+          missing={missing}
+        />
+
         <View style={styles.table} accessibilityLabel={`Nutrition per 100 ${measure} and for your amount`}>
           <View style={styles.tr}>
             <Text weight={600} size={12} color={colors.ink3} style={{ flex: 1.4 }}>
@@ -246,7 +270,16 @@ const TIPS = [
 ];
 
 /** Design 7e: unknown (or invalid) barcode → photograph the label, or type the meal. */
-function NotFound({ code, mealType, reason }: { code: string; mealType: MealType; reason: Reason }) {
+function NotFound({
+  code,
+  choice,
+  reason,
+}: {
+  code: string;
+  /** Meal and day picked so far, carried to the label or typing screen. */
+  choice: { meal?: string; date?: string };
+  reason: Reason;
+}) {
   const [name, setName] = useState("");
   const title =
     reason === "invalid"
@@ -264,16 +297,13 @@ function NotFound({ code, mealType, reason }: { code: string; mealType: MealType
             onPress={() =>
               router.push({
                 pathname: "/log/label",
-                params: { meal: mealType, barcode: code, ...(name.trim() ? { name: name.trim() } : {}) },
+                params: { ...choice, barcode: code, ...(name.trim() ? { name: name.trim() } : {}) },
               })
             }
           >
             Photograph the label
           </Button>
-          <Button
-            variant="secondary"
-            onPress={() => router.replace({ pathname: "/log/type", params: { meal: mealType } })}
-          >
+          <Button variant="secondary" onPress={() => router.replace({ pathname: "/log/type", params: choice })}>
             Type it instead
           </Button>
         </>

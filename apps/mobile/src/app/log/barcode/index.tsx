@@ -8,13 +8,14 @@ import { ModeTabs } from "@/components/log/mode-tabs";
 import { Sheet } from "@/components/sheet";
 import { Button, FieldError, Text } from "@/components/ui";
 import { normalizeBarcode } from "@/lib/barcode";
-import { mealFromParam } from "@/lib/meal-param";
+import { choiceParams, dayFromParam, mealFromParam } from "@/lib/meal-param";
 import { colors, fonts, radius } from "@/lib/theme";
 
 /** Screen 7c: scan a packaged food's barcode (EAN-13/8, UPC-A/E). One code = one lookup. */
 export default function BarcodeScreen() {
-  const params = useLocalSearchParams<{ meal?: string }>();
-  const mealType = mealFromParam(params.meal);
+  // The meal and day are picked on the product screen; just carry what's chosen so far.
+  const route = useLocalSearchParams<{ meal?: string; date?: string }>();
+  const params = choiceParams(mealFromParam(route.meal), dayFromParam(route.date));
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [code, setCode] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export default function BarcodeScreen() {
   const [typedError, setTypedError] = useState<string | null>(null);
   const locked = useRef(false);
 
-  const open = (c: string) => router.push({ pathname: "/log/barcode/[code]", params: { code: c, meal: mealType } });
+  const open = (c: string) => router.push({ pathname: "/log/barcode/[code]", params: { code: c, ...params } });
 
   function onScanned(result: BarcodeScanningResult) {
     if (locked.current) return;
@@ -136,11 +137,7 @@ export default function BarcodeScreen() {
             <Button variant="ghostDark" icon={Hash} onPress={() => setTypeOpen(true)}>
               Type the number
             </Button>
-            <Button
-              variant="ghostDark"
-              icon={ScanText}
-              onPress={() => router.push({ pathname: "/log/label", params: { meal: mealType } })}
-            >
+            <Button variant="ghostDark" icon={ScanText} onPress={() => router.push({ pathname: "/log/label", params })}>
               Scan the label
             </Button>
           </>
@@ -148,7 +145,7 @@ export default function BarcodeScreen() {
       </View>
 
       <View style={{ paddingTop: 20, paddingBottom: Math.max(20, insets.bottom) }}>
-        <ModeTabs current="barcode" mealType={mealType} />
+        <ModeTabs current="barcode" params={params} />
       </View>
 
       <Sheet open={typeOpen} onClose={() => setTypeOpen(false)} title="Type the barcode number">

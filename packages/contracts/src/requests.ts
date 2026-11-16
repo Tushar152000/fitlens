@@ -120,6 +120,7 @@ export const ParseItemsSchema = z.object({
 export const RelogSchema = z.object({
   mealId: z.string().min(1),
   mealType: MealTypeSchema,
+  date: ymd.optional(),
 });
 
 export const GoalOptionSchema = z.object({
@@ -148,6 +149,7 @@ export const QuickAddSchema = z.object({
   quantity: z.number().positive().max(100),
   unit: z.string().min(1).max(20),
   grams: z.number().positive().max(5000),
+  date: ymd.optional(),
 });
 
 export const LabelScanSchema = z.object({
@@ -171,6 +173,7 @@ export const LabelSaveSchema = z.object({
   grams: z.number().positive().max(5000),
   mealType: MealTypeSchema,
   isLiquid: z.boolean().default(false),
+  date: ymd.optional(),
 });
 
 export const EnergySchema = z.enum(["great", "ok", "tired"]);
@@ -192,6 +195,7 @@ export const WorkoutLogSchema = z.object({
 
 export const LogItemsSchema = z.object({
   mealType: MealTypeSchema,
+  date: ymd.optional(),
   items: z
     .array(
       z.object({

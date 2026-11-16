@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { JobQueue } from "../src/infra/queue/job-queue.service.js";
 import { StorageService } from "../src/infra/storage/storage.service.js";
+import { localDate } from "@fitr8/domain/dates";
 import { createTestApp, onboard, type TestApp } from "./support/app.js";
 
 type Agent = Awaited<ReturnType<TestApp["signIn"]>>["agent"];
@@ -380,5 +381,86 @@ describe("meals", () => {
       mealType: "SNACK",
       items: [{ name: "idli", quantity: 2 }],
     });
+  });
+  it("logs a forgotten meal on a recent day, never a future or too-old one", async () => {
+    const owner = await user();
+    // The onboarded user's timezone is Asia/Kolkata.
+    const day = (offset: number) => {
+      const d = localDate("Asia/Kolkata");
+      d.setUTCDate(d.getUTCDate() + offset);
+      return d.toISOString().slice(0, 10);
+    };
+    const banana = await t.prisma.food.findUniqueOrThrow({ where: { name: "banana" } });
+    const quick = { mealType: "SNACK", quantity: 1, unit: "piece", grams: 118, foodId: banana.id };
+
+    // Bad format → 400 from validation; future / older than 7 days → 400 with a clear message.
+    await owner.agent
+      .post("/api/meals")
+      .send({ source: "MANUAL", mealType: "LUNCH", date: "yesterday" })
+      .expect(400);
+    await owner.agent
+      .post("/api/meals")
+      .send({ source: "MANUAL", mealType: "LUNCH", date: day(1) })
+      .expect(400, { error: "You can't log a meal for a future day" });
+    await owner.agent
+      .post("/api/meals/quick-add")
+      .send({ ...quick, date: day(-8) })
+      .expect(400, { error: "You can log meals for today or up to 7 days back" });
+    await owner.agent
+      .post("/api/meals/log-items")
+      .send({
+        mealType: "SNACK",
+        date: day(1),
+        items: [{ foodId: banana.id, quantity: 1, unit: "piece", grams: 118 }],
+      })
+      .expect(400);
+
+    // Yesterday works for every way of logging, and lands on yesterday's dashboard, not today's.
+    const manual = await owner.agent
+      .post("/api/meals")
+      .send({ source: "MANUAL", mealType: "DINNER", date: day(-1) })
+      .expect(201);
+    const typed = await owner.agent
+      .post("/api/meals")
+      .send({
+        source: "TEXT",
+        mealType: "LUNCH",
+        text: "2 roti, 1 katori dal tadka",
+        date: day(-7),
+      })
+      .expect(201);
+    const added = await owner.agent
+      .post("/api/meals/quick-add")
+      .send({ ...quick, date: day(-1) })
+      .expect(201);
+    const items = await owner.agent
+      .post("/api/meals/log-items")
+      .send({
+        mealType: "BREAKFAST",
+        date: day(-1),
+        items: [{ foodId: banana.id, quantity: 1, unit: "piece", grams: 118 }],
+      })
+      .expect(201);
+    const relog = await owner.agent
+      .post("/api/meals/relog")
+      .send({ mealId: added.body.id, mealType: "SNACK", date: day(-2) })
+      .expect(201);
+    await owner.agent
+      .post("/api/meals/relog")
+      .send({ mealId: added.body.id, mealType: "SNACK", date: day(1) })
+      .expect(400);
+
+    const dateOf = async (id: string) =>
+      (await t.prisma.mealLog.findUniqueOrThrow({ where: { id } })).date.toISOString().slice(0, 10);
+    expect(await dateOf(manual.body.id)).toBe(day(-1));
+    expect(await dateOf(typed.body.id)).toBe(day(-7));
+    expect(await dateOf(added.body.id)).toBe(day(-1));
+    expect(await dateOf(items.body.id)).toBe(day(-1));
+    expect(await dateOf(relog.body.id)).toBe(day(-2));
+
+    const yesterday = await owner.agent.get(`/api/dashboard?date=${day(-1)}`).expect(200);
+    expect(yesterday.body.meals).toHaveLength(3);
+    const todayDash = await owner.agent.get("/api/dashboard").expect(200);
+    expect(todayDash.body.meals).toHaveLength(0);
   });
 });

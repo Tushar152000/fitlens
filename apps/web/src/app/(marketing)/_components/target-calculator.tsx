@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
+import { track } from "@/lib/client/analytics";
 import { stashCalculator } from "@/lib/onboarding/pending";
 import { formatInt } from "@fitr8/domain/format";
 import {
@@ -214,6 +215,7 @@ export function TargetCalculator() {
             <Link
               href="/welcome"
               onClick={() => {
+                track("calculator_used", {});
                 // Onboarding prefills from these (sessionStorage, this tab only).
                 if (!error)
                   stashCalculator({

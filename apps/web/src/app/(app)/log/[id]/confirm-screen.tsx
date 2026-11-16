@@ -271,9 +271,9 @@ export function ConfirmScreen({ initial }: { initial: MealDto }) {
                   </p>
                 </div>
                 <p className="flex gap-3 text-[13px] font-semibold tabular-nums">
-                  <span className="text-protein">P {formatInt(sum.proteinG)} g</span>
-                  <span className="text-carbs-text">C {formatInt(sum.carbsG)} g</span>
-                  <span className="text-fat">F {formatInt(sum.fatG)} g</span>
+                  <span className="text-protein">{formatInt(sum.proteinG)} g protein</span>
+                  <span className="text-carbs-text">{formatInt(sum.carbsG)} g carbs</span>
+                  <span className="text-fat">{formatInt(sum.fatG)} g fat</span>
                 </p>
               </div>
               {error && (

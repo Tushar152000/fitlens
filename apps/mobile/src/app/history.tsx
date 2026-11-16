@@ -50,6 +50,10 @@ export default function HistoryScreen() {
         <HistorySkeleton />
       ) : history.isError ? (
         <QueryError error={history.error} onRetry={() => history.refetch()} />
+      ) : !h || !selected ? (
+        <Card>
+          <Text color={colors.ink3}>Nothing logged yet.</Text>
+        </Card>
       ) : (
         <>
           <View style={{ flexDirection: "row", gap: 8 }}>
@@ -58,8 +62,8 @@ export default function HistoryScreen() {
                 Average on full days
               </Text>
               <Text variant="h2" size={22} tabular>
-                {h!.avgKcalFullDays == null ? "—" : formatInt(h!.avgKcalFullDays)}
-                {h!.avgKcalFullDays != null && (
+                {h.avgKcalFullDays == null ? "—" : formatInt(h.avgKcalFullDays)}
+                {h.avgKcalFullDays != null && (
                   <Text weight={600} size={13} color={colors.ink3}>
                     {" "}
                     kcal
@@ -72,7 +76,7 @@ export default function HistoryScreen() {
                 Days logged
               </Text>
               <Text variant="h2" size={22} tabular>
-                {h!.daysLogged}
+                {h.daysLogged}
                 <Text weight={600} size={13} color={colors.ink3}>
                   {" "}
                   of {range}
@@ -81,22 +85,22 @@ export default function HistoryScreen() {
             </View>
           </View>
 
-          <DailyBars days={h!.days} range={range} selected={selected!.date} onSelect={setPicked} />
+          <DailyBars days={h.days} range={range} selected={selected.date} onSelect={setPicked} />
 
           <View style={{ gap: 10 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" }}>
               <Text variant="h2">
-                {selected!.isToday
+                {selected.isToday
                   ? "Today"
-                  : dayLabel(selected!.date, { weekday: "long", day: "numeric", month: "short" })}
+                  : dayLabel(selected.date, { weekday: "long", day: "numeric", month: "short" })}
               </Text>
               <Text variant="meta" tabular>
-                {formatInt(selected!.kcal)}
-                {selected!.target ? ` / ${formatInt(selected!.target)}` : ""} kcal
+                {formatInt(selected.kcal)}
+                {selected.target ? ` / ${formatInt(selected.target)}` : ""} kcal
               </Text>
             </View>
-            {selected!.meals.length ? (
-              selected!.meals.map((m) => (
+            {selected.meals.length ? (
+              selected.meals.map((m) => (
                 <MealRow
                   key={m.id}
                   onPress={() => router.push(`/log/${m.id}`)}

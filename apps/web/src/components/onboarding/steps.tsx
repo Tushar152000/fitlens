@@ -299,7 +299,7 @@ export function AboutStep({
             {
               value: "ATHLETE",
               label: "Athlete",
-              description: "Twice-a-day training or heavy labour",
+              description: "Twice-a-day training or a very physical job",
               icon: <Trophy className={ic} />,
             },
           ]}

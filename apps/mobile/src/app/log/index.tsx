@@ -1,16 +1,16 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
-import { router, useLocalSearchParams } from "expo-router";
+import { router } from "expo-router";
 import { Camera, Images, Keyboard, X } from "lucide-react-native";
 import { useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AiLimitSheet, type ScanUsage } from "@/components/log/ai-limit-sheet";
 import { ModeTabs } from "@/components/log/mode-tabs";
-import { Button, Chip, Text } from "@/components/ui";
+import { MealWhen } from "@/components/log/meal-when";
+import { Button, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
-import { MEAL_LABEL, MEAL_TYPES, type MealType } from "@/lib/format";
-import { mealFromParam } from "@/lib/meal-param";
+import { useMealChoice } from "@/lib/meal-param";
 import { compressPhoto, uploadPhoto } from "@/lib/photo";
 import { colors, radius } from "@/lib/theme";
 
@@ -18,12 +18,12 @@ type Phase = "idle" | "uploading" | "analysing";
 
 /** Screen 7: camera → compress → signed upload → create meal → confirm. */
 export default function CameraScreen() {
-  const params = useLocalSearchParams<{ meal?: string }>();
+  const { mealType, setMealType, date, setDate, dateBody, params } = useMealChoice();
   const insets = useSafeAreaInsets();
   const camera = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [ready, setReady] = useState(false);
-  const [mealType, setMealType] = useState<MealType>(() => mealFromParam(params.meal));
+  const [missing, setMissing] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [limit, setLimit] = useState<ScanUsage | null>(null);
@@ -40,13 +40,23 @@ export default function CameraScreen() {
     setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
   }
 
+  /** The meal is always the user's choice; nothing is sent until it is picked. */
+  function needMeal(): boolean {
+    if (mealType) return false;
+    setMissing(true);
+    return true;
+  }
+
   async function submit(photo: { uri: string; width: number; height: number }) {
+    if (needMeal()) return;
     setError(null);
     setPhase("uploading");
     try {
       const key = await uploadPhoto(await compressPhoto(photo));
       setPhase("analysing");
-      const log = await api<{ id: string }>("/api/meals", { json: { source: "PHOTO", mealType, photoKey: key } });
+      const log = await api<{ id: string }>("/api/meals", {
+        json: { source: "PHOTO", mealType, photoKey: key, ...dateBody },
+      });
       router.replace(`/log/${log.id}`);
     } catch (e) {
       fail(e);
@@ -54,7 +64,7 @@ export default function CameraScreen() {
   }
 
   async function shoot() {
-    if (!camera.current || !ready) return;
+    if (needMeal() || !camera.current || !ready) return;
     try {
       const photo = await camera.current.takePictureAsync({ quality: 0.9 });
       if (photo) await submit(photo);
@@ -64,6 +74,7 @@ export default function CameraScreen() {
   }
 
   async function pickFromGallery() {
+    if (needMeal()) return;
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
     const asset = result.canceled ? null : result.assets[0];
     if (asset) await submit(asset);
@@ -81,13 +92,24 @@ export default function CameraScreen() {
         >
           <X size={26} color={colors.white} />
         </Pressable>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-          {MEAL_TYPES.map((t) => (
-            <Chip key={t} tone="dark" selected={t === mealType} onPress={() => setMealType(t)}>
-              {MEAL_LABEL[t]}
-            </Chip>
-          ))}
-        </ScrollView>
+        <Text weight={600} color={colors.white} style={{ flex: 1 }}>
+          Snap your meal
+        </Text>
+      </View>
+
+      <View style={{ paddingTop: 8, paddingBottom: 12 }}>
+        <MealWhen
+          tone="dark"
+          gutter={20}
+          mealType={mealType}
+          onMealType={(m) => {
+            setMealType(m);
+            setMissing(false);
+          }}
+          date={date}
+          onDate={setDate}
+          missing={missing}
+        />
       </View>
 
       <View style={styles.viewfinder}>
@@ -144,18 +166,14 @@ export default function CameraScreen() {
         >
           {({ pressed }) => <View style={[styles.shutterInner, pressed && { transform: [{ scale: 0.95 }] }]} />}
         </Pressable>
-        <SideButton
-          label="Type"
-          icon={Keyboard}
-          onPress={() => router.replace({ pathname: "/log/type", params: { meal: mealType } })}
-        />
+        <SideButton label="Type" icon={Keyboard} onPress={() => router.replace({ pathname: "/log/type", params })} />
       </View>
 
       <View style={{ paddingTop: 20, paddingBottom: Math.max(20, insets.bottom) }}>
-        <ModeTabs current="photo" mealType={mealType} />
+        <ModeTabs current="photo" params={params} />
       </View>
 
-      <AiLimitSheet open={limitOpen} onClose={() => setLimitOpen(false)} mealType={mealType} usage={limit} />
+      <AiLimitSheet open={limitOpen} onClose={() => setLimitOpen(false)} params={params} usage={limit} />
     </View>
   );
 }

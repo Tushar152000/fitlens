@@ -10,6 +10,7 @@ import { MealItemsService } from "../meals/meal-items.service.js";
 import { MealsService } from "../meals/meals.service.js";
 import { BillingService } from "../billing/billing.service.js";
 import { ScanQuotaService } from "../meals/scan-quota.service.js";
+import { UsersService } from "../users/users.service.js";
 
 /** Nutrition-label photos → a LabelScan the user checks (7g) → their own unreviewed Food, logged to a meal. */
 @Injectable()
@@ -21,6 +22,7 @@ export class LabelsService {
     private readonly billing: BillingService,
     private readonly items: MealItemsService,
     private readonly meals: MealsService,
+    private readonly users: UsersService,
     @Inject(FOOD_EXTRACTOR) private readonly extractor: FoodExtractor,
   ) {}
 
@@ -107,6 +109,8 @@ export class LabelsService {
    */
   async save(userId: string, scanId: string, input: LabelSaveInput) {
     const scan = await this.ownedScan(userId, scanId);
+    // Check the day before creating the food, so a bad date leaves nothing behind.
+    const day = await this.users.mealDate(userId, input.date);
     const extracted = scan.extracted as unknown as LabelRead;
 
     // Barcode is unique: skip linking if someone else's unreviewed scan already holds it.
@@ -150,6 +154,7 @@ export class LabelsService {
     );
     const log = await this.meals.createConfirmed(userId, {
       mealType: input.mealType,
+      date: day,
       source: "PHOTO",
       photoKey: scan.photoKey,
       items: [item],

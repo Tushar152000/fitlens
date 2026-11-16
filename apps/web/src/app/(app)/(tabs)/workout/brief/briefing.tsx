@@ -120,8 +120,8 @@ export function Briefing({ data, energy }: { data: TodayWorkoutDto; energy: Ener
               </p>
               <p className="font-semibold">{data.snack.name}</p>
               <p className="text-[13px] text-ink-3 tabular-nums">
-                P {data.snack.proteinG} g · C {data.snack.carbsG} g · {formatInt(data.snack.kcal)}{" "}
-                kcal
+                {data.snack.proteinG} g protein · {data.snack.carbsG} g carbs ·{" "}
+                {formatInt(data.snack.kcal)} kcal
               </p>
             </div>
           </div>
