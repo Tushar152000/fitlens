@@ -1,6 +1,6 @@
 name: Deploy
 
-# After CI passes on main: images → database migrations → API (Cloud Run) → web (Vercel) → app OTA.
+# After CI passes on main: images → database migrations → API (Cloud Run) → web (Vercel) and app OTA.
 # Each step starts only when the one before succeeded, so clients never call an API that isn't live.
 # Only services whose code changed since the last fully successful deploy are deployed (`changes`);
 # run it by hand with "all" to deploy everything.
@@ -294,8 +294,10 @@ jobs:
   # Over-the-air JS update for installed app builds, after the API they call is live (or unchanged).
   # Only when app code changed since the last successful deploy (`changes`). Native changes need a new store build instead
   # (mobile-release.yml, after bumping `version` in apps/mobile/app.json).
+  # Depends on the API only: the app never calls the web, so a web (Vercel) failure must not hold back
+  # phone updates.
   app-update:
-    needs: [changes, api, web]
+    needs: [changes, api]
     if: ${{ !cancelled() && needs.changes.outputs.app == 'true' && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20

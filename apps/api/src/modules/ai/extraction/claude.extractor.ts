@@ -1,10 +1,17 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
-import { LabelReadSchema, MealAnalysisSchema } from "@fitr8/contracts";
+import { LabelReadSchema, MealAnalysisSchema, ReminderDraftSchema } from "@fitr8/contracts";
 import type { ZodType } from "zod";
 import { FALLBACK_BETA } from "../anthropic.client.js";
-import { LABEL_SYSTEM_PROMPT, SYSTEM_PROMPT, photoUserPrompt, textUserPrompt } from "./prompts.js";
-import type { AiResult, FoodExtractor, ImageInput, MealContext } from "./types.js";
+import {
+  LABEL_SYSTEM_PROMPT,
+  REMINDER_SYSTEM_PROMPT,
+  SYSTEM_PROMPT,
+  photoUserPrompt,
+  reminderUserPrompt,
+  textUserPrompt,
+} from "./prompts.js";
+import type { AiResult, FoodExtractor, ImageInput, MealContext, ReminderRequest } from "./types.js";
 
 type ImageMediaType = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
 
@@ -37,6 +44,12 @@ export class ClaudeExtractor implements FoodExtractor {
     return this.extract(LabelReadSchema, LABEL_SYSTEM_PROMPT, [
       imageBlock(image),
       { type: "text", text: "Read this nutrition label." },
+    ]);
+  }
+
+  parseReminder({ text, localNow }: ReminderRequest) {
+    return this.extract(ReminderDraftSchema, REMINDER_SYSTEM_PROMPT, [
+      { type: "text", text: reminderUserPrompt(text, localNow) },
     ]);
   }
 

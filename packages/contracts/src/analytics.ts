@@ -6,7 +6,7 @@
  * goal targets), names, emails, photos or free text. The user id sent to Analytics is FITR8's
  * internal id, never an email. Setup and data notes: docs/ANALYTICS.md.
  */
-export type MealLogMethod = "photo" | "type" | "barcode" | "label" | "usual";
+export type MealLogMethod = "photo" | "type" | "barcode" | "label" | "usual" | "saved";
 
 export interface AnalyticsEvents {
   /** Signed in (any provider). New accounts also send `onboarding_complete` once. */
@@ -15,6 +15,10 @@ export interface AnalyticsEvents {
   onboarding_complete: { platform: "web" | "app" };
   /** A meal was saved to the day. */
   meal_logged: { method: MealLogMethod };
+  /** A saved meal was created (builder or "Save as a meal"). */
+  saved_meal_created: { from: "builder" | "meal" };
+  /** A reminder was saved from the app. */
+  reminder_created: { from: "words" | "edited" };
   /** A message was sent to the AI coach. */
   coach_message: Record<string, never>;
   /** FITR8 Pro bought in the app store (trial starts count). */

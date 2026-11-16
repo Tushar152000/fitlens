@@ -19,10 +19,12 @@ import {
   createWriteStream,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
-import { networkInterfaces } from "node:os";
+import { homedir, networkInterfaces } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -86,12 +88,42 @@ const fail = (msg) => {
 
 // ── Checks ────────────────────────────────────────────────────────────────
 
+/** The newest installed nvm Node of a major version, e.g. ~/.nvm/versions/node/v22.22.0/bin. */
+function nvmNodeBin(major) {
+  const dir = join(process.env.NVM_DIR || join(homedir(), ".nvm"), "versions/node");
+  if (!existsSync(dir)) return null;
+  const newest = readdirSync(dir)
+    .filter((v) => v.startsWith(`v${major}.`))
+    .sort((a, b) => {
+      const [x, y] = [a, b].map((v) => v.slice(1).split(".").map(Number));
+      return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+    })
+    .pop();
+  const bin = newest && join(dir, newest, "bin");
+  return bin && existsSync(join(bin, "node")) ? bin : null;
+}
+
+/**
+ * The repo needs the Node major in .nvmrc. A shell on another version (e.g. a fresh terminal that
+ * defaults to 23) re-runs this script with nvm's Node of the right major, so `pnpm start:*` just
+ * works; without such an install it stops with how to fix it.
+ */
 function checkNode() {
   const want = readFileSync(join(ROOT, ".nvmrc"), "utf8").trim().replace(/^v/, "").split(".")[0];
   const have = process.versions.node.split(".")[0];
-  if (have !== want) {
-    fail(`Node ${want} is required (you have ${process.versions.node}). Run: nvm use`);
+  if (have === want) return;
+  const bin = nvmNodeBin(want);
+  if (!bin || process.env.FITR8_NODE_SWITCHED) {
+    fail(
+      `Node ${want} is required (you have ${process.versions.node}). Run: nvm install ${want} && nvm use`,
+    );
   }
+  note(`Switching to Node ${want} (${bin}) — this terminal uses ${process.versions.node}`);
+  const res = spawnSync(join(bin, "node"), [process.argv[1], ...process.argv.slice(2)], {
+    stdio: "inherit",
+    env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, FITR8_NODE_SWITCHED: "1" },
+  });
+  process.exit(res.status ?? 1);
 }
 
 function checkDocker() {
@@ -308,30 +340,32 @@ function lanAddress() {
 const MOBILE_ENV_MARKER = "# Where the app reaches the API in development";
 
 /**
- * Points the Expo app at this machine, so a phone on the same Wi-Fi reaches the local stack.
- * Keeps it current when the laptop's IP changes (new network). A file you edited yourself (no
- * marker line, or a non-LAN URL such as a tunnel) is left alone.
+ * Where the Expo app reaches the API in development. One env file: EXPO_PUBLIC_API_URL in the root
+ * .env wins (e.g. a tunnel); otherwise this machine on your Wi-Fi, so a phone or emulator reaches
+ * the local stack, and it follows your IP when you change networks. Passed to Expo as an env var.
  */
-function ensureMobileEnv() {
+function mobileApiUrl({ browser = false } = {}) {
+  const set = readEnv().get("EXPO_PUBLIC_API_URL");
+  if (set) return set;
+  // The browser preview runs on this machine: no Wi-Fi needed.
+  if (browser) return `http://localhost:${apiPort()}`;
   const ip = lanAddress();
-  // The app talks to the API directly (the web has no /api of its own).
-  const url = ip ? `http://${ip}:${apiPort()}` : null;
-  if (!existsSync(MOBILE_ENV)) {
-    if (!url)
-      return note("No LAN address found; set EXPO_PUBLIC_API_URL in apps/mobile/.env yourself");
-    writeFileSync(
-      MOBILE_ENV,
-      `${MOBILE_ENV_MARKER} (this machine on your Wi-Fi). Builds use eas.json.\nEXPO_PUBLIC_API_URL="${url}"\n`,
-    );
-    return step(`Created apps/mobile/.env → ${url}`);
-  }
+  if (ip) return `http://${ip}:${apiPort()}`;
+  note("No Wi-Fi address found; the app will use localhost (web preview and iOS simulator only)");
+  return `http://localhost:${apiPort()}`;
+}
+
+/** The old second env file: remove ours (it was generated), and point out a hand-made one. */
+function retireMobileEnv() {
+  if (!existsSync(MOBILE_ENV)) return;
   const text = readFileSync(MOBILE_ENV, "utf8");
-  const current = parseEnv(text).get("EXPO_PUBLIC_API_URL");
-  const generated =
-    text.includes(MOBILE_ENV_MARKER) && /^http:\/\/\d+\.\d+\.\d+\.\d+:\d+$/.test(current ?? "");
-  if (url && generated && current !== url) {
-    writeFileSync(MOBILE_ENV, setEnv(text, "EXPO_PUBLIC_API_URL", url));
-    step(`Your IP changed: apps/mobile/.env → ${url}`);
+  if (text.includes(MOBILE_ENV_MARKER)) {
+    rmSync(MOBILE_ENV);
+    step("Removed apps/mobile/.env (the root .env is the only env file now)");
+  } else {
+    note(
+      "apps/mobile/.env is no longer used for the API address: set EXPO_PUBLIC_API_URL in the root .env",
+    );
   }
 }
 
@@ -396,7 +430,8 @@ async function startMobile(extraArgs) {
   const portArg = extraArgs.indexOf("--port");
   const port = portArg >= 0 ? Number(extraArgs[portArg + 1]) : await planMetroPort();
   if (!Number.isInteger(port) || port <= 0) fail("--port needs a number");
-  ensureMobileEnv();
+  retireMobileEnv();
+  const apiUrl = mobileApiUrl({ browser: extraArgs.includes("--web") });
   await freePorts([{ port, label: "Metro" }]);
   if (!(await portInUse(apiPort()))) {
     note(
@@ -411,7 +446,7 @@ async function startMobile(extraArgs) {
   );
   if (build.status !== 0) fail("Building @fitr8/contracts failed");
   const args = portArg >= 0 ? extraArgs : ["--port", String(port), ...extraArgs];
-  step(`Starting Expo on :${port}`);
+  step(`Starting Expo on :${port} → API ${apiUrl}`);
   const execPath = process.env.npm_execpath;
   const [cmd, argv] =
     execPath && /\.(c?js|mjs)$/.test(execPath)
@@ -420,7 +455,12 @@ async function startMobile(extraArgs) {
           [execPath, "--filter", "@fitr8/mobile", "exec", "expo", "start", ...args],
         ]
       : [execPath || "pnpm", ["--filter", "@fitr8/mobile", "exec", "expo", "start", ...args]];
-  const child = spawn(cmd, argv, { cwd: ROOT, stdio: "inherit", env: androidEnv() });
+  const child = spawn(cmd, argv, {
+    cwd: ROOT,
+    stdio: "inherit",
+    // Without it the app would talk to production (its default), so it is always set here.
+    env: { ...androidEnv(), EXPO_PUBLIC_API_URL: apiUrl },
+  });
   for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => child.kill(sig));
   child.on("exit", (code, signal) => process.exit(code ?? (signal ? 130 : 0)));
 }
@@ -464,7 +504,7 @@ async function prepare(targets) {
   migrate();
   if (localInfra) seedIfEmpty();
   await planMetroPort();
-  ensureMobileEnv();
+  retireMobileEnv();
   await freePorts(targets);
 }
 
@@ -474,7 +514,7 @@ const SERVER_LOG = join(ROOT, ".dev/servers.log");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Polls until the API answers its liveness probe and the web server accepts connections. */
-async function waitForServers(server, timeoutMs = 180_000) {
+async function waitForServers(server, { web = true, timeoutMs = 180_000 } = {}) {
   const api = `http://127.0.0.1:${apiPort()}/api/health/live`;
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -482,7 +522,7 @@ async function waitForServers(server, timeoutMs = 180_000) {
     const apiUp = await fetch(api, { signal: AbortSignal.timeout(1000) })
       .then((r) => r.ok)
       .catch(() => false);
-    if (apiUp && (await portInUse(WEB_PORT))) return;
+    if (apiUp && (!web || (await portInUse(WEB_PORT)))) return;
     await sleep(1000);
   }
   fail(`API/web didn't come up in ${timeoutMs / 1000}s. See ${SERVER_LOG}`);
@@ -492,9 +532,13 @@ async function waitForServers(server, timeoutMs = 180_000) {
  * One terminal for the whole stack: services → API + web (logs in .dev/servers.log, errors echoed)
  * → emulator → Expo in the foreground on the emulator. Ctrl+C stops the servers and Expo; the
  * emulator window stays open for next time.
+ *
+ * `lite` is for laptops that can't carry an emulator: services → API only → the app in the
+ * browser (Expo web, phone-sized in devtools). Same app code; camera barcode scanning and
+ * reminder notifications only work on a phone.
  */
-async function startAll(extraArgs) {
-  await prepare([PORT_TARGETS.web(), PORT_TARGETS.api()]);
+async function startAll(extraArgs, { lite = false } = {}) {
+  await prepare(lite ? [PORT_TARGETS.api()] : [PORT_TARGETS.web(), PORT_TARGETS.api()]);
 
   mkdirSync(dirname(SERVER_LOG), { recursive: true });
   const log = createWriteStream(SERVER_LOG, { flags: "w" });
@@ -504,7 +548,7 @@ async function startAll(extraArgs) {
     "run",
     "dev",
     "--filter=@fitr8/api",
-    "--filter=@fitr8/web",
+    ...(lite ? [] : ["--filter=@fitr8/web"]),
     "--ui=stream",
   ];
   const [cmd, argv] =
@@ -536,8 +580,13 @@ async function startAll(extraArgs) {
         if (PROBLEM.test(line)) console.log(`${yellow("[server]")} ${line.trim()}`);
     });
   }
-  console.log(dim(`API + web starting (full logs: tail -f .dev/servers.log)…`));
+  console.log(dim(`${lite ? "API" : "API + web"} starting (full logs: tail -f .dev/servers.log)…`));
 
+  if (lite) {
+    await waitForServers(server, { web: false });
+    step(`API http://localhost:${apiPort()}`);
+    return startMobile(["--web", ...extraArgs]);
+  }
   await Promise.all([waitForServers(server), ensureEmulator()]);
   step(`API http://localhost:${apiPort()} · web http://localhost:${WEB_PORT}`);
   await startMobile(["--android", ...extraArgs]);
@@ -574,10 +623,10 @@ async function stopAll() {
 
 async function main() {
   const [command, ...rest] = process.argv.slice(2);
-  const commands = ["bootstrap", "preflight", "free", "mobile", "emulator", "all", "stop"];
+  const commands = ["bootstrap", "preflight", "free", "mobile", "emulator", "all", "lite", "stop"];
   if (!commands.includes(command)) {
     console.error(
-      "Usage: node scripts/local.mjs bootstrap | preflight [web] [api] | free <web|api>... | mobile [expo args] | emulator | all | stop",
+      "Usage: node scripts/local.mjs bootstrap | preflight [web] [api] | free <web|api>... | mobile [expo args] | emulator | all | lite | stop",
     );
     process.exit(2);
   }
@@ -587,6 +636,7 @@ async function main() {
   ensureEnvFile();
   if (command === "mobile") return startMobile(rest);
   if (command === "all") return startAll(rest);
+  if (command === "lite") return startAll(rest, { lite: true });
   const targets = rest.map((name) => {
     if (!PORT_TARGETS[name]) fail(`Unknown port "${name}" (use web or api)`);
     return PORT_TARGETS[name]();

@@ -93,6 +93,7 @@ enum AiCallType {
   WORKOUT_PLAN
   COACH_CHAT
   LABEL_SCAN
+  REMINDER_PARSE
 }
 
 // ---------- Identity & auth (users module owns `users`; auth module owns the rest) ----------
@@ -123,6 +124,8 @@ model User {
   waterLogs    WaterLog[]
   coachChats   CoachConversation[]
   entitlement  Entitlement?
+  savedMeals   SavedMeal[]
+  reminders    Reminder[]
 
   @@map("users")
 }
@@ -347,8 +350,9 @@ model Food {
   submittedById   String?
   createdAt       DateTime   @default(now())
 
-  units     FoodUnit[]
-  mealItems MealItem[]
+  units          FoodUnit[]
+  mealItems      MealItem[]
+  savedMealItems SavedMealItem[]
 
   @@map("foods")
 }
@@ -554,6 +558,73 @@ model WaterLog {
 
   @@index([userId, date])
   @@map("water_logs")
+}
+
+/// A user's own repeat meal ("My breakfast"): priced items saved once, logged with one tap. Meals module.
+model SavedMeal {
+  id           String    @id @default(cuid())
+  userId       String
+  name         String
+  /// The slot it's usually eaten in; only a default when logging.
+  mealType     MealType?
+  totalKcal    Float     @default(0)
+  totalProtein Float     @default(0)
+  totalCarbs   Float     @default(0)
+  totalFat     Float     @default(0)
+  timesLogged  Int       @default(0)
+  lastLoggedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items SavedMealItem[]
+
+  @@index([userId])
+  @@map("saved_meals")
+}
+
+model SavedMealItem {
+  id          String  @id @default(cuid())
+  savedMealId String
+  position    Int
+  foodId      String?
+  name        String
+  quantity    Float
+  unit        String
+  grams       Float
+  kcal        Float
+  proteinG    Float
+  carbsG      Float
+  fatG        Float
+  approximate Boolean @default(false)
+  isLiquid    Boolean @default(false)
+
+  savedMeal SavedMeal @relation(fields: [savedMealId], references: [id], onDelete: Cascade)
+  food      Food?     @relation(fields: [foodId], references: [id], onDelete: SetNull)
+
+  @@index([savedMealId])
+  @@index([foodId])
+  @@map("saved_meal_items")
+}
+
+/// A user's reminder. Only the config lives here: the phone schedules it as local notifications.
+model Reminder {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  /// One or more 5-field cron rules in the phone's local time (domain `parseRules`: L, L-1, 1#1, 5L, months).
+  crons       String[]
+  enabled     Boolean  @default(true)
+  /// The user's own words it was made from.
+  prompt      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("reminders")
 }
 
 // ---------- AI coach (agent loop) ----------

@@ -10,12 +10,10 @@ export function parseEnv(text) {
     const m = LINE.exec(raw);
     if (!m) continue;
     let value = (m[2] ?? "").trim();
-    const quote = value[0];
-    if ((quote === '"' || quote === "'") && value.endsWith(quote) && value.length >= 2) {
-      value = value.slice(1, -1);
-    } else {
-      value = value.replace(/\s+#.*$/, "");
-    }
+    // A quoted value may be followed by a comment: KEY="value"   # note
+    const quoted = /^(["'])(.*?)\1(?:\s+#.*)?$/.exec(value);
+    if (quoted) value = quoted[2];
+    else value = value.replace(/\s+#.*$/, "");
     out.set(m[1], value);
   }
   return out;

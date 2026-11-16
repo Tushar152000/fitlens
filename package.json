@@ -8,6 +8,7 @@
   "scripts": {
     "bootstrap": "node scripts/local.mjs bootstrap",
     "start:all": "node scripts/local.mjs all",
+    "start:lite": "node scripts/local.mjs lite",
     "stop:all": "node scripts/local.mjs stop",
     "dev": "node scripts/local.mjs preflight web api && turbo run dev --filter=@fitr8/api --filter=@fitr8/web",
     "dev:api": "node scripts/local.mjs preflight api && turbo run dev --filter=@fitr8/api",

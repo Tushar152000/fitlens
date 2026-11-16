@@ -1,8 +1,15 @@
 import type OpenAI from "openai";
-import { LabelReadSchema, MealAnalysisSchema } from "@fitr8/contracts";
+import { LabelReadSchema, MealAnalysisSchema, ReminderDraftSchema } from "@fitr8/contracts";
 import { z, type ZodType } from "zod";
-import { LABEL_SYSTEM_PROMPT, SYSTEM_PROMPT, photoUserPrompt, textUserPrompt } from "./prompts.js";
-import type { AiResult, FoodExtractor, ImageInput, MealContext } from "./types.js";
+import {
+  LABEL_SYSTEM_PROMPT,
+  REMINDER_SYSTEM_PROMPT,
+  SYSTEM_PROMPT,
+  photoUserPrompt,
+  reminderUserPrompt,
+  textUserPrompt,
+} from "./prompts.js";
+import type { AiResult, FoodExtractor, ImageInput, MealContext, ReminderRequest } from "./types.js";
 
 type InputContent = OpenAI.Responses.ResponseInputMessageContentList;
 
@@ -35,6 +42,12 @@ export class OpenAiExtractor implements FoodExtractor {
     return this.extract("label_read", LabelReadSchema, LABEL_SYSTEM_PROMPT, [
       imagePart(image),
       { type: "input_text", text: "Read this nutrition label." },
+    ]);
+  }
+
+  parseReminder({ text, localNow }: ReminderRequest) {
+    return this.extract("reminder_draft", ReminderDraftSchema, REMINDER_SYSTEM_PROMPT, [
+      { type: "input_text", text: reminderUserPrompt(text, localNow) },
     ]);
   }
 

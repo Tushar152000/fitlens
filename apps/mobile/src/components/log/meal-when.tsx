@@ -16,6 +16,7 @@ export function MealWhen({
   tone = "light",
   missing = false,
   gutter = 0,
+  showDay = true,
 }: {
   mealType: MealType | null;
   onMealType: (m: MealType) => void;
@@ -27,6 +28,8 @@ export function MealWhen({
   missing?: boolean;
   /** Horizontal padding of the screen, so the day row can scroll edge to edge. */
   gutter?: number;
+  /** false hides "Which day?" (the camera keeps it minimal; a day from the route still applies). */
+  showDay?: boolean;
 }) {
   const days = recentDays();
   const labelColor = tone === "dark" ? "rgba(255,255,255,0.75)" : colors.ink3;
@@ -47,24 +50,28 @@ export function MealWhen({
           </Chip>
         ))}
       </View>
-      <Text weight={600} size={12} color={labelColor} style={{ paddingHorizontal: gutter, marginTop: 4 }}>
-        Which day?
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={[styles.row, { flexWrap: "nowrap", paddingHorizontal: gutter }]}
-        accessibilityLabel="Which day"
-      >
-        {days.map((d, i) => {
-          const value = i === 0 ? null : d;
-          return (
-            <Chip key={d} tone={tone} selected={value === date} onPress={() => onDate(value)}>
-              {dayLabel(d)}
-            </Chip>
-          );
-        })}
-      </ScrollView>
+      {showDay && (
+        <>
+          <Text weight={600} size={12} color={labelColor} style={{ paddingHorizontal: gutter, marginTop: 4 }}>
+            Which day?
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={[styles.row, { flexWrap: "nowrap", paddingHorizontal: gutter }]}
+            accessibilityLabel="Which day"
+          >
+            {days.map((d, i) => {
+              const value = i === 0 ? null : d;
+              return (
+                <Chip key={d} tone={tone} selected={value === date} onPress={() => onDate(value)}>
+                  {dayLabel(d)}
+                </Chip>
+              );
+            })}
+          </ScrollView>
+        </>
+      )}
     </View>
   );
 }

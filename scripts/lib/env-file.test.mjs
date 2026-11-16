@@ -18,6 +18,17 @@ describe("parseEnv", () => {
     );
     assert.deepEqual(Object.fromEntries(env), { A: "x y", B: "z", C: "plain", D: "1", E: "" });
   });
+
+  it("reads a quoted value followed by a comment, keeping a # inside the quotes", () => {
+    const env = parseEnv(
+      ['R="redis://localhost:6379"   # optional', "S='a # b'  # note", 'T="x#y"'].join("\n"),
+    );
+    assert.deepEqual(Object.fromEntries(env), {
+      R: "redis://localhost:6379",
+      S: "a # b",
+      T: "x#y",
+    });
+  });
 });
 
 describe("setEnv", () => {

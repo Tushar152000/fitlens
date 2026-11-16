@@ -15,7 +15,7 @@ Landing + legal + onboarding + read-only `/home`. Logging, coach, tabs live in t
 - **No backend in Next** (2026-11-11): no `proxy.ts`, no route handlers, no rewrites. Browser calls the API directly via `apiUrl()` (`lib/api-url.ts`, `NEXT_PUBLIC_API_URL`, inlined at build; default `http://localhost:4000`) with `credentials: "include"`. Server rendering uses `apiBaseUrl()` (`lib/api-base.ts`: `API_INTERNAL_URL` → `NEXT_PUBLIC_API_URL` → localhost:4000) and forwards the cookie.
 - `PageProps<"/route">` global types (needs `next typegen`; typecheck = `next typegen && tsc --noEmit`). `params`/`searchParams` are Promises, always awaited.
 - `vercel.json`: `git.deploymentEnabled.main = false` — production web deploys come only from the Deploy workflow (after the API); PR previews still deploy.
-- `next.config.ts`: `output: "standalone"`, `allowedDevOrigins`, unused `serverActions.allowedOrigins`.
+- `next.config.ts`: outside production, loads the repo-root `.env` (`process.loadEnvFile`, shell wins) and sets `NEXT_PUBLIC_API_URL ||= API_PUBLIC_URL` (one env file locally); `output: "standalone"`, `allowedDevOrigins`, unused `serverActions.allowedOrigins`.
 - No `"use cache"`/revalidate; server fetches use `cache: "no-store"`; per-request dedupe via React `cache()`.
 - No `loading.tsx` / `error.tsx` / `not-found.tsx` / `global-error.tsx`. No service worker. Manifest `app/manifest.ts` (`start_url: "/home"`, theme `#8116E0`; root viewport themeColor `#f6f6f8`).
 

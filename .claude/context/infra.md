@@ -32,7 +32,7 @@ On successful CI `workflow_run` on main (or manual, input `all`). WIF auth, no k
 
 ## Local
 
-`scripts/local.mjs`: bootstrap (create `.env`, gen AUTH_SECRET, ports, compose up, migrate, seed if empty, sets `API_PUBLIC_URL` if missing, mobile `.env` with LAN IP → API port 4000), preflight, free, mobile, emulator, all, stop. Helpers tested in `scripts/lib/*.test.mjs`. Machine quirks: Node 22 via nvm (`export PATH=$HOME/.nvm/versions/node/v22.22.0/bin:$PATH`), Redis on 6380.
+`scripts/local.mjs`: bootstrap (create `.env`, gen AUTH_SECRET, ports, compose up, migrate, seed if empty, sets `API_PUBLIC_URL` if missing, one env file: root `.env` only — the web loads it in dev via `next.config.ts` (`NEXT_PUBLIC_API_URL ||= API_PUBLIC_URL`), the app gets `EXPO_PUBLIC_API_URL` from the script at Expo start, an old generated `apps/mobile/.env` is deleted; `.env.example` trimmed to required / local services / optional), preflight, free, mobile, emulator, all, lite (`pnpm start:lite`: services + API only + Expo `--web`, app API URL localhost), stop. Helpers tested in `scripts/lib/*.test.mjs`. Machine quirks: Node 22 via nvm (`export PATH=$HOME/.nvm/versions/node/v22.22.0/bin:$PATH`), Redis on 6380.
 
 ## Env templates
 

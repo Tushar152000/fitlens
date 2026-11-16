@@ -279,6 +279,93 @@ export interface UsualsDto {
   usuals: UsualDto[];
 }
 
+/** One item of a saved meal, priced when it was saved. */
+export interface SavedMealItemDto extends Macros {
+  id: string;
+  foodId: string | null;
+  name: string;
+  quantity: number;
+  unit: string;
+  grams: number;
+  approximate: boolean;
+  isLiquid: boolean;
+}
+
+/** A user's own repeat meal (GET /api/saved-meals). Logging it never uses an AI scan. */
+export interface SavedMealDto {
+  id: string;
+  name: string;
+  mealType: MealTypeValue | null;
+  kcal: number;
+  proteinG: number;
+  carbsG: number;
+  fatG: number;
+  timesLogged: number;
+  lastLoggedAt: string | null;
+  createdAt: string;
+  items: SavedMealItemDto[];
+}
+
+export interface SavedMealsDto {
+  savedMeals: SavedMealDto[];
+}
+
+/** A repeating alert the phone schedules: monthly on `day` (1–28), else weekly on `weekday` (0 = Sunday), else daily. */
+export interface ReminderSlotDto {
+  day: number | null;
+  weekday: number | null;
+  hour: number;
+  minute: number;
+}
+
+/** One rule of a reminder, as the app shows and edits it. */
+export interface ReminderRuleDto {
+  cron: string;
+  /** "Every month on the second-last day at 6:00 pm". */
+  summary: string;
+  /** true: the phone repeats it by itself; false: a changing date, scheduled as `upcoming` times. */
+  repeating: boolean;
+  /** Days of the week + time, when the rule is that simple shape (the app's day/time editor); else null. */
+  weekly: { minute: number; hours: number[]; weekdays: number[] } | null;
+}
+
+/** GET /api/reminders. Everything the phone needs to schedule it is derived on the server. */
+export interface ReminderDto {
+  id: string;
+  title: string;
+  description: string | null;
+  crons: string[];
+  enabled: boolean;
+  prompt: string | null;
+  /** The whole reminder in plain English. */
+  summary: string;
+  rules: ReminderRuleDto[];
+  /** Repeating alerts (daily / weekly / monthly on a fixed date). */
+  slots: ReminderSlotDto[];
+  /** Exact wall-clock times ("2026-11-29T18:00") for changing dates; the app re-plans on launch. */
+  upcoming: string[];
+  /** When it next fires, wall-clock in the user's timezone; null if never. */
+  nextAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReminderListDto {
+  reminders: ReminderDto[];
+  /** How many a user may have. */
+  max: number;
+}
+
+/** POST /api/reminders/parse: a draft to review before saving. */
+export interface ReminderDraftDto {
+  title: string;
+  description: string | null;
+  crons: string[];
+  summary: string;
+  rules: ReminderRuleDto[];
+  nextAt: string | null;
+}
+
 // ── Foods ─────────────────────────────────────────────────────────────────
 
 /** The `foods` row. */

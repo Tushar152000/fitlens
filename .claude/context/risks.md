@@ -21,8 +21,8 @@ Baseline: HEAD 107c0ee, 2026-11-11.
 9. POST `/water` before onboarding inserts then 404s (also coach `log_water`).
 10. HEIC accepted for upload but extractors can't read it. Presigned PUT unbounded size; `getImage` buffers before 10 MB check. Photos not deleted on meal delete.
 11. Barcode hijack: unverified label-scan Food claims a barcode → everyone else gets not_found, permanent after account delete (`submittedById` no FK). OFF imports `isVeg: true` always.
-12. Mobile: lunch/dinner reminders never delivered. OfflineBanner promises sync that doesn't exist. FIXED 2026-11-12 (uncommitted): purchase-then-refresh-failure shows "payment received" instead of an error; water reminders cancelled in `auth.tsx` `clear()`; invalidations after onboarding (all), check-in (plan, day), scans (`refreshDay` → usage); `history.tsx` empty guard.
-13. Food visibility: `buildItem`/`logItems` with a `foodId` skip the unreviewed-label check that `quickAdd` has.
+12. Mobile: iOS keeps only 64 pending local notifications per app; water reminders schedule up to 49 one-offs, custom reminders up to 24 repeating alerts each (max 20 reminders) — heavy users can exceed it and iOS silently drops the rest (unverified on device). Custom reminders + barcode-in-photo never run on a real device here (only web preview + typecheck). Lunch/dinner reminders never delivered. OfflineBanner promises sync that doesn't exist. FIXED 2026-11-12 (uncommitted): purchase-then-refresh-failure shows "payment received" instead of an error; water reminders cancelled in `auth.tsx` `clear()`; invalidations after onboarding (all), check-in (plan, day), scans (`refreshDay` → usage); `history.tsx` empty guard.
+13. Food visibility: `buildItem`/`logItems` with a `foodId` skip the unreviewed-label check that `quickAdd` has (saved meals check it, `saved-meals.service.ts:117`). Saved-meal items are snapshots: editing a Food row later doesn't re-price them.
 14. OpenAI coach: no compaction and no history cap → long threads eventually fail.
 15. Sandbox purchases grant Pro in prod (intentional for App Review; TestFlight testers get real Pro).
 16. Seed food values are placeholders (launch item) — the main accuracy limit: matched items take nutrition from these 32 rows.
@@ -36,6 +36,8 @@ Baseline: HEAD 107c0ee, 2026-11-11.
 21. Domain: macros can exceed kcal for heavy users at floor; recomposition phase flips on rounding; `ageFromBirthDate` local-time.
 22. Unpinned: node:22-alpine, postgres:17, redis:7, minio untagged, `turbo@2`, `eas-version: latest`.
 23. Duplicated logic mobile↔web/domain with no sync test.
+
+- **Deploys report failure since 2026-11-11** (runs 43026714879, 43385844433, 43848848119): `changes`, images, migrate and `api` succeed; `web` fails at Vercel CLI "--token … contents are invalid" (`VERCEL_TOKEN` secret malformed), the change diff keeps comparing against 2026-11-10. FIXED on branch feat/barcode-templates-reminders: `app-update` now needs only `changes` + `api`, so OTA ships even while the web step fails. Still open: rotate `VERCEL_TOKEN`.
 
 ## Doc drift (code is truth; fix docs in the PR that touches the area)
 

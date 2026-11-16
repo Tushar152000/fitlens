@@ -10,7 +10,7 @@ import { API_URL } from "./config";
 import { queryClient } from "./query";
 import { writeConversationId } from "./coach-store";
 import { forgetPurchaser, identifyPurchaser } from "./purchases";
-import { cancelWaterReminders } from "./reminders";
+import { cancelCustomReminders, cancelWaterReminders } from "./reminders";
 import { readToken, writeToken } from "./token-store";
 import type { Me } from "./types";
 
@@ -65,7 +65,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const clear = useCallback(async () => {
     setAnalyticsUser(null);
-    await Promise.all([forgetPurchaser(), cancelWaterReminders().catch(() => undefined)]);
+    await Promise.all([
+      forgetPurchaser(),
+      cancelWaterReminders().catch(() => undefined),
+      cancelCustomReminders().catch(() => undefined),
+    ]);
     setApiToken(null);
     queryClient.clear(); // never show the last user's data to the next one
     await Promise.all([writeToken(null), writeConversationId(null)]);

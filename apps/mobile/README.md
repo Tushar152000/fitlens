@@ -30,7 +30,7 @@ pnpm dev:api        # API on http://localhost:4000 (needs pnpm infra:up, see the
 pnpm dev:mobile     # Expo dev server for this app (same as `pnpm start` in apps/mobile)
 ```
 
-Point the app at a server in `apps/mobile/.env` (git-ignored):
+There is no `apps/mobile/.env`: `pnpm dev:mobile` / `pnpm start:all` pass the API address to Expo (your laptop's Wi-Fi IP, or `EXPO_PUBLIC_API_URL` from the root `.env` for a tunnel). Running `expo start` by hand without it points the app at production.
 
 | Variable              | Value                                                                                                                                                                              |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

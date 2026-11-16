@@ -81,12 +81,13 @@ function Routes() {
   const onboarded = Boolean(me?.onboarded);
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ground } }}>
+      {/*
+        Order matters: when a guard flips (sign-in, sign-out), the stack falls back to the FIRST screen
+        still allowed. The app must come before onboarding, or a returning user who signs in again
+        lands on the (prefilled) edit-goal form instead of Today.
+      */}
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="login" />
-      </Stack.Protected>
-      {/* Also where an onboarded user edits their goal. */}
-      <Stack.Protected guard={signedIn}>
-        <Stack.Screen name="onboarding" />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && onboarded}>
         <Stack.Screen name="(tabs)" />
@@ -94,7 +95,12 @@ function Routes() {
         <Stack.Screen name="briefing" />
         <Stack.Screen name="history" />
         <Stack.Screen name="coach" />
+        <Stack.Screen name="reminders" />
         <Stack.Screen name="pro" options={{ presentation: "modal" }} />
+      </Stack.Protected>
+      {/* First-time setup, and where an onboarded user edits their goal (pushed from Profile). */}
+      <Stack.Protected guard={signedIn}>
+        <Stack.Screen name="onboarding" />
       </Stack.Protected>
     </Stack>
   );
