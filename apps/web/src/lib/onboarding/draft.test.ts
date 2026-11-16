@@ -56,6 +56,29 @@ describe("onboarding draft", () => {
     expect(validateStep(2, { ...complete, waistCm: "", neckCm: "" }, today)).toEqual({});
   });
 
+  it("refuses a weight target equal to, or the wrong way from, the current weight", () => {
+    const same = validateStep(2, { ...complete, targetWeightKg: "80.5" }, today);
+    expect(same.weightKg).toMatch(/already your target weight.*Recomposition/);
+    expect(validateStep(2, { ...complete, targetWeightKg: "80.2" }, today).weightKg).toMatch(
+      /already your target/,
+    );
+    expect(validateStep(2, { ...complete, targetWeightKg: "85" }, today).weightKg).toMatch(
+      /above this weight/,
+    );
+    const gain = { ...complete, goalType: "MUSCLE_GAIN" as const };
+    expect(validateStep(2, { ...gain, targetWeightKg: "75" }, today).weightKg).toMatch(
+      /below this weight/,
+    );
+    expect(validateStep(2, { ...gain, targetWeightKg: "84" }, today)).toEqual({});
+    // Recomposition and body-fat targets have no weight target to compare.
+    expect(
+      validateStep(2, { ...complete, goalType: "RECOMPOSITION", targetWeightKg: "80.5" }, today),
+    ).toEqual({});
+    expect(
+      validateStep(2, { ...complete, targetMode: "BODY_FAT", targetBodyFatPct: "15" }, today),
+    ).toEqual({});
+  });
+
   it("checks waist is bigger than neck", () => {
     expect(validateStep(2, { ...complete, waistCm: "45", neckCm: "50" }, today).waistCm).toBe(
       "Waist must be bigger than neck",

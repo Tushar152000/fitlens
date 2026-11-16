@@ -129,7 +129,7 @@ function Briefing({ data, energy, switching }: { data: TodayWorkout; energy: Ene
                 </Text>
                 <Text weight={600}>{data.snack.name}</Text>
                 <Text size={13} color={colors.ink3} tabular>
-                  P {data.snack.proteinG} g · C {data.snack.carbsG} g · {formatInt(data.snack.kcal)} kcal
+                  {data.snack.proteinG} g protein · {data.snack.carbsG} g carbs · {formatInt(data.snack.kcal)} kcal
                 </Text>
               </View>
             </View>

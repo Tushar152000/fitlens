@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import type { RemindersInput } from "@fitr8/contracts";
-import { localDate } from "@fitr8/domain/dates";
+import { localDate, mealDateProblem, parseDateOnly } from "@fitr8/domain/dates";
 import { AppError } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { StorageService } from "../../infra/storage/storage.service.js";
@@ -43,6 +43,19 @@ export class UsersService {
   /** The user's local calendar date as a UTC-midnight Date (for @db.Date columns). */
   async today(userId: string): Promise<Date> {
     return localDate(await this.timezone(userId));
+  }
+
+  /**
+   * The day a meal is logged on: `ymd` when given (a forgotten meal, up to MEAL_BACKFILL_DAYS back),
+   * else today. 400 for a future day or one too far back.
+   */
+  async mealDate(userId: string, ymd?: string): Promise<Date> {
+    const today = await this.today(userId);
+    if (!ymd) return today;
+    const date = parseDateOnly(ymd);
+    const problem = mealDateProblem(date, today);
+    if (problem) throw new AppError(400, problem);
+    return date;
   }
 
   /** The user with this (lower-cased) email, if any. Used by sign-in to link a new identity. */

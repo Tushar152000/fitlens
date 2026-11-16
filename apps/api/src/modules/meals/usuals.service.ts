@@ -55,8 +55,8 @@ export class UsualsService {
       }));
   }
 
-  /** Copy a past confirmed meal into today as a new confirmed meal. No AI, no scan used. Null if not the user's. */
-  async relogMeal(userId: string, sourceMealId: string, mealType: MealTypeValue) {
+  /** Copy a past confirmed meal into `date` (default today) as a new confirmed meal. No AI, no scan used. Null if not the user's. */
+  async relogMeal(userId: string, sourceMealId: string, mealType: MealTypeValue, date?: Date) {
     const source = await this.prisma.mealLog.findFirst({
       where: { id: sourceMealId, userId, status: "CONFIRMED" },
       include: { items: true },
@@ -66,7 +66,7 @@ export class UsualsService {
     return this.prisma.mealLog.create({
       data: {
         userId,
-        date: await this.users.today(userId),
+        date: date ?? (await this.users.today(userId)),
         mealType,
         source: "TEXT",
         status: "CONFIRMED",

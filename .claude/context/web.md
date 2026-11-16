@@ -36,6 +36,8 @@ Web never touches tokens: the API sets an httpOnly cookie (prod `__Secure-fitlen
 
 ## Onboarding
 
+- `lib/onboarding/draft.ts` `weightDirectionProblem` (mirrored in mobile `onboarding-draft.ts`): step 2 blocks a weight target within 0.5 kg of current weight or the wrong way for the goal, pointing to Recomposition. Plan page `paceLine` shows words instead of "0 kg a week" ("At your target weight" badge).
+
 - Steps (`components/onboarding/onboarding-flow.tsx:34`): welcome = name, goal, about, training, signin; new/edit = goal, about, training.
 - Draft `lib/onboarding/draft.ts` (strings; `validateStep`; `toPayload()` → `OnboardingInput`; experience defaults BEGINNER, 3 days, 45 min; browser tz). Live estimate `lib/onboarding/estimate.ts` (domain `planGoal`, `bodyFatNavy`).
 - sessionStorage `lib/onboarding/pending.ts`: `fitr8.onboarding.calculator`, `fitr8.onboarding.pending` (read via `useSyncExternalStore`).

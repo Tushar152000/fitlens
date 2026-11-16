@@ -10,10 +10,12 @@ import { QueryError } from "@/components/query-error";
 import { Button, Card, FieldError, NumberField, Screen, Stepper, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { track } from "@/lib/analytics";
-import { formatInt, MEAL_LABEL, type MealType } from "@/lib/format";
+import { MealWhen } from "@/components/log/meal-when";
+import { formatInt, MEAL_LABEL } from "@/lib/format";
 import { labelAddsUp } from "@/lib/label";
-import { mealFromParam } from "@/lib/meal-param";
+import { useMealChoice } from "@/lib/meal-param";
 import { refreshDay } from "@/lib/query";
+import { showDay } from "@/lib/view-day";
 import { colors, fonts, radius } from "@/lib/theme";
 
 type ScanDto = LabelScanDto;
@@ -23,7 +25,7 @@ const num = (s: string) => (s.trim() === "" ? NaN : Number(s));
 
 /** Screen 7g: check the values the AI read, then save the food and add it to the meal. */
 export default function CheckLabelScreen() {
-  const params = useLocalSearchParams<{ id: string; meal?: string }>();
+  const params = useLocalSearchParams<{ id: string }>();
   const scan = useQuery({
     queryKey: ["label", params.id],
     queryFn: () => api<ScanDto>(`/api/foods/label/${params.id}`),
@@ -44,10 +46,12 @@ export default function CheckLabelScreen() {
       </Screen>
     );
   }
-  return <CheckLabel scan={scan.data} mealType={mealFromParam(params.meal ?? "SNACK")} />;
+  return <CheckLabel scan={scan.data} />;
 }
 
-function CheckLabel({ scan, mealType }: { scan: ScanDto; mealType: MealType }) {
+function CheckLabel({ scan }: { scan: ScanDto }) {
+  const { mealType, setMealType, date, setDate, dateBody, params } = useMealChoice();
+  const [missing, setMissing] = useState(false);
   const [name, setName] = useState(scan.name);
   const [kcal, setKcal] = useState(str(scan.per100g.kcal));
   const [protein, setProtein] = useState(str(scan.per100g.protein));
@@ -67,6 +71,7 @@ function CheckLabel({ scan, mealType }: { scan: ScanDto; mealType: MealType }) {
   const canSave = allNumbers && grams > 0 && name.trim().length >= 2;
 
   async function save() {
+    if (!mealType) return setMissing(true);
     setBusy(true);
     setError(null);
     try {
@@ -81,10 +86,12 @@ function CheckLabel({ scan, mealType }: { scan: ScanDto; mealType: MealType }) {
           grams,
           mealType,
           isLiquid: false,
+          ...dateBody,
         },
       });
       track("meal_logged", { method: "label" });
       refreshDay();
+      showDay(date);
       router.dismissTo("/today");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't save. Try again.");
@@ -114,12 +121,12 @@ function CheckLabel({ scan, mealType }: { scan: ScanDto; mealType: MealType }) {
           </View>
           {error && <FieldError>{error}</FieldError>}
           <Button onPress={save} loading={busy} disabled={!canSave}>
-            {`Save and add to ${MEAL_LABEL[mealType].toLowerCase()}`}
+            {mealType ? `Save and add to ${MEAL_LABEL[mealType].toLowerCase()}` : "Save and add to a meal"}
           </Button>
         </>
       }
     >
-      <BackHeader onBack={() => router.replace({ pathname: "/log/label", params: { meal: mealType } })} />
+      <BackHeader onBack={() => router.replace({ pathname: "/log/label", params })} />
       <View style={{ gap: 4 }}>
         <Text variant="h1" size={26}>
           Check the label values
@@ -189,6 +196,17 @@ function CheckLabel({ scan, mealType }: { scan: ScanDto; mealType: MealType }) {
             <Stepper label="Servings" value={servings} step={0.5} min={0.5} onChange={setServings} />
           </View>
         </Card>
+
+        <MealWhen
+          mealType={mealType}
+          onMealType={(m) => {
+            setMealType(m);
+            setMissing(false);
+          }}
+          date={date}
+          onDate={setDate}
+          missing={missing}
+        />
       </View>
     </Screen>
   );

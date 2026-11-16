@@ -111,8 +111,8 @@ export default async function ProfilePage() {
           </div>
           {target && (
             <p className="border-t border-white/15 pt-3 text-[13px] text-white/75 tabular-nums">
-              <span className="font-bold text-white">{formatInt(target.kcal)} kcal</span> a day · P{" "}
-              {target.proteinG} g · C {target.carbsG} g · F {target.fatG} g
+              <span className="font-bold text-white">{formatInt(target.kcal)} kcal</span> a day ·{" "}
+              {target.proteinG} g protein · {target.carbsG} g carbs · {target.fatG} g fat
             </p>
           )}
         </section>

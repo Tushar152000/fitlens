@@ -156,7 +156,7 @@ export function TypeMealScreen({
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate font-semibold">{mealTitle(u.names, "Meal")}</span>
                     <span className="text-[13px] text-ink-3 tabular-nums">
-                      {formatInt(u.kcal)} kcal · P {u.proteinG} g
+                      {formatInt(u.kcal)} kcal · {u.proteinG} g protein
                       {u.count > 1 ? ` · logged ${u.count}×` : ""}
                     </span>
                   </span>

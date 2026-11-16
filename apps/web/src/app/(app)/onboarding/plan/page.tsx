@@ -35,7 +35,7 @@ export default async function PlanPage({ searchParams }: PageProps<"/onboarding/
   const { summary, metric, goal, training } = data;
   const { kcal, proteinG, carbsG, fatG } = summary.target;
   const recomp = goal.type === "RECOMPOSITION";
-  const weekly = summary.plan.weeklyChangeKg;
+  const pace = paceLine(summary.plan.weeklyChangeKg, metric.weightKg, summary.plan.targetWeightKg);
   const rail = RAIL[mode];
   const shell = {
     steps: rail,
@@ -89,7 +89,7 @@ export default async function PlanPage({ searchParams }: PageProps<"/onboarding/
       <div>
         <p className="inline-flex w-fit items-center gap-1.5 rounded-full bg-protein-soft px-3 py-1 text-[13px] font-bold text-protein">
           <CircleCheck className="size-4" aria-hidden />
-          Realistic goal
+          {pace.atTarget && !recomp ? "At your target weight" : "Realistic goal"}
         </p>
         <h1 className="mt-3 text-[30px] leading-[1.12] font-semibold tracking-[-0.025em] lg:text-[38px]">
           Your plan
@@ -125,9 +125,7 @@ export default async function PlanPage({ searchParams }: PageProps<"/onboarding/
               to={recomp ? metric.weightKg : summary.plan.targetWeightKg}
             />
             <p className="text-sm text-ink-2 tabular-nums">
-              {recomp
-                ? "Weight stays steady while you lose fat and build muscle."
-                : `${weekly > 0 ? "+" : weekly < 0 ? "−" : ""}${Math.abs(weekly)} kg a week`}
+              {recomp ? "Weight stays steady while you lose fat and build muscle." : pace.text}
               {goal.targetBodyFatPct != null &&
                 ` · body fat ${summary.bodyFatPct ?? "?"}% → ${goal.targetBodyFatPct}%`}
             </p>
@@ -252,4 +250,25 @@ function ProjectionLine({ from, to }: { from: number; to: number }) {
       <circle cx={w - pad} cy={y2} r={5} className="fill-fitr8" />
     </svg>
   );
+}
+
+/**
+ * The pace line under Now → Goal. A directional goal with no weight change (target equals current
+ * weight, or a medical / under-18 hold) reads as words, never "0 kg a week".
+ */
+function paceLine(
+  weekly: number,
+  nowKg: number,
+  targetKg: number,
+): { text: string; atTarget: boolean } {
+  if (Math.abs(weekly) >= 0.05) {
+    return { text: `${weekly > 0 ? "+" : "−"}${Math.abs(weekly)} kg a week`, atTarget: false };
+  }
+  if (Math.abs(targetKg - nowKg) < 0.5) {
+    return {
+      text: "You're already at your target weight, so there's no weight to change. Your plan keeps it steady.",
+      atTarget: true,
+    };
+  }
+  return { text: "Your weight stays steady for now.", atTarget: false };
 }
