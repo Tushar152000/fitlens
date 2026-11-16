@@ -21,7 +21,7 @@ SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loadin
 
 | Screen     | Endpoints                                                                                                                                                         |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| today      | dashboard (`?date=` for a past day), workouts/today, water (+POST/DELETE water; redo = re-POST the undone ml, local stack in `water-card.tsx`) |
+| today      | dashboard (`?date=` for a past day), workouts/today, water (+POST/DELETE water; redo = re-POST the undone ml, local stack in `water-card.tsx`)                    |
 | workout    | workouts/today; POST workouts/logs (set state local only)                                                                                                         |
 | progress   | progress; POST checkins                                                                                                                                           |
 | profile    | plan, usage, dashboard, billing (if PRO); PATCH profile/reminders; export CSV → share; DELETE account                                                             |
