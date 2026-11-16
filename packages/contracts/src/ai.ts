@@ -78,3 +78,25 @@ export function labelReadJsonSchema(): Record<string, unknown> {
   delete schema.$schema;
   return schema;
 }
+
+/** Words → a reminder draft. `cron` is checked against what a phone can repeat before it's shown. */
+export const ReminderDraftSchema = z.object({
+  isReminder: z
+    .boolean()
+    .describe("false if the text doesn't ask to be reminded of anything at any time"),
+  title: z
+    .string()
+    .describe("Short title for the notification, max 40 characters, e.g. 'Take creatine'"),
+  description: z
+    .string()
+    .describe(
+      "One friendly line shown under the title, max 120 characters. Empty string if nothing to add.",
+    ),
+  crons: z
+    .array(z.string())
+    .describe(
+      "One 5-field cron rule per distinct day-and-time pattern, in the user's local time: 'minute hour day-of-month month weekday'. Two different times on different days = two rules.",
+    ),
+});
+
+export type ReminderDraft = z.infer<typeof ReminderDraftSchema>;

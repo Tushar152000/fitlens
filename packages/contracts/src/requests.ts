@@ -73,29 +73,28 @@ export const CreateMealSchema = z.discriminatedUnion("source", [
   }),
 ]);
 
+/** One item as the user confirmed it (meal review, saved-meal builder). */
+export const MealItemInputSchema = z.object({
+  id: z.string().optional(), // existing item, if the user edited one
+  foodId: z.string().optional(),
+  name: z.string().min(1),
+  quantity: z.number().positive(),
+  unit: z.string().min(1),
+  grams: z.number().positive().max(3000),
+  // Only used when the item isn't in the food list (an AI estimate).
+  per100g: z
+    .object({
+      kcal: z.number().nonnegative().max(900),
+      protein: z.number().nonnegative().max(100),
+      carbs: z.number().nonnegative().max(100),
+      fat: z.number().nonnegative().max(100),
+    })
+    .optional(),
+  isLiquid: z.boolean().optional(),
+});
+
 export const ConfirmMealSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        id: z.string().optional(), // existing item, if the user edited one
-        foodId: z.string().optional(),
-        name: z.string().min(1),
-        quantity: z.number().positive(),
-        unit: z.string().min(1),
-        grams: z.number().positive().max(3000),
-        // Only used when the item isn't in the food list (an AI estimate).
-        per100g: z
-          .object({
-            kcal: z.number().nonnegative().max(900),
-            protein: z.number().nonnegative().max(100),
-            carbs: z.number().nonnegative().max(100),
-            fat: z.number().nonnegative().max(100),
-          })
-          .optional(),
-        isLiquid: z.boolean().optional(),
-      }),
-    )
-    .min(1),
+  items: z.array(MealItemInputSchema).min(1),
   note: z.string().trim().max(500).nullable().optional(),
 });
 
@@ -209,11 +208,59 @@ export const LogItemsSchema = z.object({
     .max(10),
 });
 
+// ---------- Saved meals (a user's own repeat meals, one tap to log) ----------
+
+const savedMealName = z.string().trim().min(1, "Give it a name").max(60);
+
+/** A saved meal from items (builder screen, or "Save as a meal" on review). Priced on the server. */
+export const SavedMealSchema = z.object({
+  name: savedMealName,
+  /** The slot it's usually eaten in; only a default when logging it. */
+  mealType: MealTypeSchema.nullable().optional(),
+  items: z
+    .array(MealItemInputSchema.omit({ id: true }))
+    .min(1)
+    .max(30),
+});
+
+/** Log a saved meal to a slot, today or a recent `date`. */
+export const LogSavedMealSchema = z.object({
+  mealType: MealTypeSchema,
+  date: ymd.optional(),
+});
+
+// ---------- Reminders (scheduled on the phone; the server only stores them) ----------
+
+/** One 5-field cron rule (L, L-1, 1#1, 5L and month names allowed). Checked on the server (domain `parseRules`). */
+const cron = z
+  .string()
+  .trim()
+  .max(120)
+  .regex(/^\S+(\s+\S+){4}$/, "Use a 5-part schedule: minute hour day month weekday");
+
+export const ReminderSchema = z.object({
+  title: z.string().trim().min(1, "Give it a title").max(60),
+  description: z.string().trim().max(200).nullable().optional(),
+  /** One rule per day-and-time pattern, e.g. ["0 9 1 * *", "0 18 L-1 * *"]. */
+  crons: z.array(cron).min(1, "Add a time for the reminder").max(6),
+  enabled: z.boolean().optional(),
+  /** The words it was made from, kept so the user recognises it. */
+  prompt: z.string().trim().max(300).nullable().optional(),
+});
+
+export const ReminderUpdateSchema = ReminderSchema.omit({ prompt: true }).partial();
+
+/** "Remind me to take creatine every day at 9 am" → a draft to review. Nothing is saved. */
+export const ReminderParseSchema = z.object({
+  text: z.string().trim().min(3, "Tell us what to remind you about, and when").max(300),
+});
+
 // ---------- Inferred input types (one per schema) ----------
 export type MealTypeValue = z.infer<typeof MealTypeSchema>;
 export type UploadUrlInput = z.infer<typeof UploadUrlSchema>;
 export type CreateMealInput = z.infer<typeof CreateMealSchema>;
 export type ConfirmMealInput = z.infer<typeof ConfirmMealSchema>;
+export type MealItemInput = z.infer<typeof MealItemInputSchema>;
 export type RecheckInput = z.infer<typeof RecheckSchema>;
 export type CheckinInput = z.infer<typeof CheckinSchema>;
 export type ParseItemsInput = z.infer<typeof ParseItemsSchema>;
@@ -228,3 +275,8 @@ export type LabelSaveInput = z.infer<typeof LabelSaveSchema>;
 export type EnergyLevel = z.infer<typeof EnergySchema>;
 export type WorkoutLogInput = z.infer<typeof WorkoutLogSchema>;
 export type LogItemsInput = z.infer<typeof LogItemsSchema>;
+export type SavedMealInput = z.infer<typeof SavedMealSchema>;
+export type LogSavedMealInput = z.infer<typeof LogSavedMealSchema>;
+export type ReminderInput = z.infer<typeof ReminderSchema>;
+export type ReminderUpdateInput = z.infer<typeof ReminderUpdateSchema>;
+export type ReminderParseInput = z.infer<typeof ReminderParseSchema>;

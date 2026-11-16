@@ -1,12 +1,13 @@
 import { Global, Module } from "@nestjs/common";
 import type Anthropic from "@anthropic-ai/sdk";
 import type OpenAI from "openai";
-import { ENV, type Env } from "../../config/config.module.js";
+import { ENV } from "../../config/config.module.js";
 import { ANTHROPIC, createAnthropic } from "./anthropic.client.js";
 import { ClaudeExtractor } from "./extraction/claude.extractor.js";
 import { MockExtractor } from "./extraction/mock.extractor.js";
 import { OpenAiExtractor } from "./extraction/openai.extractor.js";
 import { FOOD_EXTRACTOR } from "./extraction/types.js";
+import { AI_MODELS } from "./models.js";
 import { OPENAI, createOpenAI } from "./openai.client.js";
 
 /**
@@ -20,10 +21,10 @@ import { OPENAI, createOpenAI } from "./openai.client.js";
     { provide: OPENAI, inject: [ENV], useFactory: createOpenAI },
     {
       provide: FOOD_EXTRACTOR,
-      inject: [ENV, ANTHROPIC, OPENAI],
-      useFactory: (env: Env, anthropic: Anthropic | null, openai: OpenAI | null) => {
-        if (anthropic) return new ClaudeExtractor(anthropic, env.AI_EXTRACTION_MODEL);
-        if (openai) return new OpenAiExtractor(openai, env.AI_EXTRACTION_MODEL);
+      inject: [ANTHROPIC, OPENAI],
+      useFactory: (anthropic: Anthropic | null, openai: OpenAI | null) => {
+        if (anthropic) return new ClaudeExtractor(anthropic, AI_MODELS.anthropic.extraction);
+        if (openai) return new OpenAiExtractor(openai, AI_MODELS.openai.extraction);
         return new MockExtractor();
       },
     },

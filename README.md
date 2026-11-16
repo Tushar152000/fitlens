@@ -47,6 +47,7 @@ Prereqs: Node 22 (`nvm use`), Docker, and for mobile Expo Go or an Android emula
 nvm use && corepack enable && pnpm install
 pnpm bootstrap      # once: .env, Docker services, migrations, seed (safe to re-run)
 pnpm start:all      # API + web + Android emulator + app, in one terminal
+pnpm start:lite     # lighter: API + the app in your browser (no emulator)
 pnpm stop:all       # stop it all (data kept)
 ```
 

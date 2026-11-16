@@ -28,22 +28,23 @@ pnpm bootstrap
 
 `pnpm bootstrap` sets up and repairs the local environment, and is safe to re-run any time:
 
-- creates `.env` from `.env.example` and generates `AUTH_SECRET`
+- creates `.env` from `.env.example` and generates `AUTH_SECRET`. The root `.env` is the **only** env file: the API, Prisma, tests, the web (`apps/web/next.config.ts` loads it in dev and calls the API at `API_PUBLIC_URL`) and the app all read it
 - picks free ports for Postgres, Redis and MinIO if the defaults are taken (and updates the URLs in `.env`)
 - starts the Docker services, applies migrations, seeds foods and exercises
-- points the mobile app at your laptop (`apps/mobile/.env`) and picks a Metro port
+- picks a Metro port; when Expo starts, the script points the app at your laptop's Wi-Fi IP (`EXPO_PUBLIC_API_URL`, passed to Expo — set it in `.env` only for a tunnel). An old generated `apps/mobile/.env` is removed
 
 It never overwrites a value you set.
 
 ## 2. Daily use
 
-| You want                                 | Run                                                      | Then                                                                |
-| ---------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------- |
-| **Everything** (API, web, emulator, app) | `pnpm start:all`                                         | The app opens in the Android emulator. Web at http://localhost:3000 |
-| API + web only                           | `pnpm dev`                                               | Open http://localhost:3000                                          |
-| App on your phone                        | `pnpm dev` (terminal 1), `pnpm dev:mobile` (terminal 2)  | Scan the QR code with Expo Go, on the same Wi-Fi                    |
-| App on the emulator                      | `pnpm dev` (terminal 1), `pnpm dev:android` (terminal 2) | Opens in the emulator                                               |
-| **Stop everything**                      | `pnpm stop:all`                                          | Servers, Expo, emulator and Docker stop. Data is kept               |
+| You want                                 | Run                                                      | Then                                                                                                                                                                   |
+| ---------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Everything** (API, web, emulator, app) | `pnpm start:all`                                         | The app opens in the Android emulator. Web at http://localhost:3000                                                                                                    |
+| **Light: the app in your browser**       | `pnpm start:lite`                                        | No emulator, no Next.js web: API + the app at http://localhost:8083 (Expo web; set devtools to a phone size). Camera barcode scanning and reminder alerts need a phone |
+| API + web only                           | `pnpm dev`                                               | Open http://localhost:3000                                                                                                                                             |
+| App on your phone                        | `pnpm dev` (terminal 1), `pnpm dev:mobile` (terminal 2)  | Scan the QR code with Expo Go, on the same Wi-Fi                                                                                                                       |
+| App on the emulator                      | `pnpm dev` (terminal 1), `pnpm dev:android` (terminal 2) | Opens in the emulator                                                                                                                                                  |
+| **Stop everything**                      | `pnpm stop:all`                                          | Servers, Expo, emulator and Docker stop. Data is kept                                                                                                                  |
 
 - **`pnpm start:all`:**
   - writes API and web logs to `.dev/servers.log` (`tail -f .dev/servers.log`); only errors and warnings show in the terminal
@@ -58,11 +59,11 @@ It never overwrites a value you set.
 ```
 Phone / emulator (Expo Go)                 Your laptop
   app code   ◄──────────────────  Metro bundler :METRO_PORT (pnpm dev:mobile)
-  API calls  ──http://<LAN-IP>:3000──►  Next.js web :3000 ──/api/*──►  Nest API :4000 ──► Postgres · Redis · MinIO (Docker)
+  API calls  ──http://<LAN-IP>:4000──────────────────────────►  Nest API :4000 ──► Postgres · Redis · MinIO (Docker)
 Browser ───────────http://localhost:3000──┘
 ```
 
-- The app calls the **web server** (`EXPO_PUBLIC_API_URL`), which forwards `/api/*` to the API, the same as production. The browser uses a session cookie, the app a bearer token, and the API treats both the same.
+- The app and the browser call the **API directly** (`EXPO_PUBLIC_API_URL` / `API_PUBLIC_URL`), the same as production; the web has no `/api` of its own. The browser uses a session cookie, the app a bearer token, and the API treats both the same.
 - **Ports:**
   - web **3000**, API **4000** (`PORT`), Metro **`METRO_PORT`** (8081, or the first port not owned by another user)
   - Docker: Postgres 5432, Redis 6379, MinIO 9000 (console 9001), moved automatically if taken
@@ -84,7 +85,7 @@ Browser ───────────http://localhost:3000──┘
 **Google on a phone:** Google won't redirect to `localhost` or private IPs, so give your laptop a public https address:
 
 1. `cloudflared tunnel --url http://localhost:4000` (the API) prints `https://<name>.trycloudflare.com`.
-2. Set `API_PUBLIC_URL` in `.env` and `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` to it.
+2. Set `API_PUBLIC_URL` and `EXPO_PUBLIC_API_URL` in `.env` to it.
 3. Add `https://<name>.trycloudflare.com/api/auth/callback/google` to the OAuth client.
 4. Restart `pnpm dev` and Expo.
 

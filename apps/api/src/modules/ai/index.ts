@@ -1,6 +1,7 @@
 export { AiModule } from "./ai.module.js";
 export { ANTHROPIC, InjectAnthropic, FALLBACK_BETA } from "./anthropic.client.js";
 export { OPENAI } from "./openai.client.js";
+export { AI_MODELS } from "./models.js";
 export {
   FOOD_EXTRACTOR,
   type FoodExtractor,

@@ -4,16 +4,16 @@ import { Image } from "expo-image";
 import { File, Paths } from "expo-file-system";
 import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { ChevronRight, Crown, Download, Flame, LogOut, Pencil, Trash2 } from "lucide-react-native";
+import { BellRing, ChevronRight, Crown, Download, Flame, LogOut, Pencil, Trash2 } from "lucide-react-native";
 import { useEffect, useState, type ReactNode } from "react";
 import { Linking, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Sheet } from "@/components/sheet";
 import { Button, FieldError, Screen, Switch, Text } from "@/components/ui";
 import { api, apiText } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
-import { formatInt } from "@/lib/format";
+import { formatInt, mealTitle } from "@/lib/format";
 import { manageSubscriptionUrl, purchasesAvailable } from "@/lib/purchases";
-import { billingQuery, dayQuery, waterQuery } from "@/lib/queries";
+import { billingQuery, dayQuery, remindersQuery, waterQuery } from "@/lib/queries";
 import {
   ensureNotificationPermission,
   remindersAvailable,
@@ -49,6 +49,9 @@ export default function ProfileScreen() {
   const plan = useQuery({ queryKey: ["plan"], queryFn: () => api<PlanResponse>("/api/plan") });
   const usage = useQuery({ queryKey: ["usage"], queryFn: () => api<UsageDto>("/api/usage") });
   const day = useQuery(dayQuery);
+  // Also keeps this phone's scheduled reminders in step (tabs layout shares the query).
+  const reminders = useQuery(remindersQuery);
+  const reminderCount = reminders.data?.reminders.length ?? 0;
   const profile = me.profile!;
   const goal = plan.data?.goal;
   const target = plan.data?.summary.target;
@@ -164,6 +167,19 @@ export default function ProfileScreen() {
       </Group>
 
       <Group title="Reminders">
+        <LinkRow
+          label="My reminders"
+          sub={
+            reminderCount
+              ? mealTitle(
+                  reminders.data!.reminders.map((r) => r.title),
+                  "",
+                )
+              : "Describe one in words: “stretch at 7 pm on weekdays”"
+          }
+          icon={<BellRing size={20} color={colors.brand} />}
+          onPress={() => router.push("/reminders")}
+        />
         <Reminders lunch={profile.remindLunch} dinner={profile.remindDinner} water={profile.remindWater ?? false} />
       </Group>
 
@@ -229,12 +245,29 @@ function Row({ label, value, sub }: { label: string; value: string; sub?: string
   );
 }
 
-function LinkRow({ label, icon, onPress }: { label: string; icon?: ReactNode; onPress: () => void }) {
+function LinkRow({
+  label,
+  sub,
+  icon,
+  onPress,
+}: {
+  label: string;
+  sub?: string;
+  icon?: ReactNode;
+  onPress: () => void;
+}) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.row}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
         {icon}
-        <Text weight={600}>{label}</Text>
+        <View style={{ flex: 1 }}>
+          <Text weight={600}>{label}</Text>
+          {sub && (
+            <Text size={13} color={colors.ink3}>
+              {sub}
+            </Text>
+          )}
+        </View>
       </View>
       <ChevronRight size={20} color={colors.ink3} />
     </Pressable>

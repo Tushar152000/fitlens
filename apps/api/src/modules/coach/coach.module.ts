@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
 import type Anthropic from "@anthropic-ai/sdk";
 import type OpenAI from "openai";
-import { ENV, type Env } from "../../config/config.module.js";
 import { ANTHROPIC } from "../ai/anthropic.client.js";
+import { AI_MODELS } from "../ai/models.js";
 import { OPENAI } from "../ai/openai.client.js";
 import { FoodsModule } from "../foods/foods.module.js";
 import { MealsModule } from "../meals/meals.module.js";
@@ -28,10 +28,11 @@ import { TurnLock } from "./turn-lock.js";
     TurnLock,
     {
       provide: MODEL_GATEWAY,
-      inject: [ENV, ANTHROPIC, OPENAI],
-      useFactory: (env: Env, anthropic: Anthropic | null, openai: OpenAI | null) => {
-        if (anthropic) return new ClaudeGateway(anthropic, env.AI_COACH_MODEL, env.AI_COACH_EFFORT);
-        if (openai) return new OpenAiGateway(openai, env.AI_COACH_MODEL, env.AI_COACH_EFFORT);
+      inject: [ANTHROPIC, OPENAI],
+      useFactory: (anthropic: Anthropic | null, openai: OpenAI | null) => {
+        const { anthropic: claude, openai: gpt } = AI_MODELS;
+        if (anthropic) return new ClaudeGateway(anthropic, claude.coach, claude.coachEffort);
+        if (openai) return new OpenAiGateway(openai, gpt.coach, gpt.coachEffort);
         return new MockGateway();
       },
     },

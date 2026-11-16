@@ -18,6 +18,7 @@ import { HealthModule } from "./modules/health/health.module.js";
 import { MealsModule } from "./modules/meals/meals.module.js";
 import { PlanModule } from "./modules/plan/plan.module.js";
 import { ProgressModule } from "./modules/progress/progress.module.js";
+import { RemindersModule } from "./modules/reminders/reminders.module.js";
 import { UsersModule } from "./modules/users/users.module.js";
 import { WaterModule } from "./modules/water/water.module.js";
 import { WorkoutsModule } from "./modules/workouts/workouts.module.js";
@@ -81,6 +82,7 @@ import { WorkoutsModule } from "./modules/workouts/workouts.module.js";
     WorkoutsModule,
     WaterModule,
     ProgressModule,
+    RemindersModule,
     CoachModule,
   ],
   // Guards run in this order: rate limit → CSRF origin check → session.

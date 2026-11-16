@@ -23,6 +23,7 @@ Local setup and troubleshooting: `docs/DEVELOPMENT.md`.
 ```bash
 pnpm bootstrap       # set up / repair local env (.env, Docker, migrations, seed)
 pnpm start:all       # everything: services, api :4000 + web :3000, emulator, app (pnpm stop:all)
+pnpm start:lite      # light: services, api :4000, the app in the browser (no emulator, no web)
 pnpm dev             # api :4000 + web :3000 only
 pnpm db:migrate      # apply/create migrations (dev)
 pnpm check           # lint + typecheck + test, every workspace (CI runs the same)

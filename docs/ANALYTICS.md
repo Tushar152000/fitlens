@@ -16,7 +16,9 @@ Events and their params are defined once in `packages/contracts/src/analytics.ts
 | --------------------- | -------------------------------------------------------- | -------------------------------- |
 | `login`               | `method`: google / apple / dev                           | app                              |
 | `onboarding_complete` | `platform`: web / app (first onboarding, not goal edits) | web, app                         |
-| `meal_logged`         | `method`: photo / type / barcode / label / usual         | app (first save only, not edits) |
+| `meal_logged`         | `method`: photo / type / barcode / label / usual / saved | app (first save only, not edits) |
+| `saved_meal_created`  | `from`: builder / meal                                   | app                              |
+| `reminder_created`    | `from`: words / edited (schedule changed before saving)  | app                              |
 | `coach_message`       | –                                                        | app                              |
 | `pro_purchase`        | `period`: month / year                                   | app                              |
 | `calculator_used`     | –                                                        | web landing                      |

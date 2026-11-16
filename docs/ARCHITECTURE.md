@@ -57,20 +57,21 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 
 ### 3.2 Bounded contexts (modules)
 
-| Module     | Owns tables                                        | Routes                                                              |
-| ---------- | -------------------------------------------------- | ------------------------------------------------------------------- |
-| `auth`     | auth_identities, sessions, auth_codes, auth_events | `/auth/*`                                                           |
-| `users`    | users                                              | `/me`, `/account`, `/export`, `/profile/reminders`, `/profile/name` |
-| `plan`     | profiles, goals, daily_targets                     | `/onboarding`, `/targets`, `/plan`, `/goal/option`                  |
-| `meals`    | meal_logs, meal_items, ai_calls                    | `/meals/*`, `/usage`                                                |
-| `foods`    | foods, food_units, barcode_misses, label_scans     | `/foods/*`                                                          |
-| `water`    | water_logs                                         | `/water/*`                                                          |
-| `workouts` | exercises, workout_plans, workout_logs             | `/workouts/*`                                                       |
-| `progress` | body_metrics, checkins                             | `/checkins`, `/progress`, `/history`, `/dashboard`                  |
-| `coach`    | coach_conversations, coach_messages                | `/coach/*`                                                          |
-| `billing`  | entitlements, billing_events                       | `/billing`, `/billing/refresh`, `/billing/revenuecat` (webhook)     |
-| `ai`       | — (model access)                                   | —                                                                   |
-| `health`   | —                                                  | `/health`, `/health/live`                                           |
+| Module      | Owns tables                                                    | Routes                                                              |
+| ----------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `auth`      | auth_identities, sessions, auth_codes, auth_events             | `/auth/*`                                                           |
+| `users`     | users                                                          | `/me`, `/account`, `/export`, `/profile/reminders`, `/profile/name` |
+| `plan`      | profiles, goals, daily_targets                                 | `/onboarding`, `/targets`, `/plan`, `/goal/option`                  |
+| `meals`     | meal_logs, meal_items, saved_meals, saved_meal_items, ai_calls | `/meals/*`, `/usage`, `/saved-meals/*`                              |
+| `foods`     | foods, food_units, barcode_misses, label_scans                 | `/foods/*`                                                          |
+| `water`     | water_logs                                                     | `/water/*`                                                          |
+| `workouts`  | exercises, workout_plans, workout_logs                         | `/workouts/*`                                                       |
+| `progress`  | body_metrics, checkins                                         | `/checkins`, `/progress`, `/history`, `/dashboard`                  |
+| `coach`     | coach_conversations, coach_messages                            | `/coach/*`                                                          |
+| `reminders` | reminders (config only; the app schedules local notifications) | `/reminders/*`                                                      |
+| `billing`   | entitlements, billing_events                                   | `/billing`, `/billing/refresh`, `/billing/revenuecat` (webhook)     |
+| `ai`        | — (model access)                                               | —                                                                   |
+| `health`    | —                                                              | `/health`, `/health/live`                                           |
 
 **Rule:** a module writes only its own tables. Reading another context's data goes through that module's exported service. This is what makes extraction into a separate service a mechanical change (see §6).
 

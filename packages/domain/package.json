@@ -33,6 +33,10 @@
     "./billing": {
       "types": "./dist/billing/index.d.ts",
       "default": "./dist/billing/index.js"
+    },
+    "./reminders": {
+      "types": "./dist/reminders.d.ts",
+      "default": "./dist/reminders.js"
     }
   },
   "files": [

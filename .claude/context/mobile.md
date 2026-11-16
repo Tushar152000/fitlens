@@ -4,7 +4,7 @@ Paths relative to `apps/mobile/`. expo ~57, react-native 0.86, react 19.2, expo-
 
 ## Navigation (`src/app/_layout.tsx`)
 
-SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loading". `Stack.Protected`: `login` signed-out only; `onboarding` when signed in (also "edit goal"); `(tabs)`, `log`, `briefing`, `history`, `coach`, `pro` (modal) when signed in + `me.onboarded`. `index.tsx` redirects. Tabs: today, workout, progress, profile; custom `components/tab-bar.tsx` centre camera → `/log`. Log stack: `log/index` (photo), `log/type`, `log/[id]`, `log/barcode/{index,[code]}`, `log/label/{index,[id]}`. No `+not-found`, no `auth` route; `src/app/+native-intent.tsx` `redirectSystemPath` rewrites `fitlens://auth?…` (Google sign-in return) to `/` so the router never shows "Unmatched route" (`openAuthSessionAsync` still reads the URL).
+SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loading". `Stack.Protected` (declaration ORDER matters: when a guard flips the stack falls back to the first allowed screen, so the app group is declared before `onboarding`, `_layout.tsx:85`): `login` signed-out only; `(tabs)`, `log`, `briefing`, `history`, `coach`, `reminders`, `pro` (modal) when signed in + `me.onboarded`; `onboarding` when signed in (also "edit goal"). `index.tsx` redirects. Tabs: today, workout, progress, profile; custom `components/tab-bar.tsx` centre camera → `/log`. Log stack: `log/index` (photo + live barcode), `log/type`, `log/[id]`, `log/saved/[id]` (saved-meal builder, `new` = create), `log/barcode/{index,[code]}`, `log/label/{index,[id]}`. `/reminders` is a root stack screen (from Profile). No `+not-found`, no `auth` route; `src/app/+native-intent.tsx` `redirectSystemPath` rewrites `fitlens://auth?…` (Google sign-in return) to `/` so the router never shows "Unmatched route" (`openAuthSessionAsync` still reads the URL).
 
 ## Auth (`src/lib/auth.tsx`, `token-store.ts`, `api.ts`)
 
@@ -17,18 +17,19 @@ SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loadin
 
 ## API client
 
-`src/lib/config.ts`: `EXPO_PUBLIC_API_URL` default `https://api.fitr8.com` (the Nest API directly; eas.json same). Local: `scripts/local.mjs` writes `http://<LAN-IP>:4000` into `apps/mobile/.env`. `api()` → `ApiError(0, OFFLINE)` on network failure. `apiStream` uses `expo/fetch` for coach SSE. React Query (`query.ts`): staleTime 30 s, no retry on 4xx, NetInfo online manager. Shared keys (`queries.ts`): day=`/api/dashboard`, workout=`/api/workouts/today`, water, billing. Photos compressed to 1024 px JPEG before upload.
+`src/lib/config.ts`: `EXPO_PUBLIC_API_URL` default `https://api.fitr8.com` (the Nest API directly; eas.json same). Local: no `apps/mobile/.env`; `scripts/local.mjs` `mobileApiUrl` passes `EXPO_PUBLIC_API_URL` (root `.env` value, else `http://<LAN-IP>:<API port>`) to Expo's process env (unset would mean production). `api()` → `ApiError(0, OFFLINE)` on network failure. `apiStream` uses `expo/fetch` for coach SSE. React Query (`query.ts`): staleTime 30 s, no retry on 4xx, NetInfo online manager. Shared keys (`queries.ts`): day=`/api/dashboard`, workout=`/api/workouts/today`, water, billing. Photos compressed to 1024 px JPEG before upload.
 
-| Screen     | Endpoints                                                                                                                                                         |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| today      | dashboard (`?date=` for a past day), workouts/today, water (+POST/DELETE water; redo = re-POST the undone ml, local stack in `water-card.tsx`)                    |
-| workout    | workouts/today; POST workouts/logs (set state local only)                                                                                                         |
-| progress   | progress; POST checkins                                                                                                                                           |
-| profile    | plan, usage, dashboard, billing (if PRO); PATCH profile/reminders; export CSV → share; DELETE account                                                             |
-| coach      | conversations/:id; POST coach/chat (SSE); 429 → limit card (no Pro link)                                                                                          |
-| pro        | billing; POST billing/refresh                                                                                                                                     |
-| log/*      | upload-url → PUT → POST meals; meals/:id poll 1 s ≤60 s; PUT/recheck/DELETE; foods?q; parse-items; barcode/:code (not URL-encoded); quick-add; label (+:id, save) |
-| onboarding | plan; POST onboarding; goal/option                                                                                                                                |
+| Screen     | Endpoints                                                                                                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| today      | dashboard (`?date=` for a past day), workouts/today, water (+POST/DELETE water; redo = re-POST the undone ml, local stack in `water-card.tsx`)                                                               |
+| workout    | workouts/today; POST workouts/logs (set state local only)                                                                                                                                                    |
+| progress   | progress; POST checkins                                                                                                                                                                                      |
+| profile    | plan, usage, dashboard, reminders, billing (if PRO); PATCH profile/reminders; export CSV → share; DELETE account                                                                                             |
+| reminders  | reminders; POST reminders/parse → review sheet → POST reminders; PATCH (toggle/edit); DELETE                                                                                                                 |
+| coach      | conversations/:id; POST coach/chat (SSE); 429 → limit card (no Pro link)                                                                                                                                     |
+| pro        | billing; POST billing/refresh                                                                                                                                                                                |
+| log/*      | saved-meals (+POST, PUT, DELETE, :id/log); upload-url → PUT → POST meals; meals/:id poll 1 s ≤60 s; PUT/recheck/DELETE; foods?q; parse-items; barcode/:code (not URL-encoded); quick-add; label (+:id, save) |
+| onboarding | plan; POST onboarding; goal/option                                                                                                                                                                           |
 
 ## Meal type and day (2026-11-16)
 
@@ -52,11 +53,20 @@ SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loadin
 
 ## Notifications
 
-Water reminders = local notifications (`src/lib/reminders.ts`), not cancelled on sign-out/delete. Lunch/dinner reminders saved server-side only; nothing delivers them.
+- Water reminders = one-off local notifications, 7 days ahead (`src/lib/reminders.ts`). Lunch/dinner switches are saved server-side only; nothing delivers them.
+- Custom reminders: `syncCustomReminders` (`lib/reminders.ts:185`) cancels every `rem-*` notification and schedules each enabled reminder's API `slots` as MONTHLY (`day`), WEEKLY (weekday+1, expo 1 = Sunday) or DAILY triggers, plus one-off DATE triggers for `upcoming` wall-clock times (`localDate`), re-planned whenever the list is fetched (launch); runs serialized. Called by `useReminderSync` in `(tabs)/_layout.tsx:25` whenever `remindersQuery` data changes (launch, any change on the Reminders screen). Permission asked on first save (`ensureNotificationPermission`). `auth.tsx` `clear()` cancels water + custom reminders.
+
+## Photo scanner: barcode path
+
+`log/index.tsx`: `CameraView` scans EAN/UPC live (`onBarcode`, `:72`; cleared 1.2 s after leaving frame). Shutter with a barcode in view → push `/log/barcode/[code]` (no meal needed; product screen asks meal + portion). Else take photo → `barcodeInPhoto` (`scanFromURLAsync`, `:28`) → product, or AI upload; no meal yet → photo held until one is picked (`route`, `:104`). Gallery uses the same `route`.
+
+## Saved meals
+
+`/log/type` "Saved meals" (`logSaved`, `type.tsx:70`: picked meal → else the saved meal's `mealType` → else "Pick a meal first"). Builder `log/saved/[id].tsx`. Meal review "Save as a meal" → `components/log/save-meal-sheet.tsx` (POSTs current rows, works before confirming). Helpers `lib/saved-meals.ts`.
 
 ## Analytics (`src/lib/analytics.ts`, docs/ANALYTICS.md)
 
-Firebase Analytics, lazily `require`d; no-op on web preview, in Expo Go, or when `getApps()` is empty (no config files in the build). `track(name, params)` typed by `AnalyticsEvents` (contracts). `trackScreen` from `_layout.tsx` `Routes` (`useSegments`, groups dropped, route patterns only). `setAnalyticsUser(me.id)` in `auth.tsx` `load`, null in `clear`. Events: login (google/apple/dev after `load`), onboarding_complete (`onboarding/index.tsx`, not when `returning`), meal_logged (`log/[id].tsx` only if status ≠ CONFIRMED, `log/type.tsx` relog, barcode quick-add, label save, briefing snack), coach_message (`coach.tsx` send), pro_purchase (`pro.tsx`). `firebase.json`: adid/ssaid collection + automatic screen reporting off.
+Firebase Analytics, lazily `require`d; no-op on web preview, in Expo Go, or when `getApps()` is empty (no config files in the build). `track(name, params)` typed by `AnalyticsEvents` (contracts). `trackScreen` from `_layout.tsx` `Routes` (`useSegments`, groups dropped, route patterns only). `setAnalyticsUser(me.id)` in `auth.tsx` `load`, null in `clear`. Events: login (google/apple/dev after `load`), onboarding_complete (`onboarding/index.tsx`, not when `returning`), meal_logged (`log/[id].tsx` only if status ≠ CONFIRMED, `log/type.tsx` relog + saved, barcode quick-add, label save, briefing snack), saved_meal_created, reminder_created, coach_message (`coach.tsx` send), pro_purchase (`pro.tsx`). `firebase.json`: adid/ssaid collection + automatic screen reporting off.
 
 ## Tests
 

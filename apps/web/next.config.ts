@@ -1,4 +1,15 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import type { NextConfig } from "next";
+
+// One env file for the whole repo: in local development the web reads the root .env too (values
+// already in the shell win), and calls the API at the same API_PUBLIC_URL the API itself uses.
+// Deployments (Vercel, Docker) set NEXT_PUBLIC_API_URL themselves and have no root .env.
+const rootEnv = resolve(process.cwd(), "../../.env"); // next dev runs in apps/web
+if (process.env.NODE_ENV !== "production" && existsSync(rootEnv)) {
+  process.loadEnvFile(rootEnv);
+  process.env.NEXT_PUBLIC_API_URL ||= process.env.API_PUBLIC_URL;
+}
 
 // Lets a phone reach the dev server through a Cloudflare quick tunnel (https://*.trycloudflare.com)
 // or directly over Wi-Fi. Development only.

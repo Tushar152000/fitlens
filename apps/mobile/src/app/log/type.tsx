@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import type { UsualDto } from "@fitr8/contracts";
+import type { SavedMealDto, UsualDto } from "@fitr8/contracts";
 import { router } from "expo-router";
-import { ChevronRight, Info, Repeat, X } from "lucide-react-native";
+import { Bookmark, ChevronRight, Info, Pencil, Plus, Repeat, X } from "lucide-react-native";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -12,7 +12,8 @@ import { api } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import { formatInt, MEAL_LABEL, mealTitle } from "@/lib/format";
 import { useMealChoice } from "@/lib/meal-param";
-import { refreshDay } from "@/lib/query";
+import { queryClient, refreshDay } from "@/lib/query";
+import { savedMealsQuery } from "@/lib/queries";
 import { showDay } from "@/lib/view-day";
 import { colors, fonts, radius } from "@/lib/theme";
 
@@ -24,12 +25,13 @@ export default function TypeMealScreen() {
   const insets = useSafeAreaInsets();
   const [missing, setMissing] = useState(false);
   const [text, setText] = useState("");
-  const [busy, setBusy] = useState<string | null>(null); // "text" or a usual's mealId
+  const [busy, setBusy] = useState<string | null>(null); // "text", a usual's mealId or a saved meal's id
   const [error, setError] = useState<string | null>(null);
   const usuals = useQuery({
     queryKey: ["usuals"],
     queryFn: () => api<{ usuals: Usual[] }>("/api/meals/usuals").then((r) => r.usuals),
   });
+  const saved = useQuery(savedMealsQuery);
 
   async function submit() {
     const value = text.trim();
@@ -56,6 +58,25 @@ export default function TypeMealScreen() {
       await api("/api/meals/relog", { json: { mealId: u.mealId, mealType, ...dateBody } });
       track("meal_logged", { method: "usual" });
       refreshDay();
+      showDay(date);
+      router.dismissTo("/today");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't add that. Try again.");
+      setBusy(null);
+    }
+  }
+
+  /** One tap: the picked meal, else the slot the user saved it for; never a guess from the clock. */
+  async function logSaved(m: SavedMealDto) {
+    const slot = mealType ?? m.mealType;
+    if (!slot) return setMissing(true);
+    setBusy(m.id);
+    setError(null);
+    try {
+      await api(`/api/saved-meals/${m.id}/log`, { json: { mealType: slot, ...dateBody } });
+      track("meal_logged", { method: "saved" });
+      refreshDay();
+      queryClient.invalidateQueries({ queryKey: savedMealsQuery.queryKey });
       showDay(date);
       router.dismissTo("/today");
     } catch (err) {
@@ -117,6 +138,82 @@ export default function TypeMealScreen() {
           </View>
           {error && <FieldError>{error}</FieldError>}
         </View>
+
+        {saved.isSuccess && (
+          <View style={{ gap: 8, marginTop: 8 }}>
+            <View style={styles.sectionHead}>
+              <Text variant="h2">Saved meals</Text>
+              {saved.data.length > 0 && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="New saved meal"
+                  onPress={() => router.push({ pathname: "/log/saved/[id]", params: { id: "new", ...params } })}
+                  style={styles.link}
+                  hitSlop={6}
+                >
+                  <Plus size={16} color={colors.brand} />
+                  <Text weight={600} size={14} color={colors.brand}>
+                    New
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+            {saved.data.length === 0 ? (
+              <Button
+                variant="dashed"
+                icon={Bookmark}
+                onPress={() => router.push({ pathname: "/log/saved/[id]", params: { id: "new", ...params } })}
+              >
+                Save a meal you eat often
+              </Button>
+            ) : (
+              <>
+                <Text size={13} color={colors.ink3}>
+                  {mealType
+                    ? `One tap adds it to ${MEAL_LABEL[mealType].toLowerCase()}. No AI scan used.`
+                    : "One tap adds it to its usual meal, or pick one above. No AI scan used."}
+                </Text>
+                {saved.data.map((m) => (
+                  <View key={m.id} style={[styles.usual, busy !== null && { opacity: 0.6 }]}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Add ${m.name}`}
+                      onPress={() => logSaved(m)}
+                      disabled={busy !== null}
+                      style={styles.usualMain}
+                    >
+                      <View style={[styles.usualIcon, { backgroundColor: colors.proteinSoft }]}>
+                        <Bookmark size={20} color={colors.protein} />
+                      </View>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text weight={600} numberOfLines={1}>
+                          {m.name}
+                        </Text>
+                        <Text size={13} color={colors.ink3} tabular numberOfLines={1}>
+                          {formatInt(m.kcal)} kcal · {m.proteinG} g protein · {m.items.length}{" "}
+                          {m.items.length === 1 ? "item" : "items"}
+                          {!mealType && m.mealType ? ` · ${MEAL_LABEL[m.mealType]}` : ""}
+                        </Text>
+                      </View>
+                      <Text weight={600} size={13} color={colors.brand}>
+                        {busy === m.id ? "Adding…" : "Add"}
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Edit ${m.name}`}
+                      onPress={() => router.push({ pathname: "/log/saved/[id]", params: { id: m.id } })}
+                      disabled={busy !== null}
+                      style={styles.edit}
+                    >
+                      <Pencil size={18} color={colors.ink3} />
+                    </Pressable>
+                  </View>
+                ))}
+              </>
+            )}
+          </View>
+        )}
 
         {(usuals.data?.length ?? 0) > 0 && (
           <View style={{ gap: 8, marginTop: 8 }}>
@@ -190,6 +287,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
+  usualMain: { flex: 1, flexDirection: "row", alignItems: "center", gap: 12, minHeight: 40 },
+  edit: { width: 44, height: 44, marginRight: -8, alignItems: "center", justifyContent: "center" },
+  sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  link: { flexDirection: "row", alignItems: "center", gap: 4, minHeight: 44, paddingHorizontal: 4 },
   usualIcon: {
     width: 40,
     height: 40,

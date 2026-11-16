@@ -50,22 +50,18 @@ describe("parseEnv", () => {
     });
   });
 
-  it("picks model defaults from the AI provider, and requires that provider's key", () => {
-    expect(parseEnv({ ...base, AI_PROVIDER: "openai", OPENAI_API_KEY: "sk-x" })).toMatchObject({
-      AI_EXTRACTION_MODEL: "gpt-6.1-sol",
-      AI_COACH_MODEL: "gpt-6.1-sol",
+  it("requires the chosen provider's key, and never reads a model from env", () => {
+    // Models live in code (modules/ai/models.ts); stray model variables are ignored.
+    const env = parseEnv({
+      ...base,
+      AI_PROVIDER: "openai",
+      OPENAI_API_KEY: "sk-x",
+      AI_EXTRACTION_MODEL: "gpt-6-astra",
+      AI_COACH_MODEL: "gpt-6-astra",
     });
-    expect(
-      parseEnv({ ...base, AI_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "sk-ant-x" }).AI_COACH_MODEL,
-    ).toBe("claude-opus-5-5");
-    expect(
-      parseEnv({
-        ...base,
-        AI_PROVIDER: "openai",
-        OPENAI_API_KEY: "k",
-        AI_COACH_MODEL: "gpt-6-luna",
-      }).AI_COACH_MODEL,
-    ).toBe("gpt-6-luna");
+    expect(env).not.toHaveProperty("AI_EXTRACTION_MODEL");
+    expect(env).not.toHaveProperty("AI_COACH_MODEL");
+    expect(env).not.toHaveProperty("AI_COACH_EFFORT");
     expect(() => parseEnv({ ...base, AI_PROVIDER: "openai" })).toThrow(/OPENAI_API_KEY/);
   });
 

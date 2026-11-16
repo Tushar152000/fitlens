@@ -14,6 +14,10 @@ Record decisions as `YYYY-MM-DD — decision — why`. Move a question to Decide
 
 - 2026-11-11 — Testing phase cost mode: Cloud SQL back to `db-f1-micro` (backups + PITR kept) and Cloud Run min instances 0, until testing ends. Then: `gcloud sql instances patch fitlens-db --project=fitlens-prod --tier=db-custom-1-3840` and repo var `API_MIN_INSTANCES=1`. Until then run setup.sh with `SQL_TIER=db-f1-micro` (its default would upgrade).
 
+- 2026-11-17 — Custom reminders: server stores only title/description/`crons[]`/enabled; several rules per reminder; cron extended with L, L-n, d#n, dL, months. Fixed shapes repeat on the phone (daily/weekly/monthly ≤ 28th); changing dates are scheduled as the next 3 exact times and re-planned on app launch (stop after ~3 occurrences if the app is never opened). No push server.
+- 2026-11-16 — Saved meals store priced item snapshots (like a confirmed meal), logged with no AI call; separate from auto "usuals".
+- 2026-11-16 — Photo shutter checks for a barcode (live, then in the still) before using the AI; barcode → existing product/portion screen.
+
 ## Open (need the owner's answer)
 
 - Is the web staying read-only? Delete the unreachable web app screens (~6k lines) or revive a desktop shell?

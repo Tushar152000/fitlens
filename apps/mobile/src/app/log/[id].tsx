@@ -3,7 +3,17 @@ import { NATIVE_DRIVER } from "@/lib/motion";
 import { MealSkeleton } from "@/components/skeletons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft, NotebookPen, Plus, Redo2, Sparkles, Trash2, Undo2 } from "lucide-react-native";
+import {
+  Bookmark,
+  BookmarkCheck,
+  ChevronLeft,
+  NotebookPen,
+  Plus,
+  Redo2,
+  Sparkles,
+  Trash2,
+  Undo2,
+} from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   Animated,
@@ -20,12 +30,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AddItemSheet } from "@/components/log/add-item-sheet";
 import { AiLimitSheet, type ScanUsage } from "@/components/log/ai-limit-sheet";
 import { Analysing, Failed, Found } from "@/components/log/meal-states";
+import { SaveMealSheet } from "@/components/log/save-meal-sheet";
 import { QueryError } from "@/components/query-error";
 import { Button, Card, FieldError, MealItemEditor, Switch, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import { confirmAction } from "@/lib/confirm";
-import { formatInt, MEAL_LABEL } from "@/lib/format";
+import { formatInt, MEAL_LABEL, mealTitle } from "@/lib/format";
 import { choiceParams, dayFromParam, dayLabel } from "@/lib/meal-param";
 import { fromItems, scaleRow, setRowGrams, toConfirmPayload, totals, type Row } from "@/lib/meal-rows";
 import { refreshDay } from "@/lib/query";
@@ -127,6 +138,8 @@ function Editor({
   const [rechecking, setRechecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [savedAs, setSavedAs] = useState<string | null>(null);
   const [limit, setLimit] = useState<ScanUsage | null>(null);
   const [limitOpen, setLimitOpen] = useState(false);
 
@@ -272,6 +285,27 @@ function Editor({
                 <Button variant="dashed" icon={Plus} onPress={() => setAddOpen(true)}>
                   {rows.length ? "Add a missed item" : "Add an item"}
                 </Button>
+                {rows.length > 0 &&
+                  (savedAs ? (
+                    <View style={styles.savedAs} accessibilityLiveRegion="polite">
+                      <BookmarkCheck size={18} color={colors.protein} />
+                      <Text weight={600} size={13} color={colors.protein} style={{ flex: 1 }}>
+                        Saved as &quot;{savedAs}&quot; — one tap to log it next time
+                      </Text>
+                    </View>
+                  ) : (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityHint="Saves these items so you can log them again with one tap"
+                      onPress={() => setSaveOpen(true)}
+                      style={styles.saveAs}
+                    >
+                      <Bookmark size={18} color={colors.brand} />
+                      <Text weight={600} size={14} color={colors.brand}>
+                        Save as a meal for next time
+                      </Text>
+                    </Pressable>
+                  ))}
               </View>
 
               {gheeRelevant && (
@@ -351,6 +385,21 @@ function Editor({
       )}
 
       <AiLimitSheet open={limitOpen} onClose={() => setLimitOpen(false)} params={limitParams} usage={limit} />
+      <SaveMealSheet
+        open={saveOpen}
+        onClose={() => setSaveOpen(false)}
+        onSaved={(name) => {
+          setSavedAs(name);
+          setSaveOpen(false);
+        }}
+        rows={rows}
+        ghee={withGhee}
+        mealType={meal.mealType}
+        suggestedName={mealTitle(
+          rows.map((r) => r.name),
+          MEAL_LABEL[meal.mealType],
+        )}
+      />
       <AddItemSheet
         open={addOpen}
         mealType={meal.mealType}
@@ -471,6 +520,16 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans400,
     fontSize: 15,
     color: colors.ink,
+  },
+  saveAs: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 44 },
+  savedAs: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minHeight: 44,
+    borderRadius: radius.card,
+    backgroundColor: colors.proteinSoft,
+    paddingHorizontal: 16,
   },
   footer: {
     paddingTop: 12,

@@ -1,4 +1,4 @@
-import type { LabelRead, MealAnalysis } from "@fitr8/contracts";
+import type { LabelRead, MealAnalysis, ReminderDraft } from "@fitr8/contracts";
 
 export interface MealContext {
   mealType: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
@@ -39,6 +39,14 @@ export interface FoodExtractor {
   }): Promise<AiResult<MealAnalysis>>;
   parseMealText(input: { text: string; context: MealContext }): Promise<AiResult<MealAnalysis>>;
   readNutritionLabel(input: { image: ImageInput }): Promise<AiResult<LabelRead>>;
+  /** Small text task on the same port: "remind me to take creatine at 9 am" → title, line and cron. */
+  parseReminder(input: ReminderRequest): Promise<AiResult<ReminderDraft>>;
+}
+
+export interface ReminderRequest {
+  text: string;
+  /** The user's local date and time, e.g. "Monday 16 November 2026, 11:10 pm", for "tonight" / "tomorrow". */
+  localNow: string;
 }
 
 export const FOOD_EXTRACTOR = Symbol("FOOD_EXTRACTOR");

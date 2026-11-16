@@ -40,13 +40,6 @@ export function resolveAppEnv(source: { APP_ENV?: string; NODE_ENV?: string }): 
 export const isDeployed = (env: { APP_ENV: AppEnv }) =>
   env.APP_ENV === "staging" || env.APP_ENV === "production";
 
-/** Extraction and coach model when AI_EXTRACTION_MODEL / AI_COACH_MODEL are unset. */
-const DEFAULT_MODELS = {
-  mock: "mock",
-  anthropic: "claude-opus-5-5",
-  openai: "gpt-6.1-sol",
-} as const;
-
 /** Every setting the service reads. Parsed once at boot; the process refuses to start on bad config. */
 export const EnvSchema = z
   .object({
@@ -122,11 +115,7 @@ export const EnvSchema = z
     AI_PROVIDER: z.enum(["mock", "anthropic", "openai"]).default("mock"),
     ANTHROPIC_API_KEY: optional,
     OPENAI_API_KEY: optional,
-    /** Model for photo/text/label extraction. Default depends on AI_PROVIDER (DEFAULT_MODELS). */
-    AI_EXTRACTION_MODEL: optional,
-    /** Model for the coach agent loop. Default depends on AI_PROVIDER (DEFAULT_MODELS). */
-    AI_COACH_MODEL: optional,
-    AI_COACH_EFFORT: z.enum(["low", "medium", "high", "xhigh", "max"]).default("medium"),
+    // Models are chosen in code (modules/ai/models.ts), never from env.
     /** Free photo scans per user per local day (typed meals and not-food photos never count). */
     AI_DAILY_LIMIT: z.coerce.number().int().positive().default(3),
     /** Coach messages per user per local day. */
@@ -154,8 +143,6 @@ export const EnvSchema = z
       ...env,
       APP_ENV,
       AUTH_DEV_LOGIN: env.AUTH_DEV_LOGIN ?? (APP_ENV === "local" || APP_ENV === "test"),
-      AI_EXTRACTION_MODEL: env.AI_EXTRACTION_MODEL ?? DEFAULT_MODELS[env.AI_PROVIDER],
-      AI_COACH_MODEL: env.AI_COACH_MODEL ?? DEFAULT_MODELS[env.AI_PROVIDER],
       API_PUBLIC_URL: env.API_PUBLIC_URL ?? env.PUBLIC_URL,
     };
   })

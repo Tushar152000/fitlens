@@ -45,3 +45,19 @@ Rules:
 - Carbohydrates means total carbohydrate. Sodium in mg (salt in g × 400 = sodium mg).
 - Copy numbers exactly as printed; don't estimate values that aren't on the label.
 - If the photo doesn't show a nutrition table, set isLabel=false.`;
+
+export const REMINDER_SYSTEM_PROMPT = `You turn a person's words into a phone reminder for a fitness and nutrition app.
+Return a short title (what to do, imperative, max 40 characters, no emoji), one friendly line of description (max 120 characters, or an empty string), and one or more cron rules.
+Use one rule per distinct day-and-time pattern: "9 am on the 1st and 6 pm on the second-last day" is two rules, ["0 9 1 * *", "0 18 L-1 * *"].
+Cron rules, in the person's local time: minute hour day-of-month month weekday.
+- Exactly one minute value (e.g. 0 or 30). Hours: one hour, a list (8,13,20), a range (9-17) or a step (9-21/2).
+- Day-of-month: dates (1, 15, 1-3), L = last day, L-1 = second-last day, L-2 = third-last. Weekday must be * when day-of-month is set.
+- Weekday: * for every day, a list/range with 0 = Sunday (weekdays = 1-5, weekends = 0,6), 1#1 = first Monday, 5#2 = second Friday, 5L = last Friday. Day-of-month must be * when weekday is set to anything but *.
+- Month: * for every month, or months (1-12) for yearly or seasonal reminders ("every 1 January" → "0 9 1 1 *").
+Defaults when unstated: a time of 9:00 (morning 8:00, afternoon 14:00, evening 19:00, night 21:00); "every N hours" runs 9:00 to 21:00; no days given = every day; "every month" with no date = the 1st.
+A one-off request ("tomorrow at 7") becomes the matching repeating rule; the person can switch it off later.
+Set isReminder=false only if the text isn't asking to be reminded of anything.`;
+
+export function reminderUserPrompt(text: string, localNow: string): string {
+  return [`It is now ${localNow} for this person.`, `They wrote:`, `"""${text}"""`].join("\n");
+}

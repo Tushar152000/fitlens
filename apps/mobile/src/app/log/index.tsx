@@ -1,22 +1,49 @@
-import { CameraView, useCameraPermissions } from "expo-camera";
+import { CameraView, scanFromURLAsync, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
+import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { Camera, Images, Keyboard, X } from "lucide-react-native";
-import { useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Barcode, Camera, Images, Keyboard, X } from "lucide-react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Vibration, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AiLimitSheet, type ScanUsage } from "@/components/log/ai-limit-sheet";
 import { ModeTabs } from "@/components/log/mode-tabs";
 import { MealWhen } from "@/components/log/meal-when";
 import { Button, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
+import { normalizeBarcode } from "@/lib/barcode";
 import { useMealChoice } from "@/lib/meal-param";
 import { compressPhoto, uploadPhoto } from "@/lib/photo";
 import { colors, radius } from "@/lib/theme";
 
-type Phase = "idle" | "uploading" | "analysing";
+type Phase = "idle" | "checking" | "uploading" | "analysing";
+type Photo = { uri: string; width: number; height: number };
 
-/** Screen 7: camera → compress → signed upload → create meal → confirm. */
+/** Packaged-food barcodes (EAN-13/8, UPC-A/E), same set as the barcode screen. */
+const BARCODE_TYPES = ["ean13", "ean8", "upc_a", "upc_e"] as const;
+/** A barcode counts as "in frame" until the camera hasn't seen it for this long. */
+const SEEN_FOR_MS = 1200;
+
+/** A valid barcode in a still photo, or null. Never throws: no barcode just means "read the plate". */
+async function barcodeInPhoto(uri: string): Promise<string | null> {
+  if (Platform.OS === "web") return null;
+  try {
+    const found = await scanFromURLAsync(uri, [...BARCODE_TYPES]);
+    for (const r of found) {
+      const code = normalizeBarcode(r.data);
+      if (code) return code;
+    }
+  } catch {
+    // Unsupported image or scanner unavailable: fall through to the AI.
+  }
+  return null;
+}
+
+/**
+ * Screen 7: one shutter, two paths. A packaged food's barcode (seen live, or found in the photo)
+ * opens the product to pick a portion — exact label values, no AI scan used. Anything else goes
+ * camera → compress → signed upload → AI meal → confirm.
+ */
 export default function CameraScreen() {
   const { mealType, setMealType, date, setDate, dateBody, params } = useMealChoice();
   const insets = useSafeAreaInsets();
@@ -28,7 +55,37 @@ export default function CameraScreen() {
   const [error, setError] = useState<string | null>(null);
   const [limit, setLimit] = useState<ScanUsage | null>(null);
   const [limitOpen, setLimitOpen] = useState(false);
+  // A barcode the camera can see right now; cleared shortly after it leaves the frame.
+  const [seen, setSeen] = useState<string | null>(null);
+  const seenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // A photo taken before a meal was picked: read as soon as the user picks one.
+  const [held, setHeld] = useState<Photo | null>(null);
   const busy = phase !== "idle";
+
+  useEffect(
+    () => () => {
+      if (seenTimer.current) clearTimeout(seenTimer.current);
+    },
+    [],
+  );
+
+  function onBarcode(result: BarcodeScanningResult) {
+    const code = normalizeBarcode(result.data);
+    if (!code) return;
+    setSeen((prev) => {
+      if (prev !== code) Vibration.vibrate(30);
+      return code;
+    });
+    if (seenTimer.current) clearTimeout(seenTimer.current);
+    seenTimer.current = setTimeout(() => setSeen(null), SEEN_FOR_MS);
+  }
+
+  /** The barcode path: the product screen asks for the meal and the portion. */
+  function openProduct(code: string) {
+    setPhase("idle");
+    setHeld(null);
+    router.push({ pathname: "/log/barcode/[code]", params: { code, ...params } });
+  }
 
   function fail(e: unknown) {
     setPhase("idle");
@@ -40,22 +97,33 @@ export default function CameraScreen() {
     setError(e instanceof Error ? e.message : "Something went wrong. Try again.");
   }
 
-  /** The meal is always the user's choice; nothing is sent until it is picked. */
-  function needMeal(): boolean {
-    if (mealType) return false;
-    setMissing(true);
-    return true;
+  /**
+   * Barcode in the photo → product; otherwise the AI reads the plate. The meal is always the user's
+   * choice: without one the photo is held and read as soon as they pick.
+   */
+  async function route(photo: Photo) {
+    setError(null);
+    setPhase("checking");
+    const code = await barcodeInPhoto(photo.uri);
+    if (code) return openProduct(code);
+    setPhase("idle");
+    if (!mealType) {
+      setHeld(photo);
+      setMissing(true);
+      return;
+    }
+    await submit(photo, mealType);
   }
 
-  async function submit(photo: { uri: string; width: number; height: number }) {
-    if (needMeal()) return;
+  async function submit(photo: Photo, meal: NonNullable<typeof mealType>) {
+    setHeld(null);
     setError(null);
     setPhase("uploading");
     try {
       const key = await uploadPhoto(await compressPhoto(photo));
       setPhase("analysing");
       const log = await api<{ id: string }>("/api/meals", {
-        json: { source: "PHOTO", mealType, photoKey: key, ...dateBody },
+        json: { source: "PHOTO", mealType: meal, photoKey: key, ...dateBody },
       });
       router.replace(`/log/${log.id}`);
     } catch (e) {
@@ -64,20 +132,21 @@ export default function CameraScreen() {
   }
 
   async function shoot() {
-    if (needMeal() || !camera.current || !ready) return;
+    // A barcode in view wins: no photo, no upload, no scan used.
+    if (seen) return openProduct(seen);
+    if (!camera.current || !ready) return;
     try {
       const photo = await camera.current.takePictureAsync({ quality: 0.9 });
-      if (photo) await submit(photo);
+      if (photo) await route(photo);
     } catch (e) {
       fail(e);
     }
   }
 
   async function pickFromGallery() {
-    if (needMeal()) return;
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
     const asset = result.canceled ? null : result.assets[0];
-    if (asset) await submit(asset);
+    if (asset) await route(asset);
   }
 
   const granted = permission?.granted;
@@ -105,16 +174,25 @@ export default function CameraScreen() {
           onMealType={(m) => {
             setMealType(m);
             setMissing(false);
+            if (held && m) void submit(held, m);
           }}
           date={date}
           onDate={setDate}
           missing={missing}
+          showDay={false}
         />
       </View>
 
       <View style={styles.viewfinder}>
         {granted ? (
-          <CameraView ref={camera} style={StyleSheet.absoluteFill} facing="back" onCameraReady={() => setReady(true)} />
+          <CameraView
+            ref={camera}
+            style={StyleSheet.absoluteFill}
+            facing="back"
+            onCameraReady={() => setReady(true)}
+            barcodeScannerSettings={{ barcodeTypes: [...BARCODE_TYPES] }}
+            onBarcodeScanned={busy || held ? undefined : onBarcode}
+          />
         ) : (
           <View style={styles.center}>
             <Camera size={32} color="rgba(255,255,255,0.6)" />
@@ -133,17 +211,31 @@ export default function CameraScreen() {
             )}
           </View>
         )}
-        <Corners />
-        <View style={styles.hint} pointerEvents="none">
-          <Text weight={600} size={13} color={colors.white}>
-            Shoot from above · whole plate in frame
+        {held && <Image source={{ uri: held.uri }} style={StyleSheet.absoluteFill} contentFit="cover" />}
+        <Corners color={seen ? colors.proteinSoft : undefined} />
+        <View
+          style={[styles.hint, seen && { backgroundColor: colors.protein }]}
+          pointerEvents="none"
+          accessibilityLiveRegion="polite"
+        >
+          {seen && <Barcode size={16} color={colors.white} />}
+          <Text weight={600} size={13} color={colors.white} tabular>
+            {held
+              ? "Pick a meal above to read this photo"
+              : seen
+                ? `Barcode found · ${seen}`
+                : "Snap your plate, or point at a barcode"}
           </Text>
         </View>
         {busy && (
           <View style={[StyleSheet.absoluteFill, styles.center, { backgroundColor: "rgba(23,24,28,0.75)" }]}>
             <ActivityIndicator color={colors.white} size="large" />
             <Text weight={600} color={colors.white} accessibilityLiveRegion="polite">
-              {phase === "uploading" ? "Uploading your photo…" : "Reading your plate…"}
+              {phase === "checking"
+                ? "Checking the photo…"
+                : phase === "uploading"
+                  ? "Uploading your photo…"
+                  : "Reading your plate…"}
             </Text>
           </View>
         )}
@@ -155,17 +247,45 @@ export default function CameraScreen() {
         </Text>
       )}
 
+      {held && !busy && (
+        <View style={{ marginHorizontal: 20, marginTop: 12 }}>
+          <Button variant="ghostDark" onPress={() => setHeld(null)}>
+            Retake
+          </Button>
+        </View>
+      )}
+
       <View style={styles.controls}>
         <SideButton label="Gallery" icon={Images} onPress={pickFromGallery} disabled={busy} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Take photo"
-          onPress={shoot}
-          disabled={busy || !granted || !ready}
-          style={[styles.shutter, (busy || !granted) && { opacity: 0.5 }]}
-        >
-          {({ pressed }) => <View style={[styles.shutterInner, pressed && { transform: [{ scale: 0.95 }] }]} />}
-        </Pressable>
+        <View style={{ alignItems: "center", gap: 6 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={seen ? `Look up barcode ${seen}` : "Take photo"}
+            accessibilityHint={seen ? "Opens the product to pick how much you had" : undefined}
+            onPress={shoot}
+            disabled={busy || Boolean(held) || !granted || (!ready && !seen)}
+            style={[
+              styles.shutter,
+              seen && { borderColor: "rgba(221,235,227,0.6)" },
+              (busy || held || !granted) && { opacity: 0.5 },
+            ]}
+          >
+            {({ pressed }) => (
+              <View
+                style={[
+                  styles.shutterInner,
+                  seen && { backgroundColor: colors.protein },
+                  pressed && { transform: [{ scale: 0.95 }] },
+                ]}
+              >
+                {seen && <Barcode size={28} color={colors.white} />}
+              </View>
+            )}
+          </Pressable>
+          <Text weight={600} size={12} color={seen ? colors.proteinSoft : "rgba(255,255,255,0.85)"}>
+            {seen ? "Look up product" : "Snap"}
+          </Text>
+        </View>
         <SideButton label="Type" icon={Keyboard} onPress={() => router.replace({ pathname: "/log/type", params })} />
       </View>
 
@@ -201,9 +321,9 @@ function SideButton({
   );
 }
 
-/** Four L-shaped guides framing the plate. */
-function Corners() {
-  const c = { position: "absolute" as const, width: 36, height: 36, borderColor: "rgba(255,255,255,0.85)" };
+/** Four L-shaped guides framing the plate (green while a barcode is in view). */
+function Corners({ color = "rgba(255,255,255,0.85)" }: { color?: string }) {
+  const c = { position: "absolute" as const, width: 36, height: 36, borderColor: color };
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { margin: 20 }]}>
       <View style={[c, { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 16 }]} />
@@ -230,6 +350,9 @@ const styles = StyleSheet.create({
   },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 32 },
   hint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     position: "absolute",
     bottom: 16,
     alignSelf: "center",
@@ -264,5 +387,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  shutterInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: colors.brandGlow },
+  shutterInner: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: colors.brandGlow,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

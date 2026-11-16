@@ -3,12 +3,21 @@ import { MealAnalysisJob } from "./meal-analysis.job.js";
 import { MealItemsService } from "./meal-items.service.js";
 import { MealsController } from "./meals.controller.js";
 import { MealsService } from "./meals.service.js";
+import { SavedMealsController } from "./saved-meals.controller.js";
+import { SavedMealsService } from "./saved-meals.service.js";
 import { ScanQuotaService } from "./scan-quota.service.js";
 import { UsualsService } from "./usuals.service.js";
 
 @Module({
-  controllers: [MealsController],
-  providers: [MealsService, MealItemsService, ScanQuotaService, UsualsService, MealAnalysisJob],
+  controllers: [MealsController, SavedMealsController],
+  providers: [
+    MealsService,
+    MealItemsService,
+    ScanQuotaService,
+    UsualsService,
+    SavedMealsService,
+    MealAnalysisJob,
+  ],
   exports: [MealsService, MealItemsService, ScanQuotaService, UsualsService],
 })
 export class MealsModule {}
