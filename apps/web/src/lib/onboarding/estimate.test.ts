@@ -41,6 +41,22 @@ describe("estimateFromDraft", () => {
     expect(e?.kcal).toBe(1898); // 2,448 maintenance − 550 for 8 kg in 16 weeks
   });
 
+  it("ignores waist and neck unless the goal is body fat", () => {
+    const goal = {
+      ...body,
+      goalType: "FAT_LOSS" as const,
+      targetWeightKg: "74",
+      targetDate: "2027-02-02",
+    };
+    const plain = estimateFromDraft(goal, { today });
+    // Left over from "Body fat %": hidden, so they mustn't change the weight-goal estimate.
+    expect(estimateFromDraft({ ...goal, waistCm: "120", neckCm: "35" }, { today })).toEqual(plain);
+    const bf = { ...goal, targetMode: "BODY_FAT" as const, targetBodyFatPct: "12" };
+    expect(estimateFromDraft({ ...bf, waistCm: "120", neckCm: "35" }, { today })).not.toEqual(
+      estimateFromDraft(bf, { today }),
+    );
+  });
+
   it("falls back to the calculator age when there's no date of birth", () => {
     expect(estimateFromDraft({ ...body, birthDate: "" }, { today })).toBeNull();
     expect(

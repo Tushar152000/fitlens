@@ -16,7 +16,7 @@ import { requireViewer, serverApiOrNull } from "@/lib/server/api";
 import type { PlanDto } from "@fitr8/contracts";
 import { TooFastPlan } from "./too-fast";
 
-export const metadata = { title: "Your plan — FITR8" };
+export const metadata = { title: "Your plan | FITR8" };
 
 /**
  * Screen 5 / 5b: the plan computed at onboarding, rebuilt from the database so a refresh still

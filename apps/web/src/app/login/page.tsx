@@ -10,7 +10,7 @@ import { signInProviders } from "@/lib/server/providers";
 import { HeroPlate } from "./hero-plate";
 import { apiUrl } from "@/lib/api-url";
 
-export const metadata = { title: "Log in — FITR8" };
+export const metadata = { title: "Log in | FITR8" };
 
 /** Returning users. New users start at /welcome (the onboarding flow ends with sign-in). */
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {

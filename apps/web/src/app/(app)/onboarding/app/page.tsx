@@ -6,7 +6,7 @@ import { estimateLine, parseMode, RAIL, SETUP_STEPS } from "@/components/onboard
 import { requireOnboardedViewer, serverApiOrNull } from "@/lib/server/api";
 import type { PlanDto } from "@fitr8/contracts";
 
-export const metadata = { title: "Get the app — FITR8" };
+export const metadata = { title: "Get the app | FITR8" };
 
 const PERKS = [
   {

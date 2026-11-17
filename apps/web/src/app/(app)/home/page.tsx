@@ -7,11 +7,12 @@ import { dateLabel } from "@/components/onboarding/steps-meta";
 import { cn } from "@/lib/cn";
 import { formatInt } from "@fitr8/domain/format";
 import { requireOnboardedViewer, serverApiOrNull } from "@/lib/server/api";
+import { formatPhone } from "@fitr8/domain/person";
 import type { DashboardDto, PlanDto, WaterDayDto } from "@fitr8/contracts";
 import { DangerZone, SignOutButton } from "../(tabs)/profile/profile-controls";
 import { apiUrl } from "@/lib/api-url";
 
-export const metadata = { title: "Your plan — FITR8" };
+export const metadata = { title: "Your plan | FITR8" };
 
 const GOAL_LABEL = {
   FAT_LOSS: "Lose fat",
@@ -24,14 +25,14 @@ const GOAL_LABEL = {
  * read-only, plus where to get the app. Logging happens in the phone app.
  */
 export default async function HomePage() {
-  const { name, email, timezone } = await requireOnboardedViewer();
+  const { name, lastName, phone, email, timezone } = await requireOnboardedViewer();
   const [plan, day, water] = await Promise.all([
     serverApiOrNull<PlanDto>("/plan"),
     serverApiOrNull<DashboardDto>("/dashboard"),
     serverApiOrNull<WaterDayDto>("/water"),
   ]);
   const first = name?.split(" ")[0];
-  const display = name ?? email ?? "You";
+  const display = [name, lastName].filter(Boolean).join(" ") || email || "You";
   const today = new Intl.DateTimeFormat("en-IN", {
     weekday: "long",
     day: "numeric",
@@ -92,6 +93,7 @@ export default async function HomePage() {
                 <div className="px-4 py-3.5">
                   <p className="font-semibold">{display}</p>
                   {email && <p className="text-sm text-ink-3">{email}</p>}
+                  {phone && <p className="text-sm text-ink-3 tabular-nums">{formatPhone(phone)}</p>}
                 </div>
                 <AccountLink href="/onboarding" icon={<Pencil className="size-5 text-ink-2" />}>
                   Edit my plan

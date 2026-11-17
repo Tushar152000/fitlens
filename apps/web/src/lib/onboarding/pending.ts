@@ -11,6 +11,11 @@ export const CALCULATOR_KEY = "fitr8.onboarding.calculator";
 
 export interface PendingOnboarding {
   name: string;
+  /** Optional: stashes written before step 1 asked for them. */
+  lastName?: string;
+  phone?: string;
+  /** Set by /welcome/done when the number turned out to be taken: step 1 opens with it. */
+  phoneError?: string;
   draft: OnboardingDraft;
 }
 

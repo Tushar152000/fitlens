@@ -7,6 +7,14 @@ import { BareMark, LogoMark } from "@/components/logo";
 import { cn } from "@/lib/cn";
 import { formatInt } from "@fitr8/domain/format";
 
+/** A part of the current step ("About you" → Your body, Food and training). */
+export interface ShellSubstep {
+  label: string;
+  done: boolean;
+  current: boolean;
+  onSelect: () => void;
+}
+
 /** What the estimate card shows; null until there's enough to compute it. */
 export interface ShellEstimate {
   kcal: number;
@@ -21,8 +29,10 @@ export interface ShellEstimate {
 
 /**
  * Onboarding layout (docs/WEBSITE.md §3). Desktop: purple rail with the steps and a live
- * estimate, one question card on the right. Phones: progress bar and an estimate chip on top,
- * the footer (Continue) pinned to the bottom.
+ * estimate, the question on the right. With `split`, wide screens (xl) lay a form step out in
+ * landscape: exactly two children, the heading (left, stays in view) and the fields (right), with
+ * the footer under the fields. Phones: progress bar and an estimate chip on top, the footer
+ * (Continue) pinned to the bottom.
  */
 export function OnboardingShell({
   steps,
@@ -34,6 +44,8 @@ export function OnboardingShell({
   footer,
   railFooter,
   wide,
+  split,
+  substeps,
   children,
 }: {
   steps: readonly string[];
@@ -48,10 +60,18 @@ export function OnboardingShell({
   footer?: ReactNode;
   railFooter?: ReactNode;
   wide?: boolean;
+  /** Form steps: heading and fields side by side on wide screens. Pass exactly two children. */
+  split?: boolean;
+  /** Parts of the current step, listed under it in the rail and named in the phone header. */
+  substeps?: readonly ShellSubstep[];
   children: ReactNode;
 }) {
   const [estOpen, setEstOpen] = useState(false);
   const inSetup = current < setupSteps;
+  const column = wide ? "max-w-[860px]" : "max-w-[640px]";
+  // Landscape on xl: heading column + fields column (max width includes the 40 px gutters).
+  const splitGrid =
+    "xl:grid xl:max-w-[1160px] xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)] xl:gap-x-16 2xl:gap-x-24";
 
   return (
     <div className="min-h-dvh bg-fitr8-soft text-fitr8-ink lg:grid lg:grid-cols-[340px_minmax(0,1fr)]">
@@ -100,6 +120,43 @@ export function OnboardingShell({
                     {inner}
                   </span>
                 )}
+                {i === current && substeps && substeps.length > 0 && (
+                  <ol className="mt-1 mb-1.5 ml-[22px] flex flex-col gap-0.5 border-l border-white/25 pl-3">
+                    {substeps.map((sub) => (
+                      <li key={sub.label}>
+                        <button
+                          type="button"
+                          onClick={sub.onSelect}
+                          aria-current={sub.current ? "step" : undefined}
+                          className={cn(
+                            "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm font-semibold transition-colors",
+                            sub.current
+                              ? "bg-white/14 text-white"
+                              : "text-white/65 hover:bg-white/8 hover:text-white",
+                          )}
+                        >
+                          {/* Done: tick. Current: filled dot. Not yet: hollow dot. */}
+                          <span
+                            aria-hidden
+                            className={cn(
+                              "grid size-[18px] shrink-0 place-items-center rounded-full",
+                              sub.done && !sub.current
+                                ? "bg-white text-fitr8"
+                                : "shadow-[inset_0_0_0_1.5px_rgb(255_255_255/0.55)]",
+                            )}
+                          >
+                            {sub.done && !sub.current ? (
+                              <Check className="size-3" strokeWidth={3} />
+                            ) : (
+                              sub.current && <span className="size-2 rounded-full bg-white" />
+                            )}
+                          </span>
+                          {sub.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </li>
             );
           })}
@@ -144,10 +201,7 @@ export function OnboardingShell({
                     {estimate.exact ? "Daily target" : "Estimated daily target"}:{" "}
                     {formatInt(estimate.kcal)} kcal
                   </b>
-                  <p className="text-ink-3 tabular-nums">
-                    {estimate.line} · {estimate.proteinG} g protein · {estimate.carbsG} g carbs ·{" "}
-                    {estimate.fatG} g fat
-                  </p>
+                  <p className="text-ink-3">Full breakdown on your plan</p>
                 </>
               ) : (
                 "Your daily target appears once we know your body stats."
@@ -169,6 +223,10 @@ export function OnboardingShell({
               </div>
               <p className="text-xs font-semibold text-ink-3">
                 Step {current + 1} of {setupSteps} · {steps[current]}
+                {(() => {
+                  const sub = substeps?.find((x) => x.current);
+                  return sub ? ` · ${sub.label}` : "";
+                })()}
               </p>
             </>
           ) : (
@@ -180,7 +238,13 @@ export function OnboardingShell({
           key={current}
           className={cn(
             "mx-auto flex w-full flex-1 animate-page-in flex-col gap-6 px-5 pt-2 pb-6 lg:flex-none lg:gap-7 lg:px-10 lg:pt-14",
-            wide ? "max-w-[860px]" : "max-w-[640px]",
+            column,
+            split &&
+              cn(
+                splitGrid,
+                "xl:items-start xl:pt-[max(56px,10vh)]",
+                "xl:[&>*:first-child]:sticky xl:[&>*:first-child]:top-[max(56px,10vh)]",
+              ),
           )}
         >
           {children}
@@ -191,11 +255,12 @@ export function OnboardingShell({
             <div
               className={cn(
                 // Same column as <main> (max width includes its 20 / 40 px gutters).
-                "mx-auto flex w-full flex-col gap-2.5 px-5 lg:px-10",
-                wide ? "max-w-[860px]" : "max-w-[640px]",
+                "mx-auto w-full px-5 lg:px-10",
+                column,
+                split && splitGrid,
               )}
             >
-              {footer}
+              <div className="flex flex-col gap-2.5 xl:col-start-2">{footer}</div>
             </div>
           </footer>
         )}
@@ -219,21 +284,8 @@ function EstimateCard({ estimate }: { estimate: ShellEstimate | null }) {
             {formatInt(estimate.kcal)}{" "}
             <span className="text-sm font-semibold tracking-normal text-ink-3">kcal</span>
           </p>
-          <p className="mt-1.5 text-[13px] text-ink-2">{estimate.line}</p>
-          <dl className="mt-3 grid grid-cols-3 gap-2 text-xs font-semibold text-ink-3">
-            {(
-              [
-                ["Protein", estimate.proteinG],
-                ["Carbs", estimate.carbsG],
-                ["Fat", estimate.fatG],
-              ] as const
-            ).map(([label, g]) => (
-              <div key={label} className="flex flex-col-reverse">
-                <dd className="text-[15px] text-fitr8-ink tabular-nums">{g} g</dd>
-                <dt>{label}</dt>
-              </div>
-            ))}
-          </dl>
+          {/* Just the headline number while answering; macros and the goal line wait for the plan. */}
+          <p className="mt-1.5 text-[13px] text-ink-3">Full breakdown on your plan</p>
         </>
       ) : (
         <>

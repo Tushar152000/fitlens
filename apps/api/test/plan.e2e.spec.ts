@@ -39,6 +39,31 @@ describe("plan", () => {
       .expect(400);
   });
 
+  it("keeps a medical note only while the medical box is ticked", async () => {
+    const { agent } = await t.signIn();
+    await agent
+      .post("/api/onboarding")
+      .send(onboardingPayload({ medicalFlag: true, medicalNote: "x".repeat(501) }))
+      .expect(400);
+
+    await onboard(agent, { medicalFlag: true, medicalNote: "  Type 2 diabetes, on metformin  " });
+    let me = await agent.get("/api/me").expect(200);
+    expect(me.body.profile).toMatchObject({
+      medicalFlag: true,
+      medicalNote: "Type 2 diabetes, on metformin",
+    });
+
+    // Editing the plan with the box unticked drops the note, even if one is sent.
+    await onboard(agent, { medicalFlag: false, medicalNote: "still here?" });
+    me = await agent.get("/api/me").expect(200);
+    expect(me.body.profile).toMatchObject({ medicalFlag: false, medicalNote: null });
+
+    // Ticked with an empty note: no note.
+    await onboard(agent, { medicalFlag: true, medicalNote: "   " });
+    me = await agent.get("/api/me").expect(200);
+    expect(me.body.profile).toMatchObject({ medicalFlag: true, medicalNote: null });
+  });
+
   it("onboards, stores targets and rebuilds the plan", async () => {
     const { userId, agent } = await t.signIn();
     const res = await agent

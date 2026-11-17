@@ -89,7 +89,7 @@ export default function ProfileScreen() {
         )}
         <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
           <Text variant="h1" size={26} numberOfLines={1}>
-            {me.name ?? "Your profile"}
+            {[me.name, me.lastName].filter(Boolean).join(" ") || "Your profile"}
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <View style={styles.planPill}>

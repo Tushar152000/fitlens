@@ -100,7 +100,11 @@ enum AiCallType {
 
 model User {
   id            String    @id @default(cuid())
+  /// First (preferred) name; Google/Apple fill it with the full name until onboarding step 1.
   name          String?
+  lastName      String?
+  /// E.164 ("+919876543210"), optional, from onboarding step 1. One account per number.
+  phone         String?   @unique
   email         String?   @unique
   emailVerified DateTime?
   image         String?
@@ -251,6 +255,8 @@ model Profile {
   injuries            String[]      @default([])
   // Pregnancy or a medical condition: no calorie deficit, show "consult a professional".
   medicalFlag         Boolean       @default(false)
+  /// What the condition is, in the user's words (optional; kept only while medicalFlag is on).
+  medicalNote         String?
   timezone            String        @default("Asia/Kolkata")
   /// Design 13 reminder switches (2 pm lunch, 9 pm dinner). Stored now; sending needs web push.
   remindLunch         Boolean       @default(false)

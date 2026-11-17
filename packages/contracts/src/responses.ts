@@ -73,6 +73,7 @@ export interface ProfileDto {
   sessionMinutes: number;
   injuries: string[];
   medicalFlag: boolean;
+  medicalNote: string | null;
   timezone: string;
   remindLunch: boolean;
   remindDinner: boolean;
@@ -85,7 +86,11 @@ export interface ProfileDto {
 /** GET /api/me */
 export interface MeDto {
   id: string;
+  /** First (preferred) name. Google/Apple fill it with the full name until the user sets one. */
   name: string | null;
+  lastName: string | null;
+  /** E.164, e.g. "+919876543210". */
+  phone: string | null;
   email: string | null;
   image: string | null;
   onboarded: boolean;
@@ -98,6 +103,14 @@ export interface MeDto {
   profile: ProfileDto | null;
   /** FITR8 Pro or the free plan (docs/PREMIUM.md). */
   plan: "FREE" | "PRO";
+}
+
+/** GET /api/profile/phone-check */
+export interface PhoneCheckDto {
+  /** The number in E.164. */
+  phone: string;
+  /** False when another account already has it (your own number counts as available). */
+  available: boolean;
 }
 
 /** PATCH /api/profile/reminders */

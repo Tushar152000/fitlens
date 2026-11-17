@@ -1,7 +1,9 @@
 import { Injectable, Logger } from "@nestjs/common";
-import type { RemindersInput } from "@fitr8/contracts";
+import { Prisma } from "@fitr8/db";
+import type { PreferredNameInput, RemindersInput } from "@fitr8/contracts";
 import { isWelcomeBack, shouldTouchActivity } from "@fitr8/domain/activity";
 import { localDate, mealDateProblem, parseDateOnly } from "@fitr8/domain/dates";
+import { PHONE_TAKEN } from "@fitr8/domain/person";
 import { AppError } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { StorageService } from "../../infra/storage/storage.service.js";
@@ -104,7 +106,16 @@ export class UsersService {
   async me(userId: string, now = new Date()) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, name: true, email: true, image: true, lastActiveAt: true, profile: true },
+      select: {
+        id: true,
+        name: true,
+        lastName: true,
+        phone: true,
+        email: true,
+        image: true,
+        lastActiveAt: true,
+        profile: true,
+      },
     });
     const { profile, lastActiveAt, ...rest } = user;
     const activity = { onboardedAt: profile?.onboardedAt ?? null, lastActiveAt };
@@ -124,10 +135,34 @@ export class UsersService {
     await this.prisma.user.update({ where: { id: userId }, data: { lastActiveAt: now } });
   }
 
-  /** The name the user asked to be called in the web welcome flow. Google sign-in won't overwrite it. */
-  async setName(userId: string, name: string) {
-    await this.prisma.user.update({ where: { id: userId }, data: { name } });
+  /**
+   * Onboarding step 1: first name, last name, phone. Google sign-in won't overwrite them. Omitted
+   * fields stay as they are; a null phone clears it.
+   */
+  async setName(userId: string, { name, lastName, phone }: PreferredNameInput) {
+    if (phone && !(await this.phoneAvailable(userId, phone))) throw new AppError(409, PHONE_TAKEN);
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          name,
+          ...(lastName !== undefined ? { lastName } : {}),
+          ...(phone !== undefined ? { phone } : {}),
+        },
+      });
+    } catch (err) {
+      // Someone else saved the same number between the check and the write.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002")
+        throw new AppError(409, PHONE_TAKEN);
+      throw err;
+    }
     return this.me(userId);
+  }
+
+  /** True unless another account has this E.164 number (your own counts as available). */
+  async phoneAvailable(userId: string, phone: string): Promise<boolean> {
+    const owner = await this.prisma.user.findUnique({ where: { phone }, select: { id: true } });
+    return !owner || owner.id === userId;
   }
 
   /** Save the design-13 reminder switches (lunch, dinner, water). */

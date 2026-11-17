@@ -5,7 +5,7 @@ import { formatInt, formatTime, MEAL_LABEL, type MealType } from "@fitr8/domain/
 import { requireOnboardedViewer, serverApi } from "@/lib/server/api";
 import type { HistoryDayDto, HistoryDto } from "@fitr8/contracts";
 
-export const metadata = { title: "History — FITR8" };
+export const metadata = { title: "History | FITR8" };
 
 const dayLabel = (ymd: string, opts: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("en-IN", { ...opts, timeZone: "UTC" }).format(new Date(ymd));

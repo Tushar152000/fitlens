@@ -7,6 +7,9 @@ export type { OnboardingInput };
 type P = OnboardingInput;
 
 /** Form state. Number fields stay strings until submit so partial input like "72." is allowed. */
+/** Same cap as the API (contracts OnboardingSchema.medicalNote). */
+export const MEDICAL_NOTE_MAX = 500;
+
 export interface OnboardingDraft {
   goalType?: P["goal"]["type"];
   targetMode: "WEIGHT" | "BODY_FAT";
@@ -28,6 +31,8 @@ export interface OnboardingDraft {
   sessionMinutes: number;
   injuries: string;
   medicalFlag: boolean;
+  /** "Tell us about it": shown and sent only while medicalFlag is on. */
+  medicalNote: string;
 }
 
 export type DraftErrors = Partial<Record<keyof OnboardingDraft, string>>;
@@ -52,6 +57,7 @@ export function emptyDraft(today = new Date()): OnboardingDraft {
     sessionMinutes: 45,
     injuries: "",
     medicalFlag: false,
+    medicalNote: "",
   };
 }
 
@@ -119,14 +125,16 @@ export function validateStep(step: number, d: OnboardingDraft, today = new Date(
     }
     range(e, "heightCm", d.heightCm, 120, 230, "height", true);
     range(e, "weightKg", d.weightKg, 30, 250, "weight", true);
-    const bf = wantsBodyFat(d);
-    range(e, "waistCm", d.waistCm, 40, 200, "waist", bf);
-    range(e, "neckCm", d.neckCm, 20, 70, "neck", bf);
-    if (d.sex === "FEMALE") range(e, "hipCm", d.hipCm, 50, 200, "hip", bf);
-    const waist = num(d.waistCm);
-    const neck = num(d.neckCm);
-    if (!e.waistCm && !e.neckCm && waist && neck && waist <= neck) {
-      e.waistCm = "Waist must be bigger than neck";
+    // Measurements are asked (and needed) only for a body-fat goal; hidden ones aren't checked.
+    if (wantsBodyFat(d)) {
+      range(e, "waistCm", d.waistCm, 40, 200, "waist", true);
+      range(e, "neckCm", d.neckCm, 20, 70, "neck", true);
+      if (d.sex === "FEMALE") range(e, "hipCm", d.hipCm, 50, 200, "hip", true);
+      const waist = num(d.waistCm);
+      const neck = num(d.neckCm);
+      if (!e.waistCm && !e.neckCm && waist && neck && waist <= neck) {
+        e.waistCm = "Waist must be bigger than neck";
+      }
     }
     if (!d.activityLevel) e.activityLevel = "Pick the closest match";
     const direction = weightDirectionProblem(d);
@@ -135,6 +143,8 @@ export function validateStep(step: number, d: OnboardingDraft, today = new Date(
   if (step === 3) {
     if (!d.dietType) e.dietType = "Pick your diet";
     if (!d.equipment) e.equipment = "Pick what you can use";
+    if (d.medicalFlag && d.medicalNote.trim().length > MEDICAL_NOTE_MAX)
+      e.medicalNote = `Keep it under ${MEDICAL_NOTE_MAX} characters`;
   }
   return e;
 }
@@ -142,14 +152,16 @@ export function validateStep(step: number, d: OnboardingDraft, today = new Date(
 /** Draft → POST /api/onboarding body. Call only after all steps validate. */
 export function toPayload(d: OnboardingDraft, timezone: string): OnboardingInput {
   const target = needsTarget(d);
+  const bf = wantsBodyFat(d);
   return {
     sex: d.sex!,
     birthDate: d.birthDate,
     heightCm: Number(d.heightCm),
     weightKg: Number(d.weightKg),
-    waistCm: num(d.waistCm),
-    neckCm: num(d.neckCm),
-    hipCm: d.sex === "FEMALE" ? num(d.hipCm) : undefined,
+    // Only a body-fat goal asks for measurements; values left over from it aren't sent.
+    waistCm: bf ? num(d.waistCm) : undefined,
+    neckCm: bf ? num(d.neckCm) : undefined,
+    hipCm: bf && d.sex === "FEMALE" ? num(d.hipCm) : undefined,
     activityLevel: d.activityLevel!,
     dietType: d.dietType!,
     // Not asked in onboarding (design 4); workouts start at beginner and progress from logs.
@@ -163,6 +175,7 @@ export function toPayload(d: OnboardingDraft, timezone: string): OnboardingInput
       .filter(Boolean)
       .slice(0, 10),
     medicalFlag: d.medicalFlag,
+    medicalNote: d.medicalFlag && d.medicalNote.trim() ? d.medicalNote.trim() : undefined,
     timezone,
     goal: {
       type: d.goalType!,

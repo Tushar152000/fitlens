@@ -4,7 +4,7 @@ import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { currentUser } from "@/lib/server/api";
 import { signInProviders } from "@/lib/server/providers";
 
-export const metadata: Metadata = { title: "Build your plan — FITR8" };
+export const metadata: Metadata = { title: "Build your plan | FITR8" };
 
 /**
  * "Start for free": name, goal, body, training, then Google. Answers wait in sessionStorage

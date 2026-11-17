@@ -5,7 +5,7 @@ import type { ProgressDto } from "@fitr8/contracts";
 import { CheckinForm } from "./checkin-form";
 import { TrendChart } from "./trend-chart";
 
-export const metadata = { title: "Progress — FITR8" };
+export const metadata = { title: "Progress | FITR8" };
 
 const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)} kg`;
 
