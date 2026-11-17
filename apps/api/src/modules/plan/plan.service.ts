@@ -45,6 +45,8 @@ export class PlanService {
       sessionMinutes: input.sessionMinutes,
       injuries: input.injuries,
       medicalFlag: input.medicalFlag,
+      // Unticking the box clears the note; an empty note is stored as none.
+      medicalNote: (input.medicalFlag && input.medicalNote) || null,
       timezone: input.timezone,
       onboardedAt: new Date(),
     };

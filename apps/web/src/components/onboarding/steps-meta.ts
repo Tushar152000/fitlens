@@ -6,20 +6,19 @@ export type OnboardingMode = "welcome" | "new" | "edit";
 
 export const RAIL: Record<OnboardingMode, readonly string[]> = {
   welcome: [
-    "Your name",
+    "Your details",
     "Your goal",
     "About you",
-    "Food and training",
     "Save your plan",
     "Your daily target",
     "Get the app",
   ],
-  new: ["Your goal", "About you", "Food and training", "Your daily target", "Get the app"],
-  edit: ["Your goal", "About you", "Food and training", "Your daily target"],
+  new: ["Your details", "Your goal", "About you", "Your daily target", "Get the app"],
+  edit: ["Your goal", "About you", "Your daily target"],
 };
 
 /** Steps that are part of the form (the rest are the plan and get-the-app screens). */
-export const SETUP_STEPS: Record<OnboardingMode, number> = { welcome: 5, new: 3, edit: 3 };
+export const SETUP_STEPS: Record<OnboardingMode, number> = { welcome: 4, new: 3, edit: 2 };
 
 /** `?flow=` on /onboarding/plan and /onboarding/app; anything else is an edit. */
 export const parseMode = (v: unknown): OnboardingMode =>

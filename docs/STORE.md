@@ -102,15 +102,16 @@ that lack the native code and can crash them. 0.2.0 added `react-native-purchase
 
 Keep this table aligned with `/privacy`. Nothing is used for tracking or advertising; nothing is sold. AI requests may be processed by the configured OpenAI or Anthropic provider. When subscriptions are enabled, RevenueCat and the relevant app store process purchase-related identifiers and subscription status. The in-product CSV export currently covers confirmed meal items and weigh-ins only; it is not a complete account export.
 
-| Data                                                                     | Collected | Linked to user | Purpose                               |
-| ------------------------------------------------------------------------ | --------- | -------------- | ------------------------------------- |
-| Name, email, user id (Google/Apple)                                      | Yes       | Yes            | App functionality, account management |
-| Health & fitness (body stats, goal, food, water, workouts, medical flag) | Yes       | Yes            | App functionality                     |
-| Photos (meals, labels; only ones the user takes or picks)                | Yes       | Yes            | App functionality                     |
-| Other user content (typed meals, coach messages)                         | Yes       | Yes            | App functionality                     |
-| Location, contacts, microphone, ads id                                   | No        | –              | –                                     |
-| Product interaction (screens viewed, coarse events), device/app info     | Yes*      | Yes (FITR8 id) | Analytics                             |
-| Crash SDKs                                                               | None      | –              | –                                     |
+| Data                                                                                     | Collected | Linked to user | Purpose                               |
+| ---------------------------------------------------------------------------------------- | --------- | -------------- | ------------------------------------- |
+| Name, email, user id (Google/Apple)                                                      | Yes       | Yes            | App functionality, account management |
+| Phone number (optional, onboarding step 1)                                               | Yes       | Yes            | App functionality, account management |
+| Health & fitness (body stats, goal, food, water, workouts, medical flag + optional note) | Yes       | Yes            | App functionality                     |
+| Photos (meals, labels; only ones the user takes or picks)                                | Yes       | Yes            | App functionality                     |
+| Other user content (typed meals, coach messages)                                         | Yes       | Yes            | App functionality                     |
+| Location, contacts, microphone, ads id                                                   | No        | –              | –                                     |
+| Product interaction (screens viewed, coarse events), device/app info                     | Yes*      | Yes (FITR8 id) | Analytics                             |
+| Crash SDKs                                                                               | None      | –              | –                                     |
 
 \* Only in builds with Firebase configured (`docs/ANALYTICS.md`): Firebase Analytics (Google), no
 advertising ID (iOS `withoutAdIdSupport`, Android `AD_ID` permission blocked), no health values in

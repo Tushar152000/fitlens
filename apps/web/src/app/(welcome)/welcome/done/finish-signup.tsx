@@ -6,11 +6,12 @@ import { track } from "@/lib/client/analytics";
 import { api, ApiError } from "@/lib/client/api";
 import { toPayload, validateStep } from "@/lib/onboarding/draft";
 import { stashPending, takePending } from "@/lib/onboarding/pending";
+import { PHONE_TAKEN } from "@fitr8/domain/person";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * After sign-in: save the name, then the onboarding answers (behind "Building your plan"), then
+ * After sign-in: save step 1 (name, last name, phone), then the onboarding answers (behind "Building your plan"), then
  * the plan. Already onboarded → /home, answers dropped. No answers (other tab, storage blocked) →
  * the signed-in form. If saving fails, the answers go back into storage for /onboarding to reuse.
  */
@@ -24,26 +25,44 @@ export function FinishSignup({ onboarded }: { onboarded: boolean }) {
     if (started.current) return; // Strict Mode runs effects twice in dev.
     started.current = true;
     const pending = takePending();
-    const saveName = () =>
+    /** Step 1. "taken" when another account has the number; other failures are ignored. */
+    const saveName = (): Promise<"ok" | "taken"> =>
       pending?.name
-        ? api("/api/profile/name", { method: "PATCH", json: { name: pending.name } }).catch(
-            () => undefined,
+        ? api("/api/profile/name", {
+            method: "PATCH",
+            json: {
+              name: pending.name,
+              ...(pending.lastName ? { lastName: pending.lastName } : {}),
+              ...(pending.phone ? { phone: pending.phone } : {}),
+            },
+          }).then(
+            () => "ok" as const,
+            (e) => (e instanceof ApiError && e.status === 409 ? "taken" : "ok"),
           )
-        : Promise.resolve();
+        : Promise.resolve("ok");
 
     const complete =
       pending && [1, 2, 3].every((s) => Object.keys(validateStep(s, pending.draft)).length === 0);
-    if (onboarded || !complete) {
-      void saveName().finally(() => window.location.replace(onboarded ? "/home" : "/onboarding"));
+    if (onboarded) {
+      void saveName().finally(() => window.location.replace("/home"));
       return;
     }
 
     void (async () => {
+      // Before building anything: a taken number sends them back to step 1 with their answers.
+      if ((await saveName()) === "taken" && pending) {
+        stashPending({ ...pending, phoneError: PHONE_TAKEN });
+        window.location.replace("/onboarding");
+        return;
+      }
+      if (!complete) {
+        window.location.replace("/onboarding");
+        return;
+      }
       setBuilding(true);
       try {
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata";
         await Promise.all([
-          saveName(),
           api("/api/onboarding", { method: "POST", json: toPayload(pending.draft, timezone) }),
           wait(2600),
         ]);

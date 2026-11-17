@@ -1,7 +1,10 @@
 import { Controller, Delete, Get, HttpCode, Patch, Post, Res } from "@nestjs/common";
 import type { Response } from "express";
 import {
+  PhoneCheckQuerySchema,
   PreferredNameSchema,
+  type PhoneCheckDto,
+  type PhoneCheckQuery,
   RemindersSchema,
   type MeDto,
   type PreferredNameInput,
@@ -9,7 +12,7 @@ import {
   type RemindersInput,
 } from "@fitr8/contracts";
 import { UserId } from "../../common/auth/decorators.js";
-import { ZodBody } from "../../common/http/zod.js";
+import { ZodBody, ZodQuery } from "../../common/http/zod.js";
 import { wire } from "../../common/http/wire.js";
 import { AuthService } from "../auth/auth.service.js";
 import { UsersService } from "./users.service.js";
@@ -48,13 +51,22 @@ export class UsersController {
       .send(csv);
   }
 
-  /** Web welcome flow: "First, what can we call you?" */
+  /** Onboarding step 1 (web and app): first name, last name, phone. */
   @Patch("profile/name")
   name(
     @UserId() userId: string,
-    @ZodBody(PreferredNameSchema) { name }: PreferredNameInput,
+    @ZodBody(PreferredNameSchema) input: PreferredNameInput,
   ): Promise<MeDto> {
-    return wire(this.users.setName(userId, name));
+    return wire(this.users.setName(userId, input));
+  }
+
+  /** Onboarding step 1: warn before Continue when another account has the number. */
+  @Get("profile/phone-check")
+  async phoneCheck(
+    @UserId() userId: string,
+    @ZodQuery(PhoneCheckQuerySchema) { phone }: PhoneCheckQuery,
+  ): Promise<PhoneCheckDto> {
+    return { phone, available: await this.users.phoneAvailable(userId, phone) };
   }
 
   /** Save the design-13 reminder switches (lunch, dinner, water). */

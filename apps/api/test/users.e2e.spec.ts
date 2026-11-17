@@ -1,5 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { PHONE_TAKEN } from "@fitr8/domain/person";
 import { createTestApp, onboard, type TestApp } from "./support/app.js";
+
+/** Numbers are unique per account and the test database is shared: use a fresh one each time. */
+const randomDigits = (n: number) =>
+  Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join("");
+const indianMobile = () => `9${randomDigits(9)}`;
 
 describe("users", () => {
   let t: TestApp;
@@ -26,6 +32,107 @@ describe("users", () => {
     expect(res.body).toMatchObject({ name: "Asha", onboarded: false });
     const me = await agent.get("/api/me").expect(200);
     expect(me.body.name).toBe("Asha");
+    expect(me.body).toMatchObject({ lastName: null, phone: null });
+  });
+
+  it("saves last name and phone from onboarding step 1, phone in E.164", async () => {
+    await t
+      .http()
+      .patch("/api/profile/name")
+      .send({ name: "Asha", lastName: "Rao", phone: "98765 43210" })
+      .expect(401);
+    const { agent } = await t.signIn();
+    const send = (body: object) => agent.patch("/api/profile/name").send(body);
+    const mobile = indianMobile();
+
+    await send({ name: "Asha", lastName: "  " }).expect(400);
+    await send({ name: "Asha", lastName: "x".repeat(61) }).expect(400);
+    await send({ name: "Asha", lastName: "Rao", phone: "12345" }).expect(400);
+    await send({ name: "Asha", lastName: "Rao", phone: "call me" }).expect(400);
+    await send({ name: "Asha", lastName: "Rao", phone: Number(mobile) }).expect(400);
+
+    const typed = `0${mobile.slice(0, 5)}-${mobile.slice(5)}`;
+    const res = await send({ name: "Asha", lastName: " Rao ", phone: typed }).expect(200);
+    expect(res.body).toMatchObject({
+      name: "Asha",
+      lastName: "Rao",
+      phone: `+91${mobile}`,
+      onboarded: false,
+    });
+
+    // Omitted fields are kept (older app builds send only `name`).
+    await send({ name: "Ashwini" }).expect(200);
+    const kept = await agent.get("/api/me").expect(200);
+    expect(kept.body).toMatchObject({ name: "Ashwini", lastName: "Rao", phone: `+91${mobile}` });
+
+    // Foreign numbers need the country code; "" or null clears the phone.
+    const us = `+1415${randomDigits(7)}`;
+    await send({ name: "Ashwini", phone: us }).expect(200);
+    expect((await agent.get("/api/me")).body.phone).toBe(us);
+    await send({ name: "Ashwini", phone: "" }).expect(200);
+    expect((await agent.get("/api/me")).body.phone).toBeNull();
+    await send({ name: "Ashwini", phone: us }).expect(200);
+    await send({ name: "Ashwini", phone: null }).expect(200);
+    expect((await agent.get("/api/me")).body.phone).toBeNull();
+  });
+
+  it("keeps each user's phone to themselves", async () => {
+    const a = await t.signIn();
+    const b = await t.signIn();
+    await a.agent
+      .patch("/api/profile/name")
+      .send({ name: "A", lastName: "One", phone: indianMobile() })
+      .expect(200);
+    const other = await b.agent.get("/api/me").expect(200);
+    expect(other.body).toMatchObject({ lastName: null, phone: null });
+  });
+
+  it("refuses a phone number another account already has", async () => {
+    const a = await t.signIn();
+    const b = await t.signIn();
+    const mobile = indianMobile();
+    await a.agent
+      .patch("/api/profile/name")
+      .send({ name: "A", lastName: "One", phone: mobile })
+      .expect(200);
+
+    // Same number, typed differently, from another account → 409; nothing else is saved.
+    await b.agent
+      .patch("/api/profile/name")
+      .send({ name: "B", lastName: "Two", phone: `+91 ${mobile}` })
+      .expect(409, { error: PHONE_TAKEN });
+    expect((await b.agent.get("/api/me")).body).toMatchObject({ lastName: null, phone: null });
+
+    // Saving your own number again is fine.
+    await a.agent
+      .patch("/api/profile/name")
+      .send({ name: "A", lastName: "One", phone: mobile })
+      .expect(200);
+  });
+
+  it("checks whether a phone number is free before Continue", async () => {
+    await t.http().get("/api/profile/phone-check").query({ phone: indianMobile() }).expect(401);
+    const a = await t.signIn();
+    const b = await t.signIn();
+    const mobile = indianMobile();
+    await b.agent.get("/api/profile/phone-check").expect(400);
+    await b.agent.get("/api/profile/phone-check").query({ phone: "123" }).expect(400);
+
+    const free = await b.agent.get("/api/profile/phone-check").query({ phone: mobile }).expect(200);
+    expect(free.body).toEqual({ phone: `+91${mobile}`, available: true });
+
+    await a.agent
+      .patch("/api/profile/name")
+      .send({ name: "A", lastName: "One", phone: mobile })
+      .expect(200);
+    const taken = await b.agent
+      .get("/api/profile/phone-check")
+      .query({ phone: `+91${mobile}` })
+      .expect(200);
+    expect(taken.body).toEqual({ phone: `+91${mobile}`, available: false });
+    // Your own number is available to you.
+    const own = await a.agent.get("/api/profile/phone-check").query({ phone: mobile }).expect(200);
+    expect(own.body.available).toBe(true);
   });
 
   it("saves reminder switches after onboarding", async () => {

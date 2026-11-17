@@ -24,7 +24,7 @@ import { requireOnboardedViewer, serverApi, serverApiOrNull } from "@/lib/server
 import type { DashboardDto, TodayWorkoutDto, WaterDayDto } from "@fitr8/contracts";
 import { IntakeCard } from "./intake-card";
 
-export const metadata = { title: "Today — FITR8" };
+export const metadata = { title: "Today | FITR8" };
 
 function greeting(hour: number) {
   if (hour < 5) return "Up late";

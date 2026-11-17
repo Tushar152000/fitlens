@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizePhone } from "@fitr8/domain/person";
 
 const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 
@@ -19,6 +20,8 @@ export const OnboardingSchema = z
     sessionMinutes: z.number().int().min(15).max(120).default(45),
     injuries: z.array(z.string().max(60)).max(10).default([]),
     medicalFlag: z.boolean().default(false),
+    /** "Tell us about it" under the medical checkbox; ignored when the box isn't ticked. */
+    medicalNote: z.string().trim().max(500).optional(),
     timezone: z.string().default("Asia/Kolkata"),
     goal: z.object({
       type: z.enum(["FAT_LOSS", "MUSCLE_GAIN", "RECOMPOSITION"]),
@@ -153,9 +156,47 @@ export const RemindersSchema = z.object({
   water: z.boolean().optional(),
 });
 
-/** Web welcome flow, "Preferred first name". */
+/**
+ * Onboarding step 1, "About you": first name, last name, phone. Last name and phone are optional
+ * here so older app builds that send only `name` keep working (the UIs require the last name).
+ * Omitted → unchanged; phone `null` or "" → cleared. Phones are stored as E.164 (domain `phone`).
+ */
 export const PreferredNameSchema = z.object({
   name: z.string().trim().min(1).max(60),
+  lastName: z.string().trim().min(1).max(60).optional(),
+  phone: z
+    .string()
+    .max(32)
+    .nullable()
+    .optional()
+    .transform((v, ctx) => {
+      if (v === undefined) return undefined;
+      if (v === null || v.trim() === "") return null;
+      const e164 = normalizePhone(v);
+      if (!e164) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Enter a valid phone number, with the country code if it isn't Indian",
+        });
+        return z.NEVER;
+      }
+      return e164;
+    }),
+});
+
+/** GET /api/profile/phone-check?phone= — is this number free for the signed-in user? */
+export const PhoneCheckQuerySchema = z.object({
+  phone: z
+    .string()
+    .max(32)
+    .transform((v, ctx) => {
+      const e164 = normalizePhone(v);
+      if (!e164) {
+        ctx.addIssue({ code: "custom", message: "Enter a valid phone number" });
+        return z.NEVER;
+      }
+      return e164;
+    }),
 });
 
 /** One water tap: a glass (250 ml), a bottle (500 ml), or a custom amount. */
@@ -290,6 +331,7 @@ export type GoalOptionInput = z.infer<typeof GoalOptionSchema>;
 export type WelcomeBackInput = z.infer<typeof WelcomeBackSchema>;
 export type RemindersInput = z.infer<typeof RemindersSchema>;
 export type PreferredNameInput = z.infer<typeof PreferredNameSchema>;
+export type PhoneCheckQuery = z.infer<typeof PhoneCheckQuerySchema>;
 export type WaterAddInput = z.infer<typeof WaterAddSchema>;
 export type QuickAddInput = z.infer<typeof QuickAddSchema>;
 export type LabelScanInput = z.infer<typeof LabelScanSchema>;
