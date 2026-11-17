@@ -10,7 +10,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, gutter as defaultGutter } from "@/lib/theme";
+import { makeStyles, useColors, gutter as defaultGutter } from "@/lib/theme";
 
 /**
  * Scrolling screen on the ground colour with the app gutter. `footer` is pinned to the bottom
@@ -39,9 +39,11 @@ export function Screen({
   tabBar?: boolean;
 }) {
   const insets = useSafeAreaInsets();
+  const c = useColors();
+  const styles = useStyles();
   const bottom = tabBar ? 0 : insets.bottom;
   return (
-    <KeyboardAvoidingView behavior="padding" style={[styles.root, dark && { backgroundColor: colors.ink }]}>
+    <KeyboardAvoidingView behavior="padding" style={[styles.root, dark && { backgroundColor: c.panel }]}>
       <ScrollView
         contentContainerStyle={[
           { paddingTop: insets.top + 16, paddingHorizontal: gutter, paddingBottom: footer ? 16 : bottom + 32, gap: 24 },
@@ -50,7 +52,7 @@ export function Screen({
         keyboardShouldPersistTaps="handled"
         refreshControl={
           onRefresh ? (
-            <RefreshControl refreshing={Boolean(refreshing)} onRefresh={onRefresh} tintColor={colors.ink3} />
+            <RefreshControl refreshing={Boolean(refreshing)} onRefresh={onRefresh} tintColor={c.ink3} />
           ) : undefined
         }
       >
@@ -61,7 +63,7 @@ export function Screen({
           style={[
             styles.footer,
             { paddingHorizontal: gutter, paddingBottom: Math.max(16, bottom) },
-            dark && { backgroundColor: colors.ink, borderTopColor: "rgba(255,255,255,0.1)" },
+            dark && { backgroundColor: c.panel, borderTopColor: "rgba(255,255,255,0.1)" },
           ]}
         >
           {footer}
@@ -71,16 +73,16 @@ export function Screen({
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ground },
+const useStyles = makeStyles((c) => ({
+  root: { flex: 1, backgroundColor: c.ground },
   footer: {
     paddingTop: 12,
     gap: 10,
-    backgroundColor: colors.ground,
+    backgroundColor: c.ground,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
+    borderTopColor: c.line,
   },
-});
+}));
 
 /** A white card with the standard radius and padding. */
 export function Card({
@@ -93,6 +95,7 @@ export function Card({
   style?: StyleProp<ViewStyle>;
   dark?: boolean;
 } & Omit<ViewProps, "style">) {
+  const cardStyles = useCardStyles();
   return (
     <View {...props} style={[cardStyles.card, dark && cardStyles.dark, style]}>
       {children}
@@ -100,7 +103,7 @@ export function Card({
   );
 }
 
-const cardStyles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderRadius: 20, padding: 16, gap: 12 },
-  dark: { backgroundColor: colors.ink },
-});
+const useCardStyles = makeStyles((c) => ({
+  card: { backgroundColor: c.surface, borderRadius: 20, padding: 16, gap: 12 },
+  dark: { backgroundColor: c.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: c.panelLine },
+}));

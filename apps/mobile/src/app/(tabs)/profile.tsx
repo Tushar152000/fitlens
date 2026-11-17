@@ -8,7 +8,7 @@ import { BellRing, ChevronRight, Crown, Download, Flame, LogOut, Pencil, Trash2 
 import { useEffect, useState, type ReactNode } from "react";
 import { Linking, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Sheet } from "@/components/sheet";
-import { Button, FieldError, Screen, Switch, Text } from "@/components/ui";
+import { Button, FieldError, Screen, Segmented, Switch, Text } from "@/components/ui";
 import { api, apiText } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { formatInt, mealTitle } from "@/lib/format";
@@ -21,7 +21,7 @@ import {
   syncWaterReminders,
 } from "@/lib/reminders";
 import { queryClient } from "@/lib/query";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useAppearance, useColors, type AppearancePreference } from "@/lib/theme";
 import type { PlanResponse } from "@/lib/types-plan";
 import type { UsageDto } from "@fitr8/contracts";
 import { openLegal } from "@/lib/legal";
@@ -44,6 +44,8 @@ const date = (ymd: string) =>
 
 /** Screen 13: profile and settings. */
 export default function ProfileScreen() {
+  const c = useColors();
+  const styles = useStyles();
   const me = useMe();
   const { signOut } = useAuth();
   const plan = useQuery({ queryKey: ["plan"], queryFn: () => api<PlanResponse>("/api/plan") });
@@ -79,10 +81,8 @@ export default function ProfileScreen() {
         {me.image ? (
           <Image source={{ uri: me.image }} style={styles.avatar} />
         ) : (
-          <View
-            style={[styles.avatar, { backgroundColor: colors.ink, alignItems: "center", justifyContent: "center" }]}
-          >
-            <Text variant="h1" size={24} color={colors.white}>
+          <View style={[styles.avatar, { backgroundColor: c.panel, alignItems: "center", justifyContent: "center" }]}>
+            <Text variant="h1" size={24} color={c.white}>
               {(me.name ?? me.email ?? "?").charAt(0).toUpperCase()}
             </Text>
           </View>
@@ -93,14 +93,14 @@ export default function ProfileScreen() {
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <View style={styles.planPill}>
-              <Text weight={600} size={13} color={colors.ink2}>
+              <Text weight={600} size={13} color={c.ink2}>
                 {usage.data?.plan === "PRO" ? "FITR8 Pro" : "Free plan"}
               </Text>
             </View>
             {streak > 0 && (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Flame size={16} color={colors.brandGlow} fill={colors.brandGlow} />
-                <Text weight={600} size={13} color={colors.ink3}>
+                <Flame size={16} color={c.brandGlow} fill={c.brandGlow} />
+                <Text weight={600} size={13} color={c.ink3}>
                   {streak}-day streak
                 </Text>
               </View>
@@ -118,7 +118,7 @@ export default function ProfileScreen() {
               <Text weight={600} size={13} color="rgba(255,255,255,0.7)">
                 Current goal
               </Text>
-              <Text variant="h1" size={24} color={colors.white}>
+              <Text variant="h1" size={24} color={c.white}>
                 {goal ? GOAL_LABEL[goal.type] : "—"}
               </Text>
               <Text size={13} color="rgba(255,255,255,0.75)">
@@ -126,8 +126,8 @@ export default function ProfileScreen() {
               </Text>
             </View>
             <Pressable accessibilityRole="button" onPress={() => router.push("/onboarding")} style={styles.edit}>
-              <Pencil size={16} color={colors.white} />
-              <Text weight={600} size={13} color={colors.white}>
+              <Pencil size={16} color={c.white} />
+              <Text weight={600} size={13} color={c.white}>
                 Edit
               </Text>
             </Pressable>
@@ -135,7 +135,7 @@ export default function ProfileScreen() {
           {target && (
             <View style={styles.goalFoot}>
               <Text size={13} color="rgba(255,255,255,0.75)" tabular>
-                <Text weight={700} size={13} color={colors.white}>
+                <Text weight={700} size={13} color={c.white}>
                   {formatInt(target.kcal)} kcal
                 </Text>{" "}
                 a day · {target.proteinG} g protein · {target.carbsG} g carbs · {target.fatG} g fat
@@ -177,10 +177,14 @@ export default function ProfileScreen() {
                 )
               : "Describe one in words: “stretch at 7 pm on weekdays”"
           }
-          icon={<BellRing size={20} color={colors.brand} />}
+          icon={<BellRing size={20} color={c.brandText} />}
           onPress={() => router.push("/reminders")}
         />
         <Reminders lunch={profile.remindLunch} dinner={profile.remindDinner} water={profile.remindWater ?? false} />
+      </Group>
+
+      <Group title="Appearance">
+        <AppearancePicker />
       </Group>
 
       {usage.data && <PlanCard usage={usage.data} />}
@@ -195,15 +199,15 @@ export default function ProfileScreen() {
 
       <DangerZone onDeleted={signOut} />
 
-      <Text size={12} color={colors.ink3} center>
+      <Text size={12} color={c.ink3} center>
         {me.email} · FITR8 gives general fitness guidance, not medical advice.
       </Text>
-      <Text size={12} color={colors.ink3} center>
-        <Text size={12} color={colors.brand} weight={600} onPress={() => openLegal("privacy")}>
+      <Text size={12} color={c.ink3} center>
+        <Text size={12} color={c.brandText} weight={600} onPress={() => openLegal("privacy")}>
           Privacy Policy
         </Text>
         {"  ·  "}
-        <Text size={12} color={colors.brand} weight={600} onPress={() => openLegal("terms")}>
+        <Text size={12} color={c.brandText} weight={600} onPress={() => openLegal("terms")}>
           Terms
         </Text>
       </Text>
@@ -211,7 +215,33 @@ export default function ProfileScreen() {
   );
 }
 
+/** System (follow the phone), or always light / always dark. Applies instantly and is remembered. */
+function AppearancePicker() {
+  const c = useColors();
+  const { preference, setPreference } = useAppearance();
+  return (
+    <View style={{ padding: 16, gap: 10 }}>
+      <Segmented<AppearancePreference>
+        label="Theme"
+        value={preference}
+        onChange={setPreference}
+        options={[
+          { value: "system", label: "System" },
+          { value: "light", label: "Light" },
+          { value: "dark", label: "Dark" },
+        ]}
+      />
+      <Text size={13} color={c.ink3}>
+        {preference === "system"
+          ? "Matches your phone's light or dark setting."
+          : "Stays the same whatever your phone uses."}
+      </Text>
+    </View>
+  );
+}
+
 function Group({ title, children }: { title: string; children: ReactNode }) {
+  const styles = useStyles();
   const items = Array.isArray(children) ? children.flat().filter(Boolean) : [children];
   return (
     <View style={{ gap: 8 }} accessibilityLabel={title}>
@@ -228,15 +258,17 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function Row({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <View style={styles.row}>
-      <Text color={colors.ink2}>{label}</Text>
+      <Text color={c.ink2}>{label}</Text>
       <View style={{ alignItems: "flex-end" }}>
         <Text weight={600} tabular>
           {value}
         </Text>
         {sub && (
-          <Text size={12} color={colors.ink3}>
+          <Text size={12} color={c.ink3}>
             {sub}
           </Text>
         )}
@@ -256,6 +288,8 @@ function LinkRow({
   icon?: ReactNode;
   onPress: () => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.row}>
       <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -263,19 +297,21 @@ function LinkRow({
         <View style={{ flex: 1 }}>
           <Text weight={600}>{label}</Text>
           {sub && (
-            <Text size={13} color={colors.ink3}>
+            <Text size={13} color={c.ink3}>
               {sub}
             </Text>
           )}
         </View>
       </View>
-      <ChevronRight size={20} color={colors.ink3} />
+      <ChevronRight size={20} color={c.ink3} />
     </Pressable>
   );
 }
 
 /** Design 13 reminder switches, saved as you toggle. */
 function Reminders({ lunch, dinner, water }: { lunch: boolean; dinner: boolean; water: boolean }) {
+  const c = useColors();
+  const styles = useStyles();
   const { refresh } = useAuth();
   const [state, setState] = useState({ lunch, dinner, water });
   const [error, setError] = useState<string | null>(null);
@@ -329,11 +365,11 @@ function Reminders({ lunch, dinner, water }: { lunch: boolean; dinner: boolean; 
         <View key={key} style={[styles.row, { minHeight: 56 }]}>
           <View style={{ flex: 1 }}>
             <Text weight={600}>{label}</Text>
-            <Text size={13} color={colors.ink3}>
+            <Text size={13} color={c.ink3}>
               {sub}
             </Text>
             {key === "water" && state.water && nextWater && (
-              <Text weight={600} size={13} color={colors.water}>
+              <Text weight={600} size={13} color={c.water}>
                 Next reminder: {formatNext(nextWater)}
               </Text>
             )}
@@ -358,6 +394,8 @@ const formatNext = (d: Date) => {
 
 /** Plan card: scans left today, and FITR8 Pro (upgrade, or renewal + manage). */
 function PlanCard({ usage }: { usage: UsageDto }) {
+  const c = useColors();
+  const styles = useStyles();
   const billing = useQuery({ ...billingQuery, enabled: usage.plan === "PRO" });
   const pips = Math.min(usage.limit, 10);
   const usedPips = Math.min(pips, Math.round((usage.used / usage.limit) * pips));
@@ -371,10 +409,10 @@ function PlanCard({ usage }: { usage: UsageDto }) {
     <View style={styles.planCard} accessibilityLabel="Your plan">
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          {pro && <Crown size={16} color={colors.brand} />}
+          {pro && <Crown size={16} color={c.brandText} />}
           <Text weight={600}>{pro ? "FITR8 Pro" : "Free plan"}</Text>
         </View>
-        <Text weight={600} size={13} color={colors.ink3} tabular>
+        <Text weight={600} size={13} color={c.ink3} tabular>
           {usage.left} of {usage.limit} photo scans left today
         </Text>
       </View>
@@ -382,14 +420,14 @@ function PlanCard({ usage }: { usage: UsageDto }) {
         {Array.from({ length: pips }, (_, i) => (
           <View
             key={i}
-            style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: i < usedPips ? colors.brand : colors.track }}
+            style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: i < usedPips ? c.brand : c.track }}
           />
         ))}
       </View>
       {pro ? (
         <>
           {until && (
-            <Text size={13} color={colors.ink3}>
+            <Text size={13} color={c.ink3}>
               {billing.data?.lifetime
                 ? "Lifetime access."
                 : billing.data?.willRenew
@@ -403,7 +441,7 @@ function PlanCard({ usage }: { usage: UsageDto }) {
         </>
       ) : (
         <>
-          <Text size={13} color={colors.ink3}>
+          <Text size={13} color={c.ink3}>
             Typing meals and relogging usuals are always free.
           </Text>
           {/* Paywall off: free users already have today's limits, so there is nothing to sell yet. */}
@@ -420,6 +458,7 @@ function PlanCard({ usage }: { usage: UsageDto }) {
 
 /** Design 13 "Export CSV": written to a cache file and handed to the share sheet. */
 function ExportRow() {
+  const c = useColors();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -453,7 +492,7 @@ function ExportRow() {
     <>
       <LinkRow
         label={busy ? "Preparing…" : "Export as CSV"}
-        icon={<Download size={20} color={colors.ink2} />}
+        icon={<Download size={20} color={c.ink2} />}
         onPress={exportCsv}
       />
       {error && (
@@ -467,6 +506,8 @@ function ExportRow() {
 
 /** Delete account (danger text), with a typed confirmation. */
 function DangerZone({ onDeleted }: { onDeleted: () => void }) {
+  const c = useColors();
+  const styles = useStyles();
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
@@ -492,13 +533,13 @@ function DangerZone({ onDeleted }: { onDeleted: () => void }) {
         onPress={() => setOpen(true)}
         style={{ minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}
       >
-        <Trash2 size={16} color={colors.brand} />
-        <Text weight={600} color={colors.brand}>
+        <Trash2 size={16} color={c.brandText} />
+        <Text weight={600} color={c.brandText}>
           Delete account
         </Text>
       </Pressable>
       <Sheet open={open} onClose={() => setOpen(false)} title="Delete your account?">
-        <Text color={colors.ink2}>
+        <Text color={c.ink2}>
           This deletes your account, meals, weigh-ins and plan for good. Type DELETE to confirm.
         </Text>
         <TextInput
@@ -508,7 +549,7 @@ function DangerZone({ onDeleted }: { onDeleted: () => void }) {
           autoCapitalize="characters"
           autoCorrect={false}
           placeholder="DELETE"
-          placeholderTextColor="rgba(107,110,118,0.6)"
+          placeholderTextColor={c.ink3}
           style={styles.confirm}
         />
         {error && <FieldError>{error}</FieldError>}
@@ -523,10 +564,17 @@ function DangerZone({ onDeleted }: { onDeleted: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
-  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: colors.sunken },
-  planPill: { borderRadius: 999, backgroundColor: colors.chip, paddingHorizontal: 10, paddingVertical: 2 },
-  goal: { gap: 12, borderRadius: radius.card, backgroundColor: colors.ink, padding: 20 },
+const useStyles = makeStyles((c) => ({
+  avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: c.sunken },
+  planPill: { borderRadius: 999, backgroundColor: c.chip, paddingHorizontal: 10, paddingVertical: 2 },
+  goal: {
+    gap: 12,
+    borderRadius: radius.card,
+    backgroundColor: c.panel,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: c.panelLine,
+    padding: 20,
+  },
   edit: {
     minHeight: 44,
     flexDirection: "row",
@@ -537,8 +585,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   goalFoot: { borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.15)", paddingTop: 12 },
-  group: { borderRadius: radius.card, backgroundColor: colors.surface },
-  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  group: { borderRadius: radius.card, backgroundColor: c.surface },
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line },
   row: {
     minHeight: 48,
     flexDirection: "row",
@@ -548,17 +596,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  planCard: { gap: 12, borderRadius: radius.card, backgroundColor: colors.surface, padding: 16 },
+  planCard: { gap: 12, borderRadius: radius.card, backgroundColor: c.surface, padding: 16 },
   confirm: {
     height: 52,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     fontFamily: fonts.sans600,
     fontSize: 18,
     letterSpacing: 2,
-    color: colors.ink,
+    color: c.ink,
   },
-});
+}));

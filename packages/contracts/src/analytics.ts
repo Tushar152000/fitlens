@@ -13,6 +13,8 @@ export interface AnalyticsEvents {
   login: { method: "google" | "apple" | "dev" };
   /** Finished onboarding and got a plan; the sign-up conversion. */
   onboarding_complete: { platform: "web" | "app" };
+  /** Back after 90+ days: refreshed the numbers, or chose "Not now". No values are sent. */
+  welcome_back: { action: "updated" | "dismissed" };
   /** A meal was saved to the day. */
   meal_logged: { method: MealLogMethod };
   /** A saved meal was created (builder or "Save as a meal"). */

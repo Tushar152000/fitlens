@@ -9,15 +9,17 @@ import { QueryError } from "@/components/query-error";
 import { Card, MealRow, Screen, Segmented, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { formatInt, formatTime, MEAL_LABEL, type MealType } from "@/lib/format";
-import { colors, radius } from "@/lib/theme";
+import { makeStyles, radius, useColors } from "@/lib/theme";
 
 type History = HistoryDto;
 
 const dayLabel = (ymd: string, opts: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("en-IN", { ...opts, timeZone: "UTC" }).format(new Date(ymd));
 
-/** Screen 12: 7/30-day intake history with a tappable day list. */
+/** Screen 12 "Past logs": 7/30-day intake history with a tappable day list. */
 export default function HistoryScreen() {
+  const c = useColors();
+  const styles = useStyles();
   const [range, setRange] = useState<7 | 30>(7);
   const [picked, setPicked] = useState<string | null>(null);
   const history = useQuery({
@@ -32,7 +34,7 @@ export default function HistoryScreen() {
       <BackHeader />
       <View>
         <Text variant="meta">Meal history</Text>
-        <Text variant="h1">History</Text>
+        <Text variant="h1">Past logs</Text>
       </View>
       <Segmented
         label="Range"
@@ -52,19 +54,19 @@ export default function HistoryScreen() {
         <QueryError error={history.error} onRetry={() => history.refetch()} />
       ) : !h || !selected ? (
         <Card>
-          <Text color={colors.ink3}>Nothing logged yet.</Text>
+          <Text color={c.ink3}>Nothing logged yet.</Text>
         </Card>
       ) : (
         <>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <View style={styles.tile}>
-              <Text weight={600} size={12} color={colors.ink3}>
+              <Text weight={600} size={12} color={c.ink3}>
                 Average on full days
               </Text>
               <Text variant="h2" size={22} tabular>
                 {h.avgKcalFullDays == null ? "—" : formatInt(h.avgKcalFullDays)}
                 {h.avgKcalFullDays != null && (
-                  <Text weight={600} size={13} color={colors.ink3}>
+                  <Text weight={600} size={13} color={c.ink3}>
                     {" "}
                     kcal
                   </Text>
@@ -72,12 +74,12 @@ export default function HistoryScreen() {
               </Text>
             </View>
             <View style={styles.tile}>
-              <Text weight={600} size={12} color={colors.ink3}>
+              <Text weight={600} size={12} color={c.ink3}>
                 Days logged
               </Text>
               <Text variant="h2" size={22} tabular>
                 {h.daysLogged}
-                <Text weight={600} size={13} color={colors.ink3}>
+                <Text weight={600} size={13} color={c.ink3}>
                   {" "}
                   of {range}
                 </Text>
@@ -111,7 +113,7 @@ export default function HistoryScreen() {
               ))
             ) : (
               <Card>
-                <Text color={colors.ink3}>Nothing logged this day.</Text>
+                <Text color={c.ink3}>Nothing logged this day.</Text>
               </Card>
             )}
           </View>
@@ -135,6 +137,8 @@ function DailyBars({
   selected: string;
   onSelect: (date: string) => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const targets = days.map((d) => d.target ?? 0);
   const max = Math.max(...days.map((d) => d.kcal), ...targets, 1) * 1.1;
   const typicalTarget = targets.filter(Boolean).at(-1) ?? 0;
@@ -145,8 +149,8 @@ function DailyBars({
     <Card accessibilityLabel={`Daily calories. ${summary}`}>
       <View style={{ height: BAR_H }}>
         {typicalTarget > 0 && (
-          <View pointerEvents="none" style={[styles.target, { bottom: (typicalTarget / max) * BAR_H }]}>
-            <Text weight={600} size={11} color={colors.ink3} tabular style={styles.targetLabel}>
+          <View style={[styles.target, { bottom: (typicalTarget / max) * BAR_H, pointerEvents: "none" }]}>
+            <Text weight={600} size={11} color={c.ink3} tabular style={styles.targetLabel}>
               {formatInt(typicalTarget)}
             </Text>
           </View>
@@ -176,10 +180,10 @@ function DailyBars({
                     height: h,
                     borderTopLeftRadius: 6,
                     borderTopRightRadius: 6,
-                    backgroundColor: !d.logged ? colors.line : isOver ? colors.ink : colors.brand,
+                    backgroundColor: !d.logged ? c.line : isOver ? c.ink : c.brand,
                     opacity: d.isToday && d.logged ? 0.45 : 1,
                     ...(isSelected
-                      ? { outlineWidth: 2, outlineColor: colors.ink, outlineOffset: 2, outlineStyle: "solid" }
+                      ? { outlineWidth: 2, outlineColor: c.ink, outlineOffset: 2, outlineStyle: "solid" }
                       : null),
                   }}
                 />
@@ -191,35 +195,36 @@ function DailyBars({
       {range === 7 && (
         <View style={{ flexDirection: "row", gap: 12 }} aria-hidden>
           {days.map((d) => (
-            <Text key={d.date} weight={600} size={11} color={colors.ink3} center style={{ flex: 1 }}>
+            <Text key={d.date} weight={600} size={11} color={c.ink3} center style={{ flex: 1 }}>
               {dayLabel(d.date, { weekday: "narrow" })}
             </Text>
           ))}
         </View>
       )}
       <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 16, rowGap: 4 }} aria-hidden>
-        <Legend color={colors.brand} label="Within target" />
-        <Legend color={colors.ink} label="Over" />
-        <Legend color={colors.line} label="Not logged" />
-        <Legend color={colors.brand} faded label="Today so far" />
+        <Legend color={c.brand} label="Within target" />
+        <Legend color={c.ink} label="Over" />
+        <Legend color={c.line} label="Not logged" />
+        <Legend color={c.brand} faded label="Today so far" />
       </View>
     </Card>
   );
 }
 
 function Legend({ color, label, faded }: { color: string; label: string; faded?: boolean }) {
+  const c = useColors();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
       <View style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: color, opacity: faded ? 0.45 : 1 }} />
-      <Text weight={600} size={12} color={colors.ink3}>
+      <Text weight={600} size={12} color={c.ink3}>
         {label}
       </Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  tile: { flex: 1, borderRadius: radius.card, backgroundColor: colors.surface, padding: 12 },
+const useStyles = makeStyles((c) => ({
+  tile: { flex: 1, borderRadius: radius.card, backgroundColor: c.surface, padding: 12 },
   target: {
     position: "absolute",
     left: 0,
@@ -229,4 +234,4 @@ const styles = StyleSheet.create({
     borderColor: "rgba(107,110,118,0.6)",
   },
   targetLabel: { position: "absolute", right: 0, top: -20 },
-});
+}));

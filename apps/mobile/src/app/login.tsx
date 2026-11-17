@@ -3,14 +3,14 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import type { ProvidersDto } from "@fitr8/contracts";
 import { LogIn } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Platform, StyleSheet, TextInput, useWindowDimensions, View } from "react-native";
+import { Platform, TextInput, useWindowDimensions, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { HeroPlate } from "@/components/hero-plate";
 import { Button, FieldError, Logo, Screen, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { openLegal } from "@/lib/legal";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useColors, useScheme } from "@/lib/theme";
 
 function useProviders() {
   return useQuery({
@@ -37,6 +37,9 @@ function useAppleAvailable() {
  */
 export default function LoginScreen() {
   const { signIn, appleSignIn } = useAuth();
+  const c = useColors();
+  const scheme = useScheme();
+  const styles = useStyles();
   const { width } = useWindowDimensions();
   const providers = useProviders();
   const appleAvailable = useAppleAvailable();
@@ -64,7 +67,11 @@ export default function LoginScreen() {
           {showApple && (
             <AppleAuthentication.AppleAuthenticationButton
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              buttonStyle={
+                scheme === "dark"
+                  ? AppleAuthentication.AppleAuthenticationButtonStyle.WHITE
+                  : AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+              }
               cornerRadius={radius.button}
               onPress={() => !busy && run(appleSignIn)}
               style={{ width: "100%", height: 54 }}
@@ -73,20 +80,20 @@ export default function LoginScreen() {
           <Button variant={showApple ? "secondary" : "strong"} onPress={() => run(signIn)} loading={busy}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <GoogleMark />
-              <Text variant="button" color={appleAvailable && providers.data?.apple ? colors.ink : colors.white}>
+              <Text variant="button" color={appleAvailable && providers.data?.apple ? c.ink : c.onStrong}>
                 Continue with Google
               </Text>
             </View>
           </Button>
           {error && <FieldError>{error}</FieldError>}
           <DevSignIn />
-          <Text size={12} color={colors.ink3} center>
+          <Text size={12} color={c.ink3} center>
             By continuing you agree to our{" "}
-            <Text size={12} color={colors.brand} weight={600} onPress={() => openLegal("terms")}>
+            <Text size={12} color={c.brandText} weight={600} onPress={() => openLegal("terms")}>
               Terms
             </Text>{" "}
             and{" "}
-            <Text size={12} color={colors.brand} weight={600} onPress={() => openLegal("privacy")}>
+            <Text size={12} color={c.brandText} weight={600} onPress={() => openLegal("privacy")}>
               Privacy Policy
             </Text>
             . FITR8 gives general fitness guidance and is not medical advice.
@@ -100,7 +107,7 @@ export default function LoginScreen() {
       </View>
       <View style={{ gap: 12 }}>
         <Text variant="display">Snap your meal. Hit your goal.</Text>
-        <Text color={colors.ink2}>
+        <Text color={c.ink2}>
           Take a photo of your thali. We find the foods and portions, you confirm, and calories and macros are logged
           against targets built for your goal.
         </Text>
@@ -115,6 +122,8 @@ export default function LoginScreen() {
  */
 function DevSignIn() {
   const { devSignIn } = useAuth();
+  const c = useColors();
+  const styles = useStyles();
   const providers = useProviders();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -142,7 +151,7 @@ function DevSignIn() {
         onChangeText={setEmail}
         onSubmitEditing={submit}
         placeholder="you@example.com"
-        placeholderTextColor="rgba(107,110,118,0.6)"
+        placeholderTextColor={c.ink3}
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
@@ -157,26 +166,26 @@ function DevSignIn() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   hero: {
     alignItems: "center",
     borderRadius: radius.sheet,
-    backgroundColor: colors.brand,
+    backgroundColor: c.brand,
     paddingVertical: 20,
     paddingHorizontal: 20,
   },
   input: {
     height: 54,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     fontFamily: fonts.sans500,
     fontSize: 16,
-    color: colors.ink,
+    color: c.ink,
   },
-});
+}));
 
 function GoogleMark() {
   return (

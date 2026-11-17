@@ -5,5 +5,6 @@ import { useAuth } from "@/lib/auth";
 export default function Index() {
   const { status, me } = useAuth();
   if (status !== "signedIn") return <Redirect href="/login" />;
-  return <Redirect href={me.onboarded ? "/today" : "/onboarding"} />;
+  if (!me.onboarded) return <Redirect href="/onboarding" />;
+  return <Redirect href={me.welcomeBack ? "/welcome-back" : "/today"} />;
 }

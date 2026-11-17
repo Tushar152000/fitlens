@@ -1,20 +1,33 @@
 import { useQuery } from "@tanstack/react-query";
-import { TodaySkeleton, WorkoutCardSkeleton } from "@/components/skeletons";
+import { useCallback, useEffect, useState } from "react";
+import { TodaySkeleton } from "@/components/skeletons";
 import { router } from "expo-router";
-import { Camera, ChevronLeft, ChevronRight, Dumbbell, Flame, Keyboard, MessageCircle, Plus } from "lucide-react-native";
-import { Pressable, StyleSheet, View } from "react-native";
-import { Button, Card, CalorieRing, InsightCard, MacroBar, MealRow, Screen, Text } from "@/components/ui";
+import type { ProgressDto } from "@fitr8/contracts";
+import {
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  Flame,
+  History,
+  Keyboard,
+  Plus,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react-native";
+import { Pressable, View } from "react-native";
+import { GestureDetector } from "react-native-gesture-handler";
+import { Button, Card, CalorieRing, InsightCard, MacroBar, MealRow, Screen, Skeleton, Text } from "@/components/ui";
+import { DAY_WINDOW_RADIUS, DayStrip, useDayPager } from "@/components/day-pager";
 import { QueryError } from "@/components/query-error";
 import { useWater, WaterBar, WaterQuickAdd } from "@/components/water-card";
 import { queryClient } from "@/lib/query";
 import { useMe } from "@/lib/auth";
 import { formatInt, formatTime, MEAL_LABEL, MEAL_TYPES, mealTitle } from "@/lib/format";
 import { dayFromParam, dayLabel, recentDays } from "@/lib/meal-param";
-import { api } from "@/lib/api";
-import { dayQuery, workoutQuery } from "@/lib/queries";
+import { dayQuery, dayQueryFor, progressQuery } from "@/lib/queries";
 import { showDay, useViewDay } from "@/lib/view-day";
-import { colors, radius } from "@/lib/theme";
-import type { Day, TodayWorkout } from "@/lib/types";
+import { makeStyles, radius, useColors } from "@/lib/theme";
+import type { Day } from "@/lib/types";
 
 function greeting(hour: number) {
   if (hour < 5) return "Up late";
@@ -23,72 +36,131 @@ function greeting(hour: number) {
   return "Good evening";
 }
 
-/** Screen 6: intake vs targets for today (or a recent day, to fill in a forgotten meal), meals, and today's workout. */
+/** Screen 6: intake vs targets for today (or a recent day, to fill in a forgotten meal), meals, and progress. */
 export default function TodayScreen() {
   const me = useMe();
   // null = today. A day that has slid out of the window (app left open for days) falls back to today.
   const viewDay = dayFromParam(useViewDay() ?? undefined);
-  const day = useQuery(
-    viewDay ? { queryKey: ["day", viewDay], queryFn: () => api<Day>(`/api/dashboard?date=${viewDay}`) } : dayQuery,
-  );
-  const workout = useQuery(workoutQuery());
+  // The header is about today (greeting, date), so its streak always comes from today's data, even
+  // while a past day is shown below.
+  const today = useQuery(dayQuery);
+  const streak = today.data?.streak ?? 0;
+  const days = recentDays(); // today first
+  const index = viewDay ? Math.max(0, days.indexOf(viewDay)) : 0;
+  // Stable on purpose: the day pager builds its swipe gesture once from it (see day-pager.tsx).
+  const go = useCallback((i: number) => {
+    const all = recentDays();
+    showDay(i <= 0 ? null : all[Math.min(i, all.length - 1)]);
+  }, []);
+  const canOlder = index < days.length - 1;
+  const canNewer = index > 0;
+  const pager = useDayPager({ days, index, onIndex: go });
+  // The strip renders a 5-day window (each page loads its own day). Fetch the next day just outside
+  // it too, so when a swipe moves the window the newly rendered page is already in the cache.
+  useEffect(() => {
+    for (const i of [index - DAY_WINDOW_RADIUS - 1, index + DAY_WINDOW_RADIUS + 1]) {
+      if (i >= 0 && i < days.length) void queryClient.prefetchQuery(dayQueryFor(i === 0 ? null : days[i]));
+    }
+    // `days` only changes at midnight; the index is what moves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+  const c = useColors();
+  const styles = useStyles();
 
   const now = new Date();
   const hour = now.getHours();
   const dateText = new Intl.DateTimeFormat("en-IN", { weekday: "long", day: "numeric", month: "short" }).format(now);
   const firstName = me.name?.split(" ")[0];
 
-  const refresh = () => {
-    day.refetch();
-    workout.refetch();
-    queryClient.invalidateQueries({ queryKey: ["water"] });
+  const [refreshing, setRefreshing] = useState(false);
+  const refresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["day"] }),
+      queryClient.invalidateQueries({ queryKey: ["progress"] }),
+      queryClient.invalidateQueries({ queryKey: ["water"] }),
+    ]);
+    setRefreshing(false);
   };
 
   return (
-    <Screen tabBar refreshing={day.isRefetching} onRefresh={refresh}>
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text variant="meta">{dateText}</Text>
-          <Text variant="h1">
-            {greeting(hour)}
-            {firstName ? `, ${firstName}` : ""}
-          </Text>
-        </View>
-        {!viewDay && (day.data?.streak ?? 0) > 0 && (
-          <View style={styles.streak}>
-            <Flame size={16} color={colors.brandGlow} fill={colors.brandGlow} />
-            <Text weight={700} size={13} tabular>
-              {day.data!.streak}-day streak
-            </Text>
+    // A horizontal swipe anywhere on the screen pages between days; only the day strip moves.
+    <GestureDetector gesture={pager.gesture}>
+      <View style={{ flex: 1 }}>
+        <Screen tabBar refreshing={refreshing} onRefresh={refresh}>
+          <View style={styles.header}>
+            <View style={{ flex: 1 }}>
+              <Text variant="meta">{dateText}</Text>
+              <Text variant="h1">
+                {greeting(hour)}
+                {firstName ? `, ${firstName}` : ""}
+              </Text>
+            </View>
+            {streak > 0 && (
+              <View style={styles.streak}>
+                <Flame size={16} color={c.brandGlow} fill={c.brandGlow} />
+                <Text weight={700} size={13} tabular>
+                  {streak}-day streak
+                </Text>
+              </View>
+            )}
           </View>
-        )}
+
+          <DaySwitcher
+            day={days[index]}
+            canOlder={canOlder}
+            canNewer={canNewer}
+            onOlder={() => go(index + 1)}
+            onNewer={() => go(index - 1)}
+            onToday={() => go(0)}
+          />
+
+          <DayStrip
+            pager={pager}
+            days={days}
+            index={index}
+            renderDay={(date, current) => <DayPage date={date} isToday={date === days[0]} current={current} />}
+          />
+        </Screen>
       </View>
+    </GestureDetector>
+  );
+}
 
-      <DaySwitcher viewDay={viewDay} />
-
-      {day.isPending ? (
-        <TodaySkeleton />
-      ) : day.isError ? (
-        <QueryError error={day.error} onRetry={refresh} />
-      ) : (
-        <DayContent day={day.data} pastDay={viewDay} />
+/**
+ * One page of the strip: that day's card and meals (and, on today, the Progress card). Each page
+ * fetches its own day, so the neighbours either side are loaded before they're swiped in; a page
+ * still loading shows the day skeleton in place.
+ */
+function DayPage({ date, isToday, current }: { date: string; isToday: boolean; current: boolean }) {
+  const day = useQuery(dayQueryFor(isToday ? null : date));
+  const progress = useQuery({ ...progressQuery, enabled: isToday });
+  if (day.isPending) return <TodaySkeleton />;
+  if (day.isError) {
+    return current ? <QueryError error={day.error} onRetry={() => day.refetch()} /> : <TodaySkeleton />;
+  }
+  return (
+    <>
+      <DayContent day={day.data} pastDay={isToday ? null : date} />
+      {isToday && (
+        <View style={{ gap: 10 }}>
+          <Text variant="h2">Progress</Text>
+          {progress.isPending ? (
+            <Skeleton height={132} radius={radius.card} />
+          ) : progress.isError ? (
+            <QueryError error={progress.error} onRetry={() => progress.refetch()} />
+          ) : (
+            <ProgressCard p={progress.data} />
+          )}
+        </View>
       )}
-
-      {!viewDay && (
-        <>
-          <View style={{ gap: 10 }}>
-            <Text variant="h2">Workout</Text>
-            {workout.isPending ? <WorkoutCardSkeleton /> : workout.data ? <WorkoutCard workout={workout.data} /> : null}
-          </View>
-
-          <CoachRow />
-        </>
-      )}
-    </Screen>
+    </>
   );
 }
 
 function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
+  const c = useColors();
+  const styles = useStyles();
   const target = day.target;
   const water = useWater();
   const over = target ? day.eaten.kcal - target.kcal : 0;
@@ -116,25 +188,32 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
             </View>
           </View>
           <View style={styles.divider} />
-          <Text size={13} color={colors.ink2} tabular>
+          <Text size={13} color={c.ink2} tabular>
             {formatInt(day.eaten.kcal)} eaten of {formatInt(target.kcal)} kcal target
           </Text>
           {!pastDay && <WaterQuickAdd water={water} />}
         </Card>
       ) : (
         <Card>
-          <Text color={colors.ink2}>No targets yet. Finish your plan on the Profile tab.</Text>
+          <Text color={c.ink2}>No targets yet. Finish your plan on the Profile tab.</Text>
         </Card>
       )}
 
       {target && over > 0 && <InsightCard headline="A little over. No stress." reason={positiveNote} />}
 
       <View style={{ gap: 10 }}>
-        <View style={styles.sectionHead}>
+        <View style={[styles.sectionHead, { alignItems: "center" }]}>
           <Text variant="h2">Meals</Text>
-          <Pressable accessibilityRole="link" onPress={() => router.push("/history")} hitSlop={12}>
-            <Text weight={600} size={13} color={colors.brand}>
-              History
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel="Past logs"
+            onPress={() => router.push("/history")}
+            hitSlop={8}
+            style={({ pressed }) => [styles.pastLogs, pressed && { backgroundColor: c.sunken }]}
+          >
+            <History size={16} color={c.brandText} strokeWidth={2.25} />
+            <Text weight={600} size={15} color={c.brandText}>
+              Past logs
             </Text>
           </Pressable>
         </View>
@@ -143,7 +222,7 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
           // Design 6b: nothing logged yet. Snap / Type ask which meal on the next screen.
           <Card dark>
             <View style={{ gap: 4 }}>
-              <Text variant="h2" size={22} color={colors.white}>
+              <Text variant="h2" size={22} color={c.white}>
                 {pastDay ? `Nothing logged for ${dayName}` : "Log your first meal"}
               </Text>
               <Text size={13} color="rgba(255,255,255,0.75)">
@@ -180,7 +259,7 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
               {meals.length > 0 && (
                 <View style={styles.sectionHead}>
                   <Text weight={600}>{MEAL_LABEL[t]}</Text>
-                  <Text weight={600} size={13} color={colors.ink3} tabular>
+                  <Text weight={600} size={13} color={c.ink3} tabular>
                     {formatInt(kcal)} kcal
                   </Text>
                 </View>
@@ -216,181 +295,174 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
 }
 
 /**
- * ‹ Today › — step back up to a week to see a day and add a meal you forgot to log. Older days are
- * in History; the API won't take meals further back.
+ * ‹ Today › — step back up to a week to see a day and add a meal you forgot to log (or swipe the
+ * cards below). Older days are in Past logs; the API won't take meals further back. Fixed height:
+ * the second line is always there (a swipe hint today, "Back to today" on a past day), so nothing
+ * below moves when the day changes.
  */
-function DaySwitcher({ viewDay }: { viewDay: string | null }) {
-  const days = recentDays(); // today first
-  const index = viewDay ? Math.max(0, days.indexOf(viewDay)) : 0;
-  const go = (i: number) => showDay(i === 0 ? null : days[i]);
-  const older = index < days.length - 1;
-  const newer = index > 0;
+function DaySwitcher({
+  day,
+  canOlder,
+  canNewer,
+  onOlder,
+  onNewer,
+  onToday,
+}: {
+  day: string;
+  canOlder: boolean;
+  canNewer: boolean;
+  onOlder: () => void;
+  onNewer: () => void;
+  onToday: () => void;
+}) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <View style={styles.switcher} accessibilityLabel="Choose a day">
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Previous day"
-        accessibilityState={{ disabled: !older }}
-        disabled={!older}
-        onPress={() => go(index + 1)}
+        accessibilityState={{ disabled: !canOlder }}
+        disabled={!canOlder}
+        onPress={onOlder}
         hitSlop={8}
-        style={[styles.switchBtn, !older && { opacity: 0.3 }]}
+        style={({ pressed }) => [
+          styles.switchBtn,
+          pressed && { backgroundColor: c.sunken },
+          !canOlder && { opacity: 0.3 },
+        ]}
       >
-        <ChevronLeft size={20} color={colors.ink} />
+        <ChevronLeft size={20} color={c.ink} />
       </Pressable>
-      <View style={{ flex: 1, alignItems: "center" }}>
-        <Text weight={600} accessibilityLiveRegion="polite">
-          {dayLabel(days[index])}
+      <View style={styles.switchMid}>
+        <Text weight={600} accessibilityLiveRegion="polite" numberOfLines={1}>
+          {dayLabel(day)}
         </Text>
-        {newer && (
-          <Pressable accessibilityRole="button" onPress={() => go(0)} hitSlop={8}>
-            <Text weight={600} size={12} color={colors.brand}>
+        {canNewer ? (
+          <Pressable accessibilityRole="button" onPress={onToday} hitSlop={10}>
+            <Text weight={600} size={12} color={c.brandText} style={styles.switchSub}>
               Back to today
             </Text>
           </Pressable>
+        ) : (
+          <Text size={12} color={c.ink3} style={styles.switchSub}>
+            Swipe for earlier days
+          </Text>
         )}
       </View>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Next day"
-        accessibilityState={{ disabled: !newer }}
-        disabled={!newer}
-        onPress={() => go(index - 1)}
+        accessibilityState={{ disabled: !canNewer }}
+        disabled={!canNewer}
+        onPress={onNewer}
         hitSlop={8}
-        style={[styles.switchBtn, !newer && { opacity: 0.3 }]}
+        style={({ pressed }) => [
+          styles.switchBtn,
+          pressed && { backgroundColor: c.sunken },
+          !canNewer && { opacity: 0.3 },
+        ]}
       >
-        <ChevronRight size={20} color={colors.ink} />
+        <ChevronRight size={20} color={c.ink} />
       </Pressable>
     </View>
   );
 }
 
-/** One row into the coach chat; the chat itself lives on its own screen. */
-function CoachRow() {
+/**
+ * Where the weight is heading: latest weigh-in, this week's change vs the plan and days logged,
+ * one tap into the full Progress screen (weekly check-in, trend chart).
+ */
+function ProgressCard({ p }: { p: ProgressDto }) {
+  const c = useColors();
+  const styles = useStyles();
+  const latest = p.latest?.weightKg ?? null;
+  const change = p.weeklyChange;
+  const planned = p.plan.weeklyChangeKg;
+  const onTrack = change != null && Math.abs(change - planned) <= 0.25;
+  const Trend = change != null && change > 0 ? TrendingUp : TrendingDown;
+  const kg = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)} kg`;
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={() => router.push("/coach")}
-      style={({ pressed }) => [styles.coach, pressed && { backgroundColor: colors.sunken }]}
+      accessibilityHint="Opens Progress: weekly check-in and weight trend"
+      onPress={() => router.push("/progress")}
+      style={({ pressed }) => [styles.progress, pressed && { backgroundColor: c.sunken }]}
     >
-      <View style={styles.coachIcon}>
-        <MessageCircle size={22} color={colors.brand} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text weight={600}>Ask your coach</Text>
-        <Text size={13} color={colors.ink2}>
-          Food, training or today&apos;s numbers
-        </Text>
-      </View>
-      <ChevronRight size={20} color={colors.ink3} />
-    </Pressable>
-  );
-}
-
-function WorkoutCard({ workout }: { workout: TodayWorkout }) {
-  const s = workout.session;
-  const white70 = "rgba(255,255,255,0.7)";
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => router.push("/briefing")}
-      style={({ pressed }) => [styles.workout, pressed && { opacity: 0.9 }]}
-    >
-      <View style={styles.workoutIcon}>
-        <Dumbbell size={24} color={colors.white} />
-      </View>
-      <View style={{ flex: 1 }}>
-        {s ? (
-          <>
-            <Text weight={600} size={12} color={white70}>
-              {workout.completed.length >= s.exercises.length ? "Done today" : "Today"}
-            </Text>
-            <Text weight={600} color={colors.white}>
-              {s.name}
-            </Text>
-            <Text size={13} color={white70}>
-              {s.exercises.length} exercises · ~{s.estimatedMinutes} min · see your coach&apos;s plan
-            </Text>
-          </>
-        ) : (
-          <>
-            <Text weight={600} size={12} color={white70}>
-              Rest day
-            </Text>
-            <Text weight={600} color={colors.white}>
-              Recover — a walk counts
-            </Text>
-            {workout.nextDay && (
-              <Text size={13} color={white70}>
-                Next session{" "}
-                {new Intl.DateTimeFormat("en-IN", { weekday: "long", timeZone: "UTC" }).format(
-                  new Date(workout.nextDay.date),
-                )}
+      <View style={styles.progressRow}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text variant="meta">Latest weight</Text>
+          <Text variant="h2" size={24} tabular>
+            {latest != null ? `${latest.toFixed(1)} kg` : "—"}
+          </Text>
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text variant="meta">This week</Text>
+          {change != null ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Trend size={16} color={onTrack ? c.protein : c.cautionText} />
+              <Text weight={700} size={17} color={onTrack ? c.protein : c.cautionText} tabular>
+                {kg(change)}
               </Text>
-            )}
-          </>
-        )}
+            </View>
+          ) : (
+            <Text weight={600} size={15} color={c.ink3}>
+              Not enough data
+            </Text>
+          )}
+        </View>
+        <ChevronRight size={20} color={c.ink3} />
       </View>
-      <ChevronRight size={20} color={white70} />
+      <View style={styles.divider} />
+      <Text size={13} color={c.ink2}>
+        {change == null
+          ? "Weigh in once a week to see your trend against the plan."
+          : onTrack
+            ? `On track with the plan (${kg(planned)} a week). Logged ${p.daysLogged}/7 days.`
+            : `Plan is ${kg(planned)} a week. Logged ${p.daysLogged}/7 days.`}
+      </Text>
+      <Text weight={600} size={13} color={c.brandText}>
+        Weekly check-in and trend
+      </Text>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   header: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   switcher: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    minHeight: 52,
+    height: 60,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 6,
   },
   switchBtn: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  switchMid: { flex: 1, alignItems: "center", justifyContent: "center", height: 44 },
+  switchSub: { lineHeight: 16, height: 16 },
   streak: {
     marginTop: 4,
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     borderRadius: 999,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  divider: { height: 1, backgroundColor: colors.line },
+  divider: { height: 1, backgroundColor: c.line },
   sectionHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
-  workout: {
+  pastLogs: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    borderRadius: radius.card,
-    backgroundColor: colors.ink,
-    padding: 16,
+    gap: 6,
+    minHeight: 40,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: c.brandSoft,
   },
-  coach: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    minHeight: 72,
-    borderRadius: radius.card,
-    backgroundColor: colors.surface,
-    padding: 16,
-  },
-  coachIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.sunken,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  workoutIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+  progress: { borderRadius: radius.card, backgroundColor: c.surface, padding: 16, gap: 12 },
+  progressRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+}));

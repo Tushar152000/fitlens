@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { StyleSheet, View, type DimensionValue } from "react-native";
 import { Skeleton, type SkeletonTone } from "@/components/ui/skeleton";
-import { colors, radius } from "@/lib/theme";
+import { makeStyles, radius } from "@/lib/theme";
 
 /**
  * Loading layouts shaped like each screen's real content (design: "skeleton blocks in sunken,
@@ -21,7 +21,8 @@ export function Line({
 }
 
 function Box({ children, dark, style }: { children: ReactNode; dark?: boolean; style?: object }) {
-  return <View style={[styles.card, dark && { backgroundColor: colors.ink }, style]}>{children}</View>;
+  const styles = useStyles();
+  return <View style={[styles.card, dark && styles.dark, style]}>{children}</View>;
 }
 
 /** Page title block: small meta line over a display heading. */
@@ -35,6 +36,7 @@ export function TitleSkeleton({ width = "65%" }: { width?: DimensionValue }) {
 }
 
 export function MealRowSkeleton() {
+  const styles = useStyles();
   return (
     <Box style={styles.mealRow}>
       <Skeleton height={48} width={48} radius={12} tone="card" />
@@ -49,6 +51,7 @@ export function MealRowSkeleton() {
 
 /** Screen 6: ring + macro bars card, meal rows, workout card. */
 export function TodaySkeleton() {
+  const styles = useStyles();
   return (
     <>
       <Box style={{ gap: 16 }}>
@@ -87,6 +90,7 @@ export function TodaySkeleton() {
 
 /** The dark workout card on Today. */
 export function WorkoutCardSkeleton() {
+  const styles = useStyles();
   return (
     <Box dark style={styles.mealRow}>
       <Skeleton height={48} width={48} radius={12} tone="dark" />
@@ -125,6 +129,7 @@ export function BriefingSkeleton() {
 
 /** A white card of rows: name + meta on the left, figures on the right. */
 export function ListSkeleton({ rows = 4 }: { rows?: number }) {
+  const styles = useStyles();
   return (
     <Box style={{ padding: 0, gap: 0 }}>
       {Array.from({ length: rows }, (_, i) => (
@@ -254,6 +259,7 @@ export function HistorySkeleton() {
 
 /** Screen 13's dark goal card. */
 export function GoalCardSkeleton() {
+  const styles = useStyles();
   return (
     <Box dark style={{ gap: 12, padding: 20 }}>
       <Line width="30%" height={12} tone="dark" />
@@ -346,10 +352,11 @@ export function FormSkeleton() {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: colors.surface, borderRadius: radius.card, padding: 16, gap: 12 },
+const useStyles = makeStyles((c) => ({
+  card: { backgroundColor: c.surface, borderRadius: radius.card, padding: 16, gap: 12 },
+  dark: { backgroundColor: c.panel, borderWidth: StyleSheet.hairlineWidth, borderColor: c.panelLine },
   mealRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 12, minHeight: 64 },
-  divider: { height: 1, backgroundColor: colors.line },
+  divider: { height: 1, backgroundColor: c.line },
   listRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
-  rowLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
-});
+  rowLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line },
+}));

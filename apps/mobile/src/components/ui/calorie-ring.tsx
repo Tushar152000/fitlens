@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { formatInt } from "@/lib/format";
-import { colors } from "@/lib/theme";
+import { useColors } from "@/lib/theme";
 import { Text } from "./text";
 
 const R = 68;
@@ -14,6 +14,7 @@ const CIRC = 2 * Math.PI * R;
  * logged). Over target the ring completes in ink with a grey arc for the overflow — never red.
  */
 export function CalorieRing({ eaten, target, size = 172 }: { eaten: number; target: number; size?: number }) {
+  const pal = useColors();
   const left = Math.round(target - eaten);
   const over = left < 0;
   const fraction = target > 0 ? Math.min(1, Math.max(0, eaten / target)) : 0;
@@ -27,7 +28,7 @@ export function CalorieRing({ eaten, target, size = 172 }: { eaten: number; targ
   return (
     <View style={{ width: size, height: size }} accessible accessibilityRole="image" accessibilityLabel={label}>
       <Svg viewBox={`0 0 ${SIZE} ${SIZE}`} width={size} height={size} style={{ transform: [{ rotate: "-90deg" }] }}>
-        <Circle cx={c} cy={c} r={R} fill="none" strokeWidth={STROKE} stroke={colors.track} />
+        <Circle cx={c} cy={c} r={R} fill="none" strokeWidth={STROKE} stroke={pal.track} />
         {fraction > 0 && (
           <Circle
             cx={c}
@@ -38,7 +39,7 @@ export function CalorieRing({ eaten, target, size = 172 }: { eaten: number; targ
             strokeLinecap="round"
             strokeDasharray={`${CIRC} ${CIRC}`}
             strokeDashoffset={CIRC * (1 - fraction)}
-            stroke={over ? colors.ink : colors.brand}
+            stroke={over ? pal.ink : pal.brand}
           />
         )}
         {over && (
@@ -51,11 +52,11 @@ export function CalorieRing({ eaten, target, size = 172 }: { eaten: number; targ
             strokeLinecap="round"
             strokeDasharray={`${CIRC} ${CIRC}`}
             strokeDashoffset={CIRC * (1 - overflow)}
-            stroke={colors.lineStrong}
+            stroke={pal.lineStrong}
           />
         )}
       </Svg>
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}>
         <View style={styles.centre}>
           <Text variant="h1" size={size > 160 ? 32 : 28} tabular>
             {formatInt(Math.abs(left))}

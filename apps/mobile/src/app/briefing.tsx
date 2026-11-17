@@ -13,7 +13,7 @@ import { setEnergy, useEnergy } from "@/lib/energy";
 import { formatInt } from "@/lib/format";
 import { workoutQuery } from "@/lib/queries";
 import { refreshDay } from "@/lib/query";
-import { colors, radius } from "@/lib/theme";
+import { makeStyles, radius, useColors } from "@/lib/theme";
 import type { Energy, TodayWorkout } from "@/lib/types";
 
 const weekday = (ymd: string) =>
@@ -44,6 +44,8 @@ export default function BriefingScreen() {
 }
 
 function Briefing({ data, energy, switching }: { data: TodayWorkout; energy: Energy; switching: boolean }) {
+  const c = useColors();
+  const styles = useStyles();
   const [snackState, setSnackState] = useState<"idle" | "saving" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
   const session = data.session;
@@ -76,10 +78,10 @@ function Briefing({ data, energy, switching }: { data: TodayWorkout; energy: Ene
           <Text variant="h1">Rest day</Text>
         </View>
         <Card>
-          <Text color={colors.ink2}>{data.cardio}</Text>
+          <Text color={c.ink2}>{data.cardio}</Text>
         </Card>
         {data.nextDay && (
-          <Text color={colors.ink2}>
+          <Text color={c.ink2}>
             Next: <Text weight={600}>{data.nextDay.name}</Text> on {weekday(data.nextDay.date)}.
           </Text>
         )}
@@ -102,16 +104,13 @@ function Briefing({ data, energy, switching }: { data: TodayWorkout; energy: Ene
           </Text>
         </View>
 
-        <View
-          accessibilityLabel="Fuel"
-          style={[styles.fuel, { backgroundColor: low ? colors.cautionSoft : colors.proteinSoft }]}
-        >
-          {low ? <BatteryLow size={24} color={colors.cautionText} /> : <CircleCheck size={24} color={colors.protein} />}
+        <View accessibilityLabel="Fuel" style={[styles.fuel, { backgroundColor: low ? c.cautionSoft : c.proteinSoft }]}>
+          {low ? <BatteryLow size={24} color={c.cautionText} /> : <CircleCheck size={24} color={c.protein} />}
           <View style={{ flex: 1 }}>
-            <Text weight={700} color={low ? colors.cautionText : colors.protein}>
+            <Text weight={700} color={low ? c.cautionText : c.protein}>
               {low ? "Running low" : "Fuelled"}
             </Text>
-            <Text size={13} color={colors.ink2} tabular>
+            <Text size={13} color={c.ink2} tabular>
               {formatInt(data.fuel.eatenKcal)} of {formatInt(data.fuel.targetKcal)} kcal so far today
             </Text>
           </View>
@@ -121,14 +120,14 @@ function Briefing({ data, energy, switching }: { data: TodayWorkout; energy: Ene
           <Card accessibilityLabel="Pre-workout snack">
             <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
               <View style={styles.snackIcon}>
-                <Coffee size={20} color={colors.ink2} />
+                <Coffee size={20} color={c.ink2} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text weight={600} size={12} color={colors.ink3}>
+                <Text weight={600} size={12} color={c.ink3}>
                   Before you train{data.snack.usual ? " · one of your usuals" : ""}
                 </Text>
                 <Text weight={600}>{data.snack.name}</Text>
-                <Text size={13} color={colors.ink3} tabular>
+                <Text size={13} color={c.ink3} tabular>
                   {data.snack.proteinG} g protein · {data.snack.carbsG} g carbs · {formatInt(data.snack.kcal)} kcal
                 </Text>
               </View>
@@ -161,14 +160,14 @@ function Briefing({ data, energy, switching }: { data: TodayWorkout; energy: Ene
 
         <Card dark style={{ padding: 20 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Sparkles size={16} color={colors.brandGlow} />
+            <Sparkles size={16} color={c.brandGlow} />
             <Text weight={600} size={13} color="rgba(255,255,255,0.7)">
               What your coach set today
             </Text>
           </View>
           {session.rules.map((r) => (
             <View key={r.title}>
-              <Text weight={600} color={colors.white}>
+              <Text weight={600} color={c.white}>
                 {r.title}
               </Text>
               <Text size={13} color="rgba(255,255,255,0.75)">
@@ -192,23 +191,23 @@ function Briefing({ data, energy, switching }: { data: TodayWorkout; energy: Ene
                 <View key={e.slug} style={[styles.item, i > 0 && styles.divider]}>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text weight={600}>{e.name}</Text>
-                    <Text weight={600} size={12} color={colors.ink3}>
+                    <Text weight={600} size={12} color={c.ink3}>
                       {e.role === "main" ? "Main lift" : e.role === "secondary" ? "Second lift" : "Accessory"} · {e.rir}{" "}
                       in reserve{e.bonusRep ? " · +1 rep on last set" : ""}
                     </Text>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text weight={600} tabular color={trimmed ? colors.protein : colors.ink}>
+                    <Text weight={600} tabular color={trimmed ? c.protein : c.ink}>
                       {e.sets} × {e.repMin}–{e.repMax}
                       {e.timed ? " s" : ""}
                     </Text>
                     {trimmed && (
-                      <Text weight={600} size={12} color={colors.protein}>
+                      <Text weight={600} size={12} color={c.protein}>
                         was {e.plannedSets} sets
                       </Text>
                     )}
                     {e.targetKg != null && (
-                      <Text weight={500} size={13} color={colors.ink3} tabular>
+                      <Text weight={500} size={13} color={c.ink3} tabular>
                         {e.targetKg} kg
                       </Text>
                     )}
@@ -223,17 +222,17 @@ function Briefing({ data, energy, switching }: { data: TodayWorkout; energy: Ene
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   fuel: { flexDirection: "row", alignItems: "center", gap: 12, borderRadius: radius.card, padding: 16 },
   snackIcon: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: colors.sunken,
+    backgroundColor: c.sunken,
     alignItems: "center",
     justifyContent: "center",
   },
-  list: { borderRadius: radius.card, backgroundColor: colors.surface },
+  list: { borderRadius: radius.card, backgroundColor: c.surface },
   item: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12 },
-  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
-});
+  divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line },
+}));

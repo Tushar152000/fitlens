@@ -5,7 +5,7 @@ import { View } from "react-native";
 import { Sheet } from "@/components/sheet";
 import { Button, Card, Text } from "@/components/ui";
 import { purchasesAvailable } from "@/lib/purchases";
-import { colors } from "@/lib/theme";
+import { useColors } from "@/lib/theme";
 
 export type ScanUsage = UsageDto;
 
@@ -22,6 +22,7 @@ export function AiLimitSheet({
   params: { meal?: string; date?: string };
   usage: ScanUsage | null;
 }) {
+  const c = useColors();
   const limit = usage?.limit ?? 3;
   const used = Math.min(usage?.used ?? limit, limit);
   const pips = Math.min(limit, 10);
@@ -48,17 +49,17 @@ export function AiLimitSheet({
         {Array.from({ length: pips }, (_, i) => (
           <View
             key={i}
-            style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: i < usedPips ? colors.brand : colors.track }}
+            style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: i < usedPips ? c.brand : c.track }}
           />
         ))}
       </View>
-      <Text color={colors.ink2}>Scans reset at {resets}. Typing a meal is free and doesn&apos;t use a scan.</Text>
+      <Text color={c.ink2}>Scans reset at {resets}. Typing a meal is free and doesn&apos;t use a scan.</Text>
       {/* Paywall off: Pro can't be bought, so don't advertise it. */}
       {usage?.plan !== "PRO" && usage?.paywall && purchasesAvailable && (
         <Card dark style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Crown size={20} color={colors.brandGlow} />
-            <Text weight={700} color={colors.white}>
+            <Crown size={20} color={c.brandGlow} />
+            <Text weight={700} color={c.white}>
               FITR8 Pro
             </Text>
           </View>

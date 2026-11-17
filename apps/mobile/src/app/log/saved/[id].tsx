@@ -3,7 +3,7 @@ import type { SavedMealDto } from "@fitr8/contracts";
 import { router, useLocalSearchParams } from "expo-router";
 import { Plus, Trash2 } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 import { AddItemSheet } from "@/components/log/add-item-sheet";
 import { BackHeader } from "@/components/back-header";
 import { FormSkeleton } from "@/components/skeletons";
@@ -17,10 +17,11 @@ import { scaleRow, setRowGrams, totals, type Row } from "@/lib/meal-rows";
 import { queryClient } from "@/lib/query";
 import { savedMealsQuery } from "@/lib/queries";
 import { rowsFromSaved, toSavedPayload } from "@/lib/saved-meals";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 
 /** Build or edit a saved meal: a name, an optional usual slot, and the items. `id` is "new" to create. */
 export default function SavedMealRoute() {
+  const c = useColors();
   const { id, meal } = useLocalSearchParams<{ id: string; meal?: string }>();
   const creating = id === "new";
   const list = useQuery({ ...savedMealsQuery, enabled: !creating });
@@ -40,7 +41,7 @@ export default function SavedMealRoute() {
         <BackHeader />
         <View style={{ gap: 8, marginTop: 24 }}>
           <Text variant="h1">Saved meal not found</Text>
-          <Text color={colors.ink2}>It may have been deleted on another device.</Text>
+          <Text color={c.ink2}>It may have been deleted on another device.</Text>
         </View>
       </Screen>
     );
@@ -49,6 +50,8 @@ export default function SavedMealRoute() {
 }
 
 function Builder({ existing, defaultMeal }: { existing: SavedMealDto | null; defaultMeal: MealType | null }) {
+  const c = useColors();
+  const styles = useStyles();
   const [name, setName] = useState(existing?.name ?? "");
   const [mealType, setMealType] = useState<MealType | null>(existing ? existing.mealType : defaultMeal);
   const [rows, setRows] = useState<Row[]>(() => (existing ? rowsFromSaved(existing) : []));
@@ -103,21 +106,21 @@ function Builder({ existing, defaultMeal }: { existing: SavedMealDto | null; def
         <>
           <View style={styles.total}>
             <View>
-              <Text weight={600} size={12} color={colors.ink3}>
+              <Text weight={600} size={12} color={c.ink3}>
                 Total
               </Text>
               <Text variant="h1" size={26} tabular accessibilityLiveRegion="polite">
                 {formatInt(sum.kcal)}{" "}
-                <Text weight={600} size={13} color={colors.ink3}>
+                <Text weight={600} size={13} color={c.ink3}>
                   kcal
                 </Text>
               </Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>
-              <Text weight={600} size={13} color={colors.protein} tabular>
+              <Text weight={600} size={13} color={c.protein} tabular>
                 {formatInt(sum.proteinG)} g protein
               </Text>
-              <Text weight={600} size={13} color={colors.carbsText} tabular>
+              <Text weight={600} size={13} color={c.carbsText} tabular>
                 {formatInt(sum.carbsG)} g carbs · {formatInt(sum.fatG)} g fat
               </Text>
             </View>
@@ -137,8 +140,8 @@ function Builder({ existing, defaultMeal }: { existing: SavedMealDto | null; def
             style={[styles.delete, { alignSelf: "flex-end" }]}
             hitSlop={6}
           >
-            <Trash2 size={16} color={colors.ink3} />
-            <Text weight={600} size={13} color={colors.ink3}>
+            <Trash2 size={16} color={c.ink3} />
+            <Text weight={600} size={13} color={c.ink3}>
               Delete
             </Text>
           </Pressable>
@@ -147,13 +150,13 @@ function Builder({ existing, defaultMeal }: { existing: SavedMealDto | null; def
 
       <View style={{ gap: 6 }}>
         <Text variant="h1">{existing ? "Edit saved meal" : "New saved meal"}</Text>
-        <Text color={colors.ink2}>
+        <Text color={c.ink2}>
           Save a meal you eat often. Next time it&apos;s one tap to log — no photo, no AI scan.
         </Text>
       </View>
 
       <View style={{ gap: 8 }}>
-        <Text weight={600} size={13} color={colors.ink2}>
+        <Text weight={600} size={13} color={c.ink2}>
           Name
         </Text>
         <TextInput
@@ -165,7 +168,7 @@ function Builder({ existing, defaultMeal }: { existing: SavedMealDto | null; def
           }}
           maxLength={60}
           placeholder="e.g. Usual breakfast, Post-workout shake"
-          placeholderTextColor="rgba(107,110,118,0.6)"
+          placeholderTextColor={c.ink3}
           style={styles.input}
           returnKeyType="done"
         />
@@ -173,7 +176,7 @@ function Builder({ existing, defaultMeal }: { existing: SavedMealDto | null; def
       </View>
 
       <View style={{ gap: 8 }}>
-        <Text weight={600} size={13} color={colors.ink2}>
+        <Text weight={600} size={13} color={c.ink2}>
           Usually for (optional)
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityLabel="Usually for">
@@ -189,7 +192,7 @@ function Builder({ existing, defaultMeal }: { existing: SavedMealDto | null; def
         <Text variant="h2">Items</Text>
         {rows.length === 0 && (
           <Card>
-            <Text color={colors.ink2}>
+            <Text color={c.ink2}>
               Search the food list, or describe it (&quot;2 roti and 1 katori dal&quot;) and we&apos;ll work out the
               numbers.
             </Text>
@@ -223,18 +226,18 @@ function Builder({ existing, defaultMeal }: { existing: SavedMealDto | null; def
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   input: {
     height: 52,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     fontFamily: fonts.sans600,
     fontSize: 17,
-    color: colors.ink,
+    color: c.ink,
   },
   total: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: 12 },
   delete: { flexDirection: "row", alignItems: "center", gap: 4, minHeight: 44, paddingHorizontal: 4 },
-});
+}));

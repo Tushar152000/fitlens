@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import Svg, { G, Path, Rect } from "react-native-svg";
-import { colors, fonts } from "@/lib/theme";
+import { fonts, useColors } from "@/lib/theme";
 import { Text } from "./text";
 
 // The FITR8 mark (Figma node 3788:3999), 19.1 × 18.02 units; same paths as apps/web logo.tsx.
@@ -11,9 +11,10 @@ const MARK_PATHS = [
 
 /** The FITR8 app icon: white mark on a purple tile (docs/DESIGN.md → Brand). 24–40 px in the UI. */
 export function LogoMark({ size = 32 }: { size?: number; onDark?: boolean }) {
+  const c = useColors();
   return (
     <Svg viewBox="0 0 512 512" width={size} height={size}>
-      <Rect width="512" height="512" rx="116" fill={colors.brand} />
+      <Rect width="512" height="512" rx="116" fill={c.brand} />
       {/* Mark at 54% of the tile width, centred. */}
       <G transform="translate(117.76 125.56) scale(14.4747)" fill="#FFFFFF">
         {MARK_PATHS.map((d) => (
@@ -26,16 +27,17 @@ export function LogoMark({ size = 32 }: { size?: number; onDark?: boolean }) {
 
 /** Mark + live wordmark: "FIT" in ink (white on dark), "R8" in brand purple. */
 export function Logo({ size = 32, onDark = false }: { size?: number; onDark?: boolean }) {
+  const c = useColors();
   const fontSize = Math.round(size * 0.7);
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }} accessibilityLabel="FITR8">
       <LogoMark size={size} onDark={onDark} />
       <Text
         style={{ fontFamily: fonts.display700, fontSize, lineHeight: fontSize * 1.1, letterSpacing: -0.02 * fontSize }}
-        color={onDark ? colors.white : colors.ink}
+        color={onDark ? c.white : c.ink}
       >
         FIT
-        <Text style={{ fontFamily: fonts.display700, fontSize }} color={colors.brand}>
+        <Text style={{ fontFamily: fonts.display700, fontSize }} color={c.brandText}>
           R8
         </Text>
       </Text>

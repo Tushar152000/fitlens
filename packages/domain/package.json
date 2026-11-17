@@ -37,6 +37,10 @@
     "./reminders": {
       "types": "./dist/reminders.d.ts",
       "default": "./dist/reminders.js"
+    },
+    "./activity": {
+      "types": "./dist/activity.d.ts",
+      "default": "./dist/activity.js"
     }
   },
   "files": [

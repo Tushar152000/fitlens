@@ -4,6 +4,9 @@ Record decisions as `YYYY-MM-DD — decision — why`. Move a question to Decide
 
 ## Decided
 
+- 2026-11-17 — App tab bar is Today · Workout · [camera] · Coach · Profile; Progress moved to a card on Today (+ `/progress` stack screen); Today's workout card and "Ask your coach" row removed; "History" link renamed "Past logs".
+- 2026-11-17 — Returning users: re-login never repeats onboarding; after 90+ days without app use (`users.lastActiveAt`, touched by GET /me hourly) the app asks only weight, height, waist/neck if body-fat goal, activity, equipment, training days/minutes, injuries, medical flag (`POST /api/welcome-back`, goal kept, targets recomputed; "Not now" = `POST /api/me/active`). Web does not show it (read-only).
+- 2026-11-17 — Dark mode (app only): System/Light/Dark in Profile, palette in `apps/mobile/src/lib/palette.ts` designed (not inverted), `userInterfaceStyle: automatic` → app version 0.4.0 (store build). Web stays light.
 - 2026-10-13 — Pro is ₹199/month or ₹1,499/year, 7-day trial, sold only in the phone apps via RevenueCat; web only shows the plan — docs/PREMIUM.md.
 - 2026-11-11 — Dev knowledge base is local markdown in `.claude/context/` with hash-based staleness + hooks (no embeddings / no external service) — keeps code on the machine, fits grep+read workflow.
 - Standing — `fitlens` identifiers (URL scheme, slug, cookie names, bucket, storage keys) stay frozen: renaming breaks deep links, OTA channels, sessions and stored photos.

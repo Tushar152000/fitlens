@@ -15,12 +15,14 @@ import { useMealChoice } from "@/lib/meal-param";
 import { queryClient, refreshDay } from "@/lib/query";
 import { savedMealsQuery } from "@/lib/queries";
 import { showDay } from "@/lib/view-day";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 
 export type Usual = UsualDto;
 
 /** Screen 7b: type what you ate, or relog a usual with one tap. Typing never uses a photo scan. */
 export default function TypeMealScreen() {
+  const c = useColors();
+  const styles = useStyles();
   const { mealType, setMealType, date, setDate, dateBody, params } = useMealChoice();
   const insets = useSafeAreaInsets();
   const [missing, setMissing] = useState(false);
@@ -87,7 +89,7 @@ export default function TypeMealScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.ground }}
+      style={{ flex: 1, backgroundColor: c.ground }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
@@ -101,7 +103,7 @@ export default function TypeMealScreen() {
             onPress={() => router.back()}
             style={styles.close}
           >
-            <X size={26} color={colors.ink} />
+            <X size={26} color={c.ink} />
           </Pressable>
         </View>
 
@@ -126,13 +128,13 @@ export default function TypeMealScreen() {
             multiline
             maxLength={500}
             placeholder="2 roti, 1 katori dal, half katori bhindi, 1 cup chai with 1 sachet sugar"
-            placeholderTextColor="rgba(107,110,118,0.6)"
+            placeholderTextColor={c.ink3}
             style={styles.textarea}
             textAlignVertical="top"
           />
           <View style={{ flexDirection: "row", gap: 8 }}>
-            <Info size={16} color={colors.ink3} style={{ marginTop: 2 }} />
-            <Text size={13} color={colors.ink3} style={{ flex: 1 }}>
+            <Info size={16} color={c.ink3} style={{ marginTop: 2 }} />
+            <Text size={13} color={c.ink3} style={{ flex: 1 }}>
               Add amounts for better numbers: pieces, katori, cups, grams or ml. Typing never uses a photo scan.
             </Text>
           </View>
@@ -151,8 +153,8 @@ export default function TypeMealScreen() {
                   style={styles.link}
                   hitSlop={6}
                 >
-                  <Plus size={16} color={colors.brand} />
-                  <Text weight={600} size={14} color={colors.brand}>
+                  <Plus size={16} color={c.brandText} />
+                  <Text weight={600} size={14} color={c.brandText}>
                     New
                   </Text>
                 </Pressable>
@@ -168,7 +170,7 @@ export default function TypeMealScreen() {
               </Button>
             ) : (
               <>
-                <Text size={13} color={colors.ink3}>
+                <Text size={13} color={c.ink3}>
                   {mealType
                     ? `One tap adds it to ${MEAL_LABEL[mealType].toLowerCase()}. No AI scan used.`
                     : "One tap adds it to its usual meal, or pick one above. No AI scan used."}
@@ -182,20 +184,20 @@ export default function TypeMealScreen() {
                       disabled={busy !== null}
                       style={styles.usualMain}
                     >
-                      <View style={[styles.usualIcon, { backgroundColor: colors.proteinSoft }]}>
-                        <Bookmark size={20} color={colors.protein} />
+                      <View style={[styles.usualIcon, { backgroundColor: c.proteinSoft }]}>
+                        <Bookmark size={20} color={c.protein} />
                       </View>
                       <View style={{ flex: 1, minWidth: 0 }}>
                         <Text weight={600} numberOfLines={1}>
                           {m.name}
                         </Text>
-                        <Text size={13} color={colors.ink3} tabular numberOfLines={1}>
+                        <Text size={13} color={c.ink3} tabular numberOfLines={1}>
                           {formatInt(m.kcal)} kcal · {m.proteinG} g protein · {m.items.length}{" "}
                           {m.items.length === 1 ? "item" : "items"}
                           {!mealType && m.mealType ? ` · ${MEAL_LABEL[m.mealType]}` : ""}
                         </Text>
                       </View>
-                      <Text weight={600} size={13} color={colors.brand}>
+                      <Text weight={600} size={13} color={c.brandText}>
                         {busy === m.id ? "Adding…" : "Add"}
                       </Text>
                     </Pressable>
@@ -206,7 +208,7 @@ export default function TypeMealScreen() {
                       disabled={busy !== null}
                       style={styles.edit}
                     >
-                      <Pencil size={18} color={colors.ink3} />
+                      <Pencil size={18} color={c.ink3} />
                     </Pressable>
                   </View>
                 ))}
@@ -218,7 +220,7 @@ export default function TypeMealScreen() {
         {(usuals.data?.length ?? 0) > 0 && (
           <View style={{ gap: 8, marginTop: 8 }}>
             <Text variant="h2">Your usuals</Text>
-            <Text size={13} color={colors.ink3}>
+            <Text size={13} color={c.ink3}>
               {mealType
                 ? `One tap adds it to ${MEAL_LABEL[mealType].toLowerCase()}. No AI scan used.`
                 : "Pick a meal above, then one tap adds it. No AI scan used."}
@@ -232,20 +234,20 @@ export default function TypeMealScreen() {
                 style={[styles.usual, busy !== null && { opacity: 0.6 }]}
               >
                 <View style={styles.usualIcon}>
-                  <Repeat size={20} color={colors.ink2} />
+                  <Repeat size={20} color={c.ink2} />
                 </View>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text weight={600} numberOfLines={1}>
                     {mealTitle(u.names, "Meal")}
                   </Text>
-                  <Text size={13} color={colors.ink3} tabular>
+                  <Text size={13} color={c.ink3} tabular>
                     {formatInt(u.kcal)} kcal · {u.proteinG} g protein{u.count > 1 ? ` · logged ${u.count}×` : ""}
                   </Text>
                 </View>
-                <Text weight={600} size={13} color={colors.brand}>
+                <Text weight={600} size={13} color={c.brandText}>
                   {busy === u.mealId ? "Adding…" : "Add"}
                 </Text>
-                <ChevronRight size={20} color={colors.ink3} />
+                <ChevronRight size={20} color={c.ink3} />
               </Pressable>
             ))}
           </View>
@@ -262,20 +264,20 @@ export default function TypeMealScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   top: { flexDirection: "row", alignItems: "center", gap: 8 },
   close: { width: 44, height: 44, marginLeft: -8, alignItems: "center", justifyContent: "center" },
   textarea: {
     minHeight: 144,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     padding: 16,
     fontFamily: fonts.sans400,
     fontSize: 17,
     lineHeight: 23,
-    color: colors.ink,
+    color: c.ink,
   },
   usual: {
     minHeight: 64,
@@ -283,7 +285,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -295,7 +297,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: colors.sunken,
+    backgroundColor: c.sunken,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -303,8 +305,8 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingHorizontal: 20,
     gap: 16,
-    backgroundColor: colors.ground,
+    backgroundColor: c.ground,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
+    borderTopColor: c.line,
   },
-});
+}));

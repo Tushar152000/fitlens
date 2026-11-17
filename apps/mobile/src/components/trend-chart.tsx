@@ -1,6 +1,6 @@
 import Svg, { Circle, Line, Polyline, Text as SvgText } from "react-native-svg";
 import type { ProgressDto } from "@fitr8/contracts";
-import { colors, fonts } from "@/lib/theme";
+import { fonts, useColors } from "@/lib/theme";
 
 export type Progress = ProgressDto;
 
@@ -15,6 +15,7 @@ const short = (ms: number) =>
 
 /** You (7-day average, solid) vs plan (dashed straight line). Raw weigh-ins are faint dots. */
 export function TrendChart({ points, plan }: Pick<Progress, "points" | "plan">) {
+  const c = useColors();
   const start = t(plan.startDate);
   const end = t(plan.targetDate);
   const planAt = (ms: number) =>
@@ -44,7 +45,7 @@ export function TrendChart({ points, plan }: Pick<Progress, "points" | "plan">) 
   const label = latest
     ? `Weight trend: 7-day average ${latest.avg7} kg on ${short(t(latest.date))}; plan for that day ${planAt(t(latest.date)).toFixed(1)} kg. Goal ${plan.targetWeightKg} kg by ${short(end)}.`
     : "No weigh-ins yet.";
-  const tick = { fill: colors.ink3, fontSize: 10, fontFamily: fonts.sans600 };
+  const tick = { fill: c.ink3, fontSize: 10, fontFamily: fonts.sans600 };
 
   return (
     <Svg
@@ -60,15 +61,7 @@ export function TrendChart({ points, plan }: Pick<Progress, "points" | "plan">) 
         </SvgText>
       ))}
       {ticks.map((kg) => (
-        <Line
-          key={`l${kg}`}
-          x1={PAD.left}
-          x2={W - PAD.right}
-          y1={y(kg)}
-          y2={y(kg)}
-          stroke={colors.line}
-          strokeWidth={1}
-        />
+        <Line key={`l${kg}`} x1={PAD.left} x2={W - PAD.right} y1={y(kg)} y2={y(kg)} stroke={c.line} strokeWidth={1} />
       ))}
       <SvgText x={PAD.left} y={H - 6} {...tick}>
         {short(x0)}
@@ -81,32 +74,25 @@ export function TrendChart({ points, plan }: Pick<Progress, "points" | "plan">) 
         y1={y(planAt(x0))}
         x2={x(x1)}
         y2={y(planAt(x1))}
-        stroke={colors.ink3}
+        stroke={c.ink3}
         strokeWidth={1.75}
         strokeDasharray="5 5"
       />
       {points.map((p) => (
-        <Circle key={p.date} cx={x(t(p.date))} cy={y(p.weightKg)} r={2.5} fill={colors.brand} fillOpacity={0.3} />
+        <Circle key={p.date} cx={x(t(p.date))} cy={y(p.weightKg)} r={2.5} fill={c.brand} fillOpacity={0.3} />
       ))}
       {points.length > 1 && (
         <Polyline
           points={you}
           fill="none"
-          stroke={colors.brand}
+          stroke={c.brand}
           strokeWidth={2.5}
           strokeLinejoin="round"
           strokeLinecap="round"
         />
       )}
       {latest && (
-        <Circle
-          cx={x(t(latest.date))}
-          cy={y(latest.avg7)}
-          r={4.5}
-          fill={colors.brand}
-          stroke={colors.surface}
-          strokeWidth={2}
-        />
+        <Circle cx={x(t(latest.date))} cy={y(latest.avg7)} r={4.5} fill={c.brand} stroke={c.surface} strokeWidth={2} />
       )}
     </Svg>
   );

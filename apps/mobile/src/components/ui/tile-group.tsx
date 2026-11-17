@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
-import { colors, radius } from "@/lib/theme";
+import { Pressable, View } from "react-native";
+import { makeStyles, radius, useColors } from "@/lib/theme";
 import { Text } from "./text";
 
 export interface TileOption<T extends string | number> {
@@ -22,6 +22,8 @@ export function TileGroup<T extends string | number>({
   value: T | undefined;
   onChange: (value: T) => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <View style={styles.row} accessibilityRole="radiogroup" accessibilityLabel={label}>
       {options.map((o) => {
@@ -34,12 +36,12 @@ export function TileGroup<T extends string | number>({
             onPress={() => onChange(o.value)}
             style={[styles.tile, selected ? styles.selected : styles.idle]}
           >
-            {o.icon?.(selected ? colors.brand : colors.ink2)}
+            {o.icon?.(selected ? c.brandText : c.ink2)}
             <Text weight={600} center>
               {o.label}
             </Text>
             {o.sub && (
-              <Text weight={500} size={12} color={colors.ink3} tabular center>
+              <Text weight={500} size={12} color={c.ink3} tabular center>
                 {o.sub}
               </Text>
             )}
@@ -50,7 +52,7 @@ export function TileGroup<T extends string | number>({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   row: { flexDirection: "row", gap: 8 },
   tile: {
     flex: 1,
@@ -59,8 +61,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
   },
-  idle: { borderWidth: 1, borderColor: colors.lineStrong, paddingHorizontal: 8, paddingVertical: 12 },
-  selected: { borderWidth: 2, borderColor: colors.brand, paddingHorizontal: 7, paddingVertical: 11 },
-});
+  idle: { borderWidth: 1, borderColor: c.lineStrong, paddingHorizontal: 8, paddingVertical: 12 },
+  selected: { borderWidth: 2, borderColor: c.brandText, paddingHorizontal: 7, paddingVertical: 11 },
+}));

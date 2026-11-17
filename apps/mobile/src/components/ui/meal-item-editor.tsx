@@ -1,8 +1,8 @@
 import { Pencil, X } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 import { formatInt, formatPortion, sentenceCase, unitStep } from "@/lib/format";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 import { Stepper } from "./stepper";
 import { Text } from "./text";
 
@@ -32,6 +32,8 @@ export function MealItemEditor({
   onAmountChange?: (grams: number) => void;
   onRemove?: () => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const unsure = item.confidence != null && item.confidence < LOW_CONFIDENCE;
   const measure = item.isLiquid ? "ml" : "g";
   const [editing, setEditing] = useState(false);
@@ -64,12 +66,12 @@ export function MealItemEditor({
                   onSubmitEditing={commit}
                   style={styles.amountInput}
                 />
-                <Text weight={600} size={13} color={colors.ink3}>
+                <Text weight={600} size={13} color={c.ink3}>
                   {measure}
                 </Text>
               </View>
               <Pressable onPress={commit} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 8 }}>
-                <Text weight={600} size={13} color={colors.brand}>
+                <Text weight={600} size={13} color={c.brandText}>
                   Done
                 </Text>
               </Pressable>
@@ -84,19 +86,19 @@ export function MealItemEditor({
               }}
               style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 32, alignSelf: "flex-start" }}
             >
-              <Text weight={500} size={13} color={colors.ink3} tabular>
+              <Text weight={500} size={13} color={c.ink3} tabular>
                 {portion}
               </Text>
-              <Pencil size={14} color={colors.ink3} />
+              <Pencil size={14} color={c.ink3} />
             </Pressable>
           ) : (
-            <Text weight={500} size={13} color={colors.ink3} tabular>
+            <Text weight={500} size={13} color={c.ink3} tabular>
               {portion}
             </Text>
           )}
           {unsure && (
             <View style={styles.tag}>
-              <Text weight={600} size={12} color={colors.cautionText}>
+              <Text weight={600} size={12} color={c.cautionText}>
                 Not sure — check this
               </Text>
             </View>
@@ -116,7 +118,7 @@ export function MealItemEditor({
               justifyContent: "center",
             }}
           >
-            <X size={20} color={colors.ink3} />
+            <X size={20} color={c.ink3} />
           </Pressable>
         )}
       </View>
@@ -129,7 +131,7 @@ export function MealItemEditor({
         />
         <Text weight={700} size={16} tabular>
           {formatInt(item.kcal)}{" "}
-          <Text weight={600} size={13} color={colors.ink3}>
+          <Text weight={600} size={13} color={c.ink3}>
             kcal
           </Text>
         </Text>
@@ -138,14 +140,14 @@ export function MealItemEditor({
   );
 }
 
-const styles = StyleSheet.create({
-  card: { gap: 12, borderRadius: radius.card, backgroundColor: colors.surface, padding: 16 },
-  unsure: { borderWidth: 1.5, borderColor: colors.caution, padding: 14.5 },
+const useStyles = makeStyles((c) => ({
+  card: { gap: 12, borderRadius: radius.card, backgroundColor: c.surface, padding: 16 },
+  unsure: { borderWidth: 1.5, borderColor: c.caution, padding: 14.5 },
   tag: {
     marginTop: 4,
     alignSelf: "flex-start",
     borderRadius: 999,
-    backgroundColor: colors.cautionSoft,
+    backgroundColor: c.cautionSoft,
     paddingHorizontal: 10,
     paddingVertical: 2,
   },
@@ -155,9 +157,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     borderWidth: 1,
-    borderColor: colors.ink,
+    borderColor: c.ink,
     borderRadius: radius.input,
     paddingHorizontal: 12,
   },
-  amountInput: { width: 64, fontFamily: fonts.sans600, fontSize: 15, color: colors.ink, padding: 0 },
-});
+  amountInput: { width: 64, fontFamily: fonts.sans600, fontSize: 15, color: c.ink, padding: 0 },
+}));

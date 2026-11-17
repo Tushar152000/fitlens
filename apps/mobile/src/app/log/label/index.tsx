@@ -10,7 +10,10 @@ import { Button, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { choiceParams, dayFromParam, mealFromParam } from "@/lib/meal-param";
 import { compressPhoto, uploadPhoto } from "@/lib/photo";
-import { colors, radius } from "@/lib/theme";
+import { palettes, radius } from "@/lib/theme";
+
+/** The camera stays dark in both schemes, so its colours are fixed (the light palette's). */
+const cam = palettes.light;
 
 /** Labels have small print, so keep more pixels than a plate photo. */
 const LABEL_MAX_SIDE = 1600;
@@ -77,9 +80,9 @@ export default function LabelCamera() {
           onPress={() => router.back()}
           style={styles.icon}
         >
-          <ChevronLeft size={26} color={colors.white} />
+          <ChevronLeft size={26} color={cam.white} />
         </Pressable>
-        <Text weight={600} color={colors.white}>
+        <Text weight={600} color={cam.white}>
           Photograph the label
         </Text>
         <View style={styles.icon} />
@@ -102,16 +105,16 @@ export default function LabelCamera() {
           </View>
         )}
         {/* Tall frame for the nutrition table. */}
-        <View pointerEvents="none" style={styles.frame} />
-        <View pointerEvents="none" style={styles.hint}>
-          <Text weight={600} size={13} color={colors.white}>
+        <View style={[styles.frame, { pointerEvents: "none" }]} />
+        <View style={[styles.hint, { pointerEvents: "none" }]}>
+          <Text weight={600} size={13} color={cam.white}>
             Whole table in frame · per 100 g visible
           </Text>
         </View>
         {busy && (
           <View style={[StyleSheet.absoluteFill, styles.center, { backgroundColor: "rgba(23,24,28,0.75)" }]}>
-            <ActivityIndicator color={colors.white} size="large" />
-            <Text weight={600} color={colors.white} accessibilityLiveRegion="polite">
+            <ActivityIndicator color={cam.white} size="large" />
+            <Text weight={600} color={cam.white} accessibilityLiveRegion="polite">
               {phase === "uploading" ? "Uploading…" : "Reading the label…"}
             </Text>
           </View>
@@ -132,7 +135,7 @@ export default function LabelCamera() {
           disabled={busy}
           style={styles.side}
         >
-          <Images size={24} color={colors.white} />
+          <Images size={24} color={cam.white} />
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -152,7 +155,7 @@ export default function LabelCamera() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: cam.panel },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12 },
   icon: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   viewfinder: {
@@ -208,5 +211,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  shutterInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: colors.brandGlow },
+  shutterInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: cam.brandGlow },
 });

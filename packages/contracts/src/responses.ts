@@ -89,6 +89,12 @@ export interface MeDto {
   email: string | null;
   image: string | null;
   onboarded: boolean;
+  /**
+   * Onboarded but away for 90+ days (@fitr8/domain/activity): the app asks only the numbers that
+   * change (weight, height, activity, training time) before showing Today. Cleared by
+   * POST /api/welcome-back or POST /api/me/active ("Not now").
+   */
+  welcomeBack: boolean;
   profile: ProfileDto | null;
   /** FITR8 Pro or the free plan (docs/PREMIUM.md). */
   plan: "FREE" | "PRO";
@@ -129,6 +135,13 @@ export interface PlanSummaryDto {
     closerTargetWeightKg?: number;
     warnings: string[];
   };
+}
+
+/** POST /api/welcome-back: the recomputed plan for the kept goal. */
+export interface WelcomeBackDto {
+  summary: PlanSummaryDto;
+  /** The goal's target date went by during the break: the app suggests setting a new goal. */
+  goalPassed: boolean;
 }
 
 /** GET /api/targets */

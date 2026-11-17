@@ -1,44 +1,69 @@
 import type { BottomTabBarProps } from "expo-router/tabs";
 import { router } from "expo-router";
-import { Camera, Dumbbell, House, TrendingUp, UserRound, type LucideIcon } from "lucide-react-native";
+import { Camera, Dumbbell, House, MessageCircle, UserRound, type LucideIcon } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui";
-import { colors, shadows } from "@/lib/theme";
+import { makeStyles, useColors } from "@/lib/theme";
 
 const TABS: Record<string, { label: string; icon: LucideIcon }> = {
   today: { label: "Today", icon: House },
   workout: { label: "Workout", icon: Dumbbell },
-  progress: { label: "Progress", icon: TrendingUp },
   profile: { label: "Profile", icon: UserRound },
 };
 
-/** Five columns with a raised camera button in the middle (design TabBar). 84 px + safe area. */
+type Cell =
+  { kind: "tab"; route: BottomTabBarProps["state"]["routes"][number] } | { kind: "camera" } | { kind: "coach" };
+
+/**
+ * Today, Workout, [camera], Coach, Profile (design TabBar). 84 px + safe area. Camera and Coach
+ * open full-screen stacks (the logger, the chat with its keyboard) rather than tabs.
+ */
 export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const items = state.routes.filter((r) => TABS[r.name]);
-  const cells = [...items.slice(0, 2), null, ...items.slice(2)];
+  const c = useColors();
+  const styles = useStyles();
+  const tabs: Cell[] = state.routes.filter((r) => TABS[r.name]).map((route) => ({ kind: "tab", route }));
+  const cells: Cell[] = [...tabs.slice(0, 2), { kind: "camera" }, { kind: "coach" }, ...tabs.slice(2)];
 
   return (
     <View style={[styles.bar, { paddingBottom: insets.bottom, height: 84 + insets.bottom }]}>
-      {cells.map((route) => {
-        if (!route) {
+      {cells.map((cell) => {
+        if (cell.kind === "coach") {
+          return (
+            <View key="coach" style={styles.cell}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Ask your coach"
+                onPress={() => router.push("/coach")}
+                style={styles.tab}
+              >
+                <MessageCircle size={22} color={c.ink3} strokeWidth={2} />
+                <Text weight={600} size={11} color={c.ink3}>
+                  Coach
+                </Text>
+              </Pressable>
+            </View>
+          );
+        }
+        if (cell.kind === "camera") {
           return (
             <View key="camera" style={styles.cell}>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Log a meal"
                 onPress={() => router.push("/log")}
-                style={({ pressed }) => [styles.fab, { backgroundColor: pressed ? colors.brandHover : colors.brand }]}
+                style={({ pressed }) => [styles.fab, { backgroundColor: pressed ? c.brandHover : c.brand }]}
               >
-                <Camera size={24} color={colors.white} strokeWidth={2} />
+                <Camera size={24} color={c.white} strokeWidth={2} />
               </Pressable>
             </View>
           );
         }
+        const { route } = cell;
         const tab = TABS[route.name];
         const focused = state.routes[state.index]?.key === route.key;
-        const color = focused ? colors.ink : colors.ink3;
+        const color = focused ? c.ink : c.ink3;
         const Icon = tab.icon;
         return (
           <View key={route.key} style={styles.cell}>
@@ -63,14 +88,14 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c, shadows) => ({
   bar: {
     flexDirection: "row",
     alignItems: "flex-start",
     paddingTop: 8,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
+    borderTopColor: c.line,
   },
   cell: { flex: 1, alignItems: "center" },
   tab: { minHeight: 44, minWidth: 56, alignItems: "center", gap: 4, paddingTop: 4 },
@@ -83,4 +108,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     ...shadows.fab,
   },
-});
+}));

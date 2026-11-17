@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Camera, Check, Crown, MessageCircle, ScanText, Sparkles, X } from "lucide-react-native";
 import { useState } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
 import { Button, FieldError, Screen, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { track } from "@/lib/analytics";
@@ -10,7 +10,7 @@ import { useAuth } from "@/lib/auth";
 import { openLegal } from "@/lib/legal";
 import { buyPlan, proPlans, purchasesAvailable, restorePurchases, type ProPlan } from "@/lib/purchases";
 import { billingQuery } from "@/lib/queries";
-import { colors, radius } from "@/lib/theme";
+import { makeStyles, radius, useColors } from "@/lib/theme";
 
 /** Only what Pro actually unlocks today (docs/PREMIUM.md). */
 const BENEFITS = [
@@ -25,6 +25,8 @@ const BENEFITS = [
  * purchase or restore the API re-reads RevenueCat so limits lift immediately.
  */
 export default function ProScreen() {
+  const c = useColors();
+  const styles = useStyles();
   const queryClient = useQueryClient();
   const { refresh } = useAuth();
   const plans = useQuery({ queryKey: ["pro-plans"], queryFn: proPlans, enabled: purchasesAvailable });
@@ -97,7 +99,7 @@ export default function ProScreen() {
         done || isPro ? (
           <>
             {syncPending && (
-              <Text size={13} color={colors.ink2} center>
+              <Text size={13} color={c.ink2} center>
                 Payment received. Pro will switch on in a moment; if it doesn&apos;t, use Restore purchases.
               </Text>
             )}
@@ -110,22 +112,22 @@ export default function ProScreen() {
               {cta}
             </Button>
             {plan && (
-              <Text size={12} color={colors.ink3} center>
+              <Text size={12} color={c.ink3} center>
                 {plan.trialDays ? `Free for ${plan.trialDays} days, then ` : ""}
                 {plan.price} a {plan.period}. Renews automatically until you cancel; cancel at least 24 hours before the
                 period ends in your {store} settings.{" "}
-                <Text size={12} color={colors.brand} weight={600} onPress={() => openLegal("terms")}>
+                <Text size={12} color={c.brandText} weight={600} onPress={() => openLegal("terms")}>
                   Terms
                 </Text>
                 {" · "}
-                <Text size={12} color={colors.brand} weight={600} onPress={() => openLegal("privacy")}>
+                <Text size={12} color={c.brandText} weight={600} onPress={() => openLegal("privacy")}>
                   Privacy
                 </Text>
               </Text>
             )}
             {purchasesAvailable && (
               <Pressable accessibilityRole="button" onPress={restore} disabled={busy !== null} style={styles.link}>
-                <Text weight={600} color={colors.ink2}>
+                <Text weight={600} color={c.ink2}>
                   {busy === "restore" ? "Restoring…" : "Restore purchases"}
                 </Text>
               </Pressable>
@@ -136,7 +138,7 @@ export default function ProScreen() {
     >
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <View style={styles.crown}>
-          <Crown size={24} color={colors.white} />
+          <Crown size={24} color={c.white} />
         </View>
         <Pressable
           accessibilityRole="button"
@@ -144,13 +146,13 @@ export default function ProScreen() {
           onPress={() => router.back()}
           style={styles.close}
         >
-          <X size={22} color={colors.ink2} />
+          <X size={22} color={c.ink2} />
         </Pressable>
       </View>
 
       <View style={{ gap: 8 }}>
         <Text variant="h1">{done || isPro ? "You're on FITR8 Pro" : "FITR8 Pro"}</Text>
-        <Text color={colors.ink2}>
+        <Text color={c.ink2}>
           {done || isPro
             ? "Your limits are lifted. Thanks for supporting FITR8."
             : "Log more, ask more, and get the most from your plan."}
@@ -161,11 +163,11 @@ export default function ProScreen() {
         {BENEFITS.map(({ icon: Icon, title, sub }) => (
           <View key={title} style={styles.benefit}>
             <View style={styles.benefitIcon}>
-              <Icon size={19} color={colors.brand} />
+              <Icon size={19} color={c.brandText} />
             </View>
             <View style={{ flex: 1 }}>
               <Text weight={600}>{title}</Text>
-              <Text size={13} color={colors.ink3}>
+              <Text size={13} color={c.ink3}>
                 {sub}
               </Text>
             </View>
@@ -192,20 +194,20 @@ export default function ProScreen() {
                 >
                   <View style={{ flex: 1 }}>
                     <Text weight={600}>{p!.period === "year" ? "Yearly" : "Monthly"}</Text>
-                    <Text size={13} color={colors.ink3}>
+                    <Text size={13} color={c.ink3}>
                       {p!.trialDays ? `${p!.trialDays} days free, then ` : ""}
                       {p!.price} a {p!.period}
                     </Text>
                   </View>
                   {saving != null && saving > 0 && (
                     <View style={styles.save}>
-                      <Text size={12} weight={700} color={colors.white}>
+                      <Text size={12} weight={700} color={c.white}>
                         Save {saving}%
                       </Text>
                     </View>
                   )}
-                  <View style={[styles.radio, selected && { borderColor: colors.brand }]}>
-                    {selected && <Check size={14} color={colors.brand} strokeWidth={3} />}
+                  <View style={[styles.radio, selected && { borderColor: c.brandText }]}>
+                    {selected && <Check size={14} color={c.brandText} strokeWidth={3} />}
                   </View>
                 </Pressable>
               );
@@ -213,7 +215,7 @@ export default function ProScreen() {
           </View>
         ) : (
           <View style={styles.note}>
-            <Text size={13} color={colors.ink2}>
+            <Text size={13} color={c.ink2}>
               {purchasesAvailable && plans.isPending
                 ? "Loading prices…"
                 : "Pro is coming soon: ₹199 a month or ₹1,499 a year, with a 7-day free trial."}
@@ -224,12 +226,12 @@ export default function ProScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   crown: {
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: colors.brand,
+    backgroundColor: c.brand,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -238,7 +240,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     alignItems: "flex-start",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: radius.card,
     padding: 14,
   },
@@ -246,7 +248,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 11,
-    backgroundColor: "#f3e8ff",
+    backgroundColor: c.brandSoft,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -259,20 +261,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: radius.card,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
-    backgroundColor: colors.surface,
+    borderColor: c.lineStrong,
+    backgroundColor: c.surface,
   },
-  planSelected: { borderWidth: 2, borderColor: colors.brand },
-  save: { backgroundColor: colors.brand, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  planSelected: { borderWidth: 2, borderColor: c.brandText },
+  save: { backgroundColor: c.brand, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   radio: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     alignItems: "center",
     justifyContent: "center",
   },
-  note: { backgroundColor: colors.sunken, borderRadius: radius.card, padding: 14 },
+  note: { backgroundColor: c.sunken, borderRadius: radius.card, padding: 14 },
   link: { minHeight: 44, alignItems: "center", justifyContent: "center" },
-});
+}));

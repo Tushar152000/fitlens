@@ -1,13 +1,16 @@
 import { router } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "@/components/ui";
-import { colors, shadows } from "@/lib/theme";
+import { palettes, useColors, useShadows } from "@/lib/theme";
 
 const MODES = [
   { key: "type", label: "Type", pathname: "/log/type" },
   { key: "photo", label: "Photo", pathname: "/log" },
   { key: "barcode", label: "Barcode", pathname: "/log/barcode" },
 ] as const;
+
+/** The camera bar's white pill stays white in both schemes, so its label stays dark. */
+const INK_ON_WHITE = palettes.light.ink;
 
 export type LogMode = (typeof MODES)[number]["key"];
 
@@ -22,11 +25,13 @@ export function ModeTabs({
   params: { meal?: string; date?: string };
   tone?: "dark" | "light";
 }) {
+  const c = useColors();
+  const shadows = useShadows();
   const dark = tone === "dark";
   return (
     <View
       accessibilityLabel="How to log"
-      style={[styles.bar, { backgroundColor: dark ? "rgba(255,255,255,0.12)" : colors.chip }]}
+      style={[styles.bar, { backgroundColor: dark ? "rgba(255,255,255,0.12)" : c.chip }]}
     >
       {MODES.map((m) => {
         const active = m.key === current;
@@ -38,11 +43,15 @@ export function ModeTabs({
             onPress={() => !active && router.replace({ pathname: m.pathname, params })}
             style={[
               styles.tab,
-              active && { backgroundColor: dark ? colors.white : colors.surface },
+              active && { backgroundColor: dark ? c.white : c.surface },
               active && !dark && shadows.seg,
             ]}
           >
-            <Text weight={600} size={14} color={active ? colors.ink : dark ? "rgba(255,255,255,0.8)" : colors.ink2}>
+            <Text
+              weight={600}
+              size={14}
+              color={active ? (dark ? INK_ON_WHITE : c.ink) : dark ? "rgba(255,255,255,0.8)" : c.ink2}
+            >
               {m.label}
             </Text>
           </Pressable>

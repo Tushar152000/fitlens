@@ -42,7 +42,7 @@ import { fromItems, scaleRow, setRowGrams, toConfirmPayload, totals, type Row } 
 import { refreshDay } from "@/lib/query";
 import { useHistory } from "@/lib/use-history";
 import { showDay } from "@/lib/view-day";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 import type { MealDetailDto } from "@fitr8/contracts";
 
 /** GET /api/meals/:id, with the one hint the screen reads from the model's raw output. */
@@ -53,6 +53,7 @@ const POLL_GIVE_UP_MS = 60_000;
 
 /** Screens 8 / 9 / 9b: analysing → review and confirm → or couldn't read. Also edits a saved meal. */
 export default function ConfirmMealScreen() {
+  const c = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [slow, setSlow] = useState(false);
   const [pollKey, setPollKey] = useState(0); // bumps on re-check to restart the give-up timer
@@ -80,14 +81,14 @@ export default function ConfirmMealScreen() {
 
   if (meal.isPending) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.ground, padding: 20, paddingTop: 80, gap: 12 }}>
+      <View style={{ flex: 1, backgroundColor: c.ground, padding: 20, paddingTop: 80, gap: 12 }}>
         <MealSkeleton />
       </View>
     );
   }
   if (meal.isError) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.ground, padding: 20, paddingTop: 80 }}>
+      <View style={{ flex: 1, backgroundColor: c.ground, padding: 20, paddingTop: 80 }}>
         <QueryError error={meal.error} onRetry={() => meal.refetch()} />
       </View>
     );
@@ -119,6 +120,8 @@ function Editor({
   live: boolean;
   onRechecked: () => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const analysing = meal.status === "PENDING" || meal.status === "ANALYZING";
   const saved = meal.status === "CONFIRMED";
@@ -213,7 +216,7 @@ function Editor({
   const editing = !analysing && meal.status !== "FAILED" && !found;
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.ground }}
+      style={{ flex: 1, backgroundColor: c.ground }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
@@ -248,24 +251,24 @@ function Editor({
                         : `We found ${rows.length} ${rows.length === 1 ? "item" : "items"}`}
                 </Text>
                 <Pressable accessibilityRole="button" onPress={remove} style={styles.delete}>
-                  <Trash2 size={16} color={colors.ink3} />
-                  <Text weight={600} size={13} color={colors.ink3}>
+                  <Trash2 size={16} color={c.ink3} />
+                  <Text weight={600} size={13} color={c.ink3}>
                     Delete
                   </Text>
                 </Pressable>
               </View>
               {meal.aiNotes && !manual && (
-                <Text size={13} color={colors.ink3}>
+                <Text size={13} color={c.ink3}>
                   {meal.aiNotes}
                 </Text>
               )}
               {pastDay && (
-                <Text weight={600} size={13} color={colors.brand}>
+                <Text weight={600} size={13} color={c.brandText}>
                   {dayLabel(pastDay) === "Yesterday" ? "Logging for yesterday" : `Logging for ${dayLabel(pastDay)}`}
                 </Text>
               )}
               <View style={styles.row}>
-                <Text size={13} color={colors.ink3} style={{ flex: 1 }}>
+                <Text size={13} color={c.ink3} style={{ flex: 1 }}>
                   {rows.length > 0 && !manual ? "Check portions — tap − or + to adjust." : ""}
                 </Text>
                 <HistoryButton label="Undo" icon={Undo2} onPress={edits.undo} disabled={!edits.canUndo} />
@@ -288,8 +291,8 @@ function Editor({
                 {rows.length > 0 &&
                   (savedAs ? (
                     <View style={styles.savedAs} accessibilityLiveRegion="polite">
-                      <BookmarkCheck size={18} color={colors.protein} />
-                      <Text weight={600} size={13} color={colors.protein} style={{ flex: 1 }}>
+                      <BookmarkCheck size={18} color={c.protein} />
+                      <Text weight={600} size={13} color={c.protein} style={{ flex: 1 }}>
                         Saved as &quot;{savedAs}&quot; — one tap to log it next time
                       </Text>
                     </View>
@@ -300,8 +303,8 @@ function Editor({
                       onPress={() => setSaveOpen(true)}
                       style={styles.saveAs}
                     >
-                      <Bookmark size={18} color={colors.brand} />
-                      <Text weight={600} size={14} color={colors.brand}>
+                      <Bookmark size={18} color={c.brandText} />
+                      <Text weight={600} size={14} color={c.brandText}>
                         Save as a meal for next time
                       </Text>
                     </Pressable>
@@ -312,7 +315,7 @@ function Editor({
                 <Card style={styles.row}>
                   <View style={{ flex: 1 }}>
                     <Text weight={600}>Cooked with ghee or oil</Text>
-                    <Text size={13} color={colors.ink3} tabular>
+                    <Text size={13} color={c.ink3} tabular>
                       +45 kcal · +5 g fat (1 tsp)
                     </Text>
                   </View>
@@ -329,11 +332,11 @@ function Editor({
                   multiline
                   maxLength={500}
                   placeholder="e.g. small cup, 2 sachets sugar, full-cream milk"
-                  placeholderTextColor="rgba(107,110,118,0.6)"
+                  placeholderTextColor={c.ink3}
                   style={styles.note}
                   textAlignVertical="top"
                 />
-                <Text size={13} color={colors.ink3}>
+                <Text size={13} color={c.ink3}>
                   Saved with the meal. Re-check to let the AI correct the items using your details.
                 </Text>
                 <Button
@@ -355,24 +358,24 @@ function Editor({
         <View style={[styles.footer, { paddingBottom: Math.max(16, insets.bottom) }]}>
           <View style={styles.total}>
             <View>
-              <Text weight={600} size={12} color={colors.ink3}>
+              <Text weight={600} size={12} color={c.ink3}>
                 Total
               </Text>
               <Text variant="h1" size={26} tabular accessibilityLiveRegion="polite">
                 {formatInt(sum.kcal)}{" "}
-                <Text weight={600} size={13} color={colors.ink3}>
+                <Text weight={600} size={13} color={c.ink3}>
                   kcal
                 </Text>
               </Text>
             </View>
             <View style={{ flexDirection: "row", gap: 12 }}>
-              <Text weight={600} size={13} color={colors.protein} tabular>
+              <Text weight={600} size={13} color={c.protein} tabular>
                 {formatInt(sum.proteinG)} g protein
               </Text>
-              <Text weight={600} size={13} color={colors.carbsText} tabular>
+              <Text weight={600} size={13} color={c.carbsText} tabular>
                 {formatInt(sum.carbsG)} g carbs
               </Text>
-              <Text weight={600} size={13} color={colors.fat} tabular>
+              <Text weight={600} size={13} color={c.fat} tabular>
                 {formatInt(sum.fatG)} g fat
               </Text>
             </View>
@@ -425,6 +428,8 @@ function HistoryButton({
   onPress: () => void;
   disabled: boolean;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -435,8 +440,8 @@ function HistoryButton({
       hitSlop={6}
       style={[styles.history, disabled && { opacity: 0.35 }]}
     >
-      <Icon size={16} color={colors.ink2} />
-      <Text weight={600} size={13} color={colors.ink2}>
+      <Icon size={16} color={c.ink2} />
+      <Text weight={600} size={13} color={c.ink2}>
         {label}
       </Text>
     </Pressable>
@@ -444,6 +449,8 @@ function HistoryButton({
 }
 
 function Header({ meal, scanning, top }: { meal: MealDto; scanning: boolean; top: number }) {
+  const c = useColors();
+  const styles = useStyles();
   const back = (onPhoto: boolean) => (
     <Pressable
       accessibilityRole="button"
@@ -451,12 +458,12 @@ function Header({ meal, scanning, top }: { meal: MealDto; scanning: boolean; top
       onPress={() => router.dismissTo("/today")}
       style={[styles.back, onPhoto && { backgroundColor: "rgba(23,24,28,0.55)" }]}
     >
-      <ChevronLeft size={26} color={onPhoto ? colors.white : colors.ink} />
+      <ChevronLeft size={26} color={onPhoto ? c.white : c.ink} />
     </Pressable>
   );
   if (meal.photoUrl) {
     return (
-      <View style={{ height: 224 + top, backgroundColor: colors.sunken, overflow: "hidden" }}>
+      <View style={{ height: 224 + top, backgroundColor: c.sunken, overflow: "hidden" }}>
         <Image
           source={{ uri: meal.photoUrl }}
           style={StyleSheet.absoluteFill}
@@ -471,8 +478,8 @@ function Header({ meal, scanning, top }: { meal: MealDto; scanning: boolean; top
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingTop: top + 8 }}>
       {back(false)}
-      <NotebookPen size={16} color={colors.ink3} />
-      <Text weight={600} size={13} color={colors.ink3} numberOfLines={1} style={{ flex: 1 }}>
+      <NotebookPen size={16} color={c.ink3} />
+      <Text weight={600} size={13} color={c.ink3} numberOfLines={1} style={{ flex: 1 }}>
         {MEAL_LABEL[meal.mealType]}
         {meal.inputText ? ` · “${meal.inputText}”` : ""}
       </Text>
@@ -482,6 +489,7 @@ function Header({ meal, scanning, top }: { meal: MealDto; scanning: boolean; top
 
 /** Design 8: animated scan line over the photo. */
 function ScanLine({ height }: { height: number }) {
+  const styles = useStyles();
   const [y] = useState(() => new Animated.Value(0));
   useEffect(() => {
     const ease = Easing.inOut(Easing.ease);
@@ -505,7 +513,7 @@ function ScanLine({ height }: { height: number }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   back: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   history: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 6 },
   delete: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8, marginRight: -8 },
@@ -513,13 +521,13 @@ const styles = StyleSheet.create({
   note: {
     minHeight: 64,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontFamily: fonts.sans400,
     fontSize: 15,
-    color: colors.ink,
+    color: c.ink,
   },
   saveAs: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 44 },
   savedAs: {
@@ -528,23 +536,23 @@ const styles = StyleSheet.create({
     gap: 8,
     minHeight: 44,
     borderRadius: radius.card,
-    backgroundColor: colors.proteinSoft,
+    backgroundColor: c.proteinSoft,
     paddingHorizontal: 16,
   },
   footer: {
     paddingTop: 12,
     paddingHorizontal: 20,
     gap: 12,
-    backgroundColor: colors.ground,
+    backgroundColor: c.ground,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
+    borderTopColor: c.line,
   },
   total: {
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -554,7 +562,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     height: 2,
-    backgroundColor: colors.brandGlow,
+    backgroundColor: c.brandGlow,
     boxShadow: "0 0 16px 4px rgba(232, 119, 46, 0.6)",
   },
-});
+}));

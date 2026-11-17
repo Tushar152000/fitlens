@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, HttpCode, Patch, Res } from "@nestjs/common";
+import { Controller, Delete, Get, HttpCode, Patch, Post, Res } from "@nestjs/common";
 import type { Response } from "express";
 import {
   PreferredNameSchema,
@@ -25,6 +25,13 @@ export class UsersController {
   @Get("me")
   me(@UserId() userId: string): Promise<MeDto> {
     return wire(this.users.me(userId));
+  }
+
+  /** "Not now" on the welcome-back check-in: keep the old numbers and stop asking. */
+  @Post("me/active")
+  @HttpCode(204)
+  async active(@UserId() userId: string): Promise<void> {
+    await this.users.markActive(userId);
   }
 
   /** Design 13 "Export CSV": a download of every confirmed meal item and weigh-in. */
