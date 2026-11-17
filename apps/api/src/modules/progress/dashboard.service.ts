@@ -39,7 +39,7 @@ export class DashboardService {
   /** Target, confirmed totals and every meal (any status) for the date. */
   async dayTotals(userId: string, date: Date) {
     const [target, meals] = await Promise.all([
-      this.targets.currentTarget(userId, date),
+      this.targets.targetForDay(userId, date),
       this.prisma.mealLog.findMany({
         where: { userId, date },
         include: { items: true },

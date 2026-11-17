@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { colors } from "@/lib/theme";
+import { useColors } from "@/lib/theme";
 import { Text } from "./text";
 
 /** 36 px pill with a 44 px hit area. Dark tone for the camera screen. */
@@ -17,10 +17,10 @@ export function Chip({
   children: ReactNode;
   icon?: ReactNode;
 }) {
-  const bg =
-    tone === "dark" ? (selected ? colors.white : "rgba(255,255,255,0.12)") : selected ? colors.ink : colors.chip;
-  const fg =
-    tone === "dark" ? (selected ? colors.ink : "rgba(255,255,255,0.85)") : selected ? colors.white : colors.ink2;
+  const c = useColors();
+  const bg = tone === "dark" ? (selected ? c.white : "rgba(255,255,255,0.12)") : selected ? c.strong : c.chip;
+  // Dark tone sits on the always-dark camera, so its selected text is a fixed near-black on white.
+  const fg = tone === "dark" ? (selected ? "#151724" : "rgba(255,255,255,0.85)") : selected ? c.onStrong : c.ink2;
   return (
     <Pressable
       accessibilityRole="button"

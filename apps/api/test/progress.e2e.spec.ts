@@ -105,6 +105,28 @@ describe("progress", () => {
     expect(yesterday.body).toMatchObject({ eaten: { kcal: 400 }, streak: 2 });
   });
 
+  it("measures days before onboarding against the first plan, not 'no target'", async () => {
+    const { agent } = await t.signIn();
+    const plan = await onboard(agent); // first target starts today
+    const yesterday = ymd(new Date(localToday().getTime() - DAY));
+    const res = await agent.get(`/api/dashboard?date=${yesterday}`).expect(200);
+    expect(res.body).toMatchObject({
+      date: yesterday,
+      target: { kcal: plan.target.kcal },
+      remainingKcal: plan.target.kcal,
+    });
+    const week = await agent.get("/api/history").expect(200);
+    expect(
+      week.body.days.every((d: { target: number | null }) => d.target === plan.target.kcal),
+    ).toBe(true);
+  });
+
+  it("has no target at all before any plan exists", async () => {
+    const { agent } = await t.signIn();
+    const res = await agent.get("/api/dashboard").expect(200);
+    expect(res.body.target).toBeNull();
+  });
+
   it("returns 7 or 30 days of history", async () => {
     const { userId, agent } = await t.signIn();
     await onboard(agent);

@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 import { ChevronRight, NotebookPen } from "lucide-react-native";
 import { Pressable, StyleSheet, View } from "react-native";
 import { formatInt } from "@/lib/format";
-import { colors, radius } from "@/lib/theme";
+import { makeStyles, radius, useColors } from "@/lib/theme";
 import type { MealStatus } from "@/lib/types";
 import { Text } from "./text";
 
@@ -29,6 +29,8 @@ export function MealRow({
   kcal: number;
   status?: MealStatus;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const note = STATUS_TEXT[status];
   return (
     <Pressable
@@ -40,18 +42,18 @@ export function MealRow({
         {photoUrl ? (
           <Image source={{ uri: photoUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : (
-          <NotebookPen size={20} color={colors.ink2} strokeWidth={2} />
+          <NotebookPen size={20} color={c.ink2} strokeWidth={2} />
         )}
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text weight={600} size={12} color={colors.ink3}>
+        <Text weight={600} size={12} color={c.ink3}>
           {meta}
         </Text>
         <Text weight={600} numberOfLines={1}>
           {title}
         </Text>
         {note && (
-          <Text weight={600} size={12} color={status === "READY" ? colors.brand : colors.ink3}>
+          <Text weight={600} size={12} color={status === "READY" ? c.brandText : c.ink3}>
             {note}
           </Text>
         )}
@@ -59,18 +61,18 @@ export function MealRow({
       {status === "CONFIRMED" ? (
         <Text weight={700} tabular>
           {formatInt(kcal)}{" "}
-          <Text weight={600} size={12} color={colors.ink3}>
+          <Text weight={600} size={12} color={c.ink3}>
             kcal
           </Text>
         </Text>
       ) : (
-        <ChevronRight size={20} color={colors.ink3} />
+        <ChevronRight size={20} color={c.ink3} />
       )}
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   row: {
     minHeight: 64,
     flexDirection: "row",
@@ -78,15 +80,15 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 12,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
   },
   thumb: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: colors.sunken,
+    backgroundColor: c.sunken,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
-});
+}));

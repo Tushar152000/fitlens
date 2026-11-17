@@ -11,7 +11,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from "react-native";
-import { colors } from "@/lib/theme";
+import { useColors, useScheme, type Colors, type ColorScheme } from "@/lib/theme";
 
 function useReduceMotion() {
   const [reduce, setReduce] = useState(false);
@@ -25,14 +25,17 @@ function useReduceMotion() {
   return reduce;
 }
 
-/** Base colour per surface: the page ground, a white card, or a dark (ink) card. */
-const TONES = {
-  ground: { base: colors.chip, shine: "rgba(255,255,255,0.7)" },
-  card: { base: colors.sunken, shine: "rgba(255,255,255,0.9)" },
-  dark: { base: "rgba(255,255,255,0.10)", shine: "rgba(255,255,255,0.14)" },
-} as const;
+export type SkeletonTone = "ground" | "card" | "dark";
 
-export type SkeletonTone = keyof typeof TONES;
+/**
+ * Base colour per surface: the page ground, a white card, or a dark (panel) card. On a dark
+ * ground the sweep is a faint white so it reads as a sheen, not a bright flash.
+ */
+const tones = (c: Colors, scheme: ColorScheme): Record<SkeletonTone, { base: string; shine: string }> => ({
+  ground: { base: c.chip, shine: scheme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.7)" },
+  card: { base: c.sunken, shine: scheme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.9)" },
+  dark: { base: "rgba(255,255,255,0.10)", shine: "rgba(255,255,255,0.14)" },
+});
 
 /**
  * Loading block shaped like the content it stands in for, with a light sweep across it
@@ -54,7 +57,9 @@ export function Skeleton({
   const reduce = useReduceMotion();
   const [w, setW] = useState(0);
   const [sweep] = useState(() => new Animated.Value(0));
-  const t = TONES[tone];
+  const c = useColors();
+  const scheme = useScheme();
+  const t = tones(c, scheme)[tone];
 
   // Blocks mount together, so their sweeps stay in step without sharing one animation.
   useEffect(() => {

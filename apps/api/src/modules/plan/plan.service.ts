@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { GoalOptionInput, OnboardingInput } from "@fitr8/contracts";
+import type { GoalOptionInput, OnboardingInput, WelcomeBackInput } from "@fitr8/contracts";
 import { localDate, parseDateOnly } from "@fitr8/domain/dates";
 import { bodyFatNavy } from "@fitr8/domain/nutrition";
 import { AppError } from "../../common/errors.js";
@@ -99,6 +99,89 @@ export class PlanService {
       heightCm: input.heightCm,
       bodyFatPct,
     });
+  }
+
+  /**
+   * Back after a long break: update only what changes over time (body numbers, activity, training
+   * where they train, health flag, timezone), log today's weigh-in, keep the goal, and recompute targets from
+   * the new numbers. Ends the "welcome back" state.
+   */
+  async welcomeBack(userId: string, input: WelcomeBackInput) {
+    const [profile, goal] = await Promise.all([
+      this.prisma.profile.findUnique({
+        where: { userId },
+        select: { sex: true, onboardedAt: true },
+      }),
+      this.prisma.goal.findFirst({
+        where: { userId, status: "ACTIVE" },
+        orderBy: { createdAt: "desc" },
+        select: { targetBodyFatPct: true, targetDate: true },
+      }),
+    ]);
+    if (!profile?.onboardedAt || !goal) throw new AppError(404, "Finish onboarding first");
+    if (goal.targetBodyFatPct != null && !(input.waistCm && input.neckCm)) {
+      throw new AppError(400, "A body-fat goal needs waist and neck measurements", [
+        { path: "waistCm", message: "A body-fat goal needs waist and neck measurements" },
+      ]);
+    }
+
+    const today = localDate(input.timezone);
+    const bodyFatPct =
+      input.waistCm && input.neckCm
+        ? bodyFatNavy({
+            sex: profile.sex,
+            heightCm: input.heightCm,
+            waistCm: input.waistCm,
+            neckCm: input.neckCm,
+            hipCm: input.hipCm,
+          })
+        : null;
+    const metric = {
+      weightKg: input.weightKg,
+      waistCm: input.waistCm ?? null,
+      neckCm: input.neckCm ?? null,
+      hipCm: input.hipCm ?? null,
+      bodyFatPct,
+    };
+
+    // Same transaction shape as onboarding: the weigh-in commits with the profile it was taken with.
+    await this.prisma.$transaction([
+      this.prisma.profile.update({
+        where: { userId },
+        data: {
+          heightCm: input.heightCm,
+          activityLevel: input.activityLevel,
+          equipment: input.equipment,
+          trainingDaysPerWeek: input.trainingDaysPerWeek,
+          sessionMinutes: input.sessionMinutes,
+          injuries: input.injuries,
+          medicalFlag: input.medicalFlag,
+          timezone: input.timezone,
+        },
+      }),
+      this.prisma.bodyMetric.upsert({
+        where: { userId_date: { userId, date: today } },
+        create: { userId, date: today, ...metric },
+        update: metric,
+      }),
+    ]);
+
+    const { target, plan } = await this.targets.recomputeTargets(
+      userId,
+      "Updated after a break: new weight and routine",
+      today,
+    );
+    await this.users.markActive(userId);
+    return {
+      summary: planSummary({
+        plan,
+        target,
+        weightKg: input.weightKg,
+        heightCm: input.heightCm,
+        bodyFatPct,
+      }),
+      goalPassed: goal.targetDate < today,
+    };
   }
 
   /** GET /targets: today's target (keyed by the user's local date, which can be ahead of UTC). */

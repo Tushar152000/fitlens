@@ -19,7 +19,7 @@ import { api } from "@/lib/api";
 import { useEnergy } from "@/lib/energy";
 import { workoutQuery } from "@/lib/queries";
 import { queryClient } from "@/lib/query";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useColors, type Colors } from "@/lib/theme";
 import type { AdjustedExercise, DayState, Energy, TodayWorkout } from "@/lib/types";
 
 type SetState = { kg: string; reps: string; done: boolean };
@@ -74,6 +74,8 @@ function Session({
   refreshing: boolean;
   onRefresh: () => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const session = data.session;
   const [active, setActive] = useState(() => {
     const open = session?.exercises.findIndex((e) => !data.completed.includes(e.slug)) ?? 0;
@@ -169,14 +171,14 @@ function Session({
 
           {allDone && (
             <View style={styles.doneCard}>
-              <Utensils size={20} color={colors.protein} style={{ marginTop: 2 }} />
+              <Utensils size={20} color={c.protein} style={{ marginTop: 2 }} />
               <View style={{ flex: 1, gap: 6 }}>
                 <Text weight={700}>Session done. Protein next.</Text>
-                <Text size={13} color={colors.ink2}>
+                <Text size={13} color={c.ink2}>
                   Aim for 25–40 g of protein at your next meal to help recovery.
                 </Text>
                 <Pressable accessibilityRole="link" onPress={() => router.push("/log/type")}>
-                  <Text weight={600} size={13} color={colors.brand}>
+                  <Text weight={600} size={13} color={c.brandText}>
                     Log your next meal
                   </Text>
                 </Pressable>
@@ -194,25 +196,25 @@ function Session({
                   accessibilityRole="button"
                   accessibilityState={{ selected: i === active }}
                   onPress={() => setActive(i)}
-                  style={[styles.exercise, i === active && { borderColor: colors.ink }]}
+                  style={[styles.exercise, i === active && { borderColor: c.ink }]}
                 >
-                  <View style={[styles.num, { backgroundColor: done ? colors.protein : colors.sunken }]}>
+                  <View style={[styles.num, { backgroundColor: done ? c.protein : c.sunken }]}>
                     {done ? (
-                      <Check size={16} color={colors.white} strokeWidth={3} accessibilityLabel="Done" />
+                      <Check size={16} color={c.surface} strokeWidth={3} accessibilityLabel="Done" />
                     ) : (
-                      <Text weight={700} size={13} color={colors.ink2}>
+                      <Text weight={700} size={13} color={c.ink2}>
                         {i + 1}
                       </Text>
                     )}
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text weight={600}>{e.name}</Text>
-                    <Text size={13} color={colors.ink3} tabular>
+                    <Text size={13} color={c.ink3} tabular>
                       {e.sets} × {repsLabel(e)}
                       {e.targetKg != null ? ` · ${e.targetKg} kg` : ""} · {e.rir} in reserve
                     </Text>
                   </View>
-                  <ChevronRight size={20} color={colors.ink3} />
+                  <ChevronRight size={20} color={c.ink3} />
                 </Pressable>
               );
             })}
@@ -223,16 +225,19 @@ function Session({
   );
 }
 
-const STRIP: Record<DayState, { bg: string; fg: string; border?: string; dashed?: boolean }> = {
-  today: { bg: colors.ink, fg: colors.white },
-  done: { bg: colors.proteinSoft, fg: colors.protein },
-  planned: { bg: colors.surface, fg: colors.ink, border: colors.lineStrong },
-  missed: { bg: colors.surface, fg: colors.ink3, border: colors.lineStrong, dashed: true },
-  rest: { bg: colors.sunken, fg: colors.ink3 },
-  before: { bg: colors.sunken, fg: colors.ink3 },
-};
+const stripStyles = (c: Colors): Record<DayState, { bg: string; fg: string; border?: string; dashed?: boolean }> => ({
+  today: { bg: c.strong, fg: c.onStrong },
+  done: { bg: c.proteinSoft, fg: c.protein },
+  planned: { bg: c.surface, fg: c.ink, border: c.lineStrong },
+  missed: { bg: c.surface, fg: c.ink3, border: c.lineStrong, dashed: true },
+  rest: { bg: c.sunken, fg: c.ink3 },
+  before: { bg: c.sunken, fg: c.ink3 },
+});
 
 function WeekStrip({ strip }: { strip: TodayWorkout["strip"] }) {
+  const c = useColors();
+  const styles = useStyles();
+  const STRIP = stripStyles(c);
   return (
     <View style={{ flexDirection: "row", gap: 6 }} accessibilityLabel="This week">
       {strip.map((d) => {
@@ -270,10 +275,12 @@ function WeekStrip({ strip }: { strip: TodayWorkout["strip"] }) {
 }
 
 function Pill({ icon: Icon, text, onPress }: { icon: LucideIcon; text: string; onPress?: () => void }) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <Pressable disabled={!onPress} onPress={onPress} style={styles.pill}>
-      <Icon size={16} color={colors.ink2} />
-      <Text weight={600} size={14} color={colors.ink2}>
+      <Icon size={16} color={c.ink2} />
+      <Text weight={600} size={14} color={c.ink2}>
         {text}
       </Text>
     </Pressable>
@@ -299,18 +306,20 @@ function ActiveExercise({
   onChange: (i: number, patch: Partial<SetState>) => void;
   onToggle: (i: number) => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const weighted = ex.targetKg != null;
   return (
     <Card>
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 12 }}>
         <View style={{ flex: 1 }}>
-          <Text weight={600} size={12} color={colors.ink3}>
+          <Text weight={600} size={12} color={c.ink3}>
             {roleLabel(ex.role)} · exercise {index + 1} of {total}
           </Text>
           <Text variant="h2" size={22}>
             {ex.name}
           </Text>
-          <Text size={13} color={colors.ink2} tabular>
+          <Text size={13} color={c.ink2} tabular>
             {ex.sets} × {repsLabel(ex)} · {ex.rir} reps in reserve · rest {Math.round((ex.restSec / 60) * 2) / 2} min
           </Text>
         </View>
@@ -323,27 +332,27 @@ function ActiveExercise({
 
       <View style={{ gap: 6 }}>
         <View style={styles.setRow}>
-          <Text weight={600} size={12} color={colors.ink3} style={{ width: 32 }}>
+          <Text weight={600} size={12} color={c.ink3} style={{ width: 32 }}>
             Set
           </Text>
-          <Text weight={600} size={12} color={colors.ink3} style={{ flex: 1 }}>
+          <Text weight={600} size={12} color={c.ink3} style={{ flex: 1 }}>
             {weighted ? "kg" : "Load"}
           </Text>
-          <Text weight={600} size={12} color={colors.ink3} style={{ flex: 1 }}>
+          <Text weight={600} size={12} color={c.ink3} style={{ flex: 1 }}>
             {ex.timed ? "Seconds" : "Reps"}
           </Text>
           <View style={{ width: 44 }} />
         </View>
         {sets.map((s, i) => (
           <View key={i} style={styles.setRow}>
-            <Text weight={700} tabular color={s.done ? colors.ink3 : colors.ink} style={{ width: 32 }}>
+            <Text weight={700} tabular color={s.done ? c.ink3 : c.ink} style={{ width: 32 }}>
               {i + 1}
             </Text>
             <View style={{ flex: 1 }}>
               {weighted ? (
                 <SetInput label={`Set ${i + 1} kg`} value={s.kg} onChange={(kg) => onChange(i, { kg })} />
               ) : (
-                <Text weight={600} size={13} color={colors.ink3}>
+                <Text weight={600} size={13} color={c.ink3}>
                   Bodyweight
                 </Text>
               )}
@@ -361,21 +370,21 @@ function ActiveExercise({
               accessibilityState={{ checked: s.done }}
               accessibilityLabel={`Set ${i + 1} done`}
               onPress={() => onToggle(i)}
-              style={[styles.tick, { backgroundColor: s.done ? colors.protein : colors.sunken }]}
+              style={[styles.tick, { backgroundColor: s.done ? c.protein : c.sunken }]}
             >
-              <Check size={20} strokeWidth={2.5} color={s.done ? colors.white : colors.ink3} />
+              <Check size={20} strokeWidth={2.5} color={s.done ? c.surface : c.ink3} />
             </Pressable>
           </View>
         ))}
       </View>
       {ex.bonusRep && (
-        <Text weight={600} size={13} color={colors.protein}>
+        <Text weight={600} size={13} color={c.protein}>
           Feeling great: take one extra rep on your last set.
         </Text>
       )}
       <View style={styles.hint}>
-        <TrendingUp size={16} color={colors.protein} style={{ marginTop: 2 }} />
-        <Text size={13} color={colors.ink2} style={{ flex: 1 }}>
+        <TrendingUp size={16} color={c.protein} style={{ marginTop: 2 }} />
+        <Text size={13} color={c.ink2} style={{ flex: 1 }}>
           {saved
             ? `Saved. Next time: ${saved}`
             : (ex.note ??
@@ -387,17 +396,18 @@ function ActiveExercise({
 }
 
 function RestDay({ data }: { data: TodayWorkout }) {
+  const c = useColors();
   return (
     <>
       <Card>
-        <Text color={colors.ink2}>{data.cardio}</Text>
+        <Text color={c.ink2}>{data.cardio}</Text>
       </Card>
       {data.nextDay && (
         <View style={{ gap: 8 }}>
           <Text variant="h2">
             Next: {data.nextDay.name}, {weekday(data.nextDay.date)}
           </Text>
-          <View style={{ borderRadius: radius.card, backgroundColor: colors.surface }}>
+          <View style={{ borderRadius: radius.card, backgroundColor: c.surface }}>
             {data.nextDay.exercises.map((e, i) => (
               <View
                 key={e.slug}
@@ -409,13 +419,13 @@ function RestDay({ data }: { data: TodayWorkout }) {
                     paddingHorizontal: 16,
                     paddingVertical: 12,
                   },
-                  i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+                  i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line },
                 ]}
               >
                 <Text weight={600} style={{ flex: 1 }}>
                   {e.name}
                 </Text>
-                <Text size={13} color={colors.ink3} tabular>
+                <Text size={13} color={c.ink3} tabular>
                   {e.sets} × {repsLabel(e)}
                   {e.targetKg != null ? ` · ${e.targetKg} kg` : ""}
                 </Text>
@@ -442,20 +452,22 @@ function SetInput({
   placeholder?: string;
   onChange: (v: string) => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <TextInput
       accessibilityLabel={label}
       keyboardType="decimal-pad"
       value={value}
       placeholder={placeholder}
-      placeholderTextColor="rgba(107,110,118,0.7)"
+      placeholderTextColor={c.ink3}
       onChangeText={(v) => onChange(v.replace(",", "."))}
       style={styles.input}
     />
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   day: { flex: 1, height: 56, borderRadius: radius.input, alignItems: "center", justifyContent: "center", gap: 4 },
   pill: {
     height: 36,
@@ -463,28 +475,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     borderRadius: 18,
-    backgroundColor: colors.chip,
+    backgroundColor: c.chip,
     paddingHorizontal: 16,
   },
-  badge: { borderRadius: 999, backgroundColor: colors.sunken, paddingHorizontal: 10, paddingVertical: 4 },
+  badge: { borderRadius: 999, backgroundColor: c.sunken, paddingHorizontal: 10, paddingVertical: 4 },
   setRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   tick: { width: 44, height: 44, borderRadius: radius.input, alignItems: "center", justifyContent: "center" },
   input: {
     height: 44,
     borderRadius: radius.input,
-    backgroundColor: colors.sunken,
+    backgroundColor: c.sunken,
     paddingHorizontal: 12,
     fontFamily: fonts.sans600,
     fontSize: 15,
-    color: colors.ink,
+    color: c.ink,
     fontVariant: ["tabular-nums"],
   },
-  hint: { flexDirection: "row", gap: 8, borderRadius: radius.input, backgroundColor: colors.proteinSoft, padding: 12 },
+  hint: { flexDirection: "row", gap: 8, borderRadius: radius.input, backgroundColor: c.proteinSoft, padding: 12 },
   doneCard: {
     flexDirection: "row",
     gap: 12,
     borderRadius: radius.card,
-    backgroundColor: colors.proteinSoft,
+    backgroundColor: c.proteinSoft,
     padding: 16,
   },
   exercise: {
@@ -495,9 +507,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     borderWidth: 2,
     borderColor: "transparent",
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   num: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-});
+}));

@@ -1,5 +1,5 @@
-import { Pressable, StyleSheet, View } from "react-native";
-import { colors, shadows } from "@/lib/theme";
+import { Pressable, View } from "react-native";
+import { makeStyles, useColors } from "@/lib/theme";
 import { Text } from "./text";
 
 /** Sunken track; the selected option is a raised surface. */
@@ -14,6 +14,8 @@ export function Segmented<T extends string | number>({
   value: T | undefined;
   onChange: (value: T) => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <View style={styles.track} accessibilityRole="radiogroup" accessibilityLabel={label}>
       {options.map((o) => {
@@ -26,7 +28,7 @@ export function Segmented<T extends string | number>({
             onPress={() => onChange(o.value)}
             style={[styles.option, selected && styles.selected]}
           >
-            <Text weight={600} color={selected ? colors.ink : colors.ink2}>
+            <Text weight={600} color={selected ? c.ink : c.ink2}>
               {o.label}
             </Text>
           </Pressable>
@@ -36,8 +38,8 @@ export function Segmented<T extends string | number>({
   );
 }
 
-const styles = StyleSheet.create({
-  track: { flexDirection: "row", borderRadius: 14, backgroundColor: colors.chip, padding: 4 },
+const useStyles = makeStyles((c, shadows) => ({
+  track: { flexDirection: "row", borderRadius: 14, backgroundColor: c.chip, padding: 4 },
   option: {
     flex: 1,
     minHeight: 44,
@@ -46,5 +48,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 12,
   },
-  selected: { backgroundColor: colors.surface, ...shadows.seg },
-});
+  selected: { backgroundColor: c.raised, ...shadows.seg },
+}));

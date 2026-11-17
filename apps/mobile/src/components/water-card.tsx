@@ -1,13 +1,13 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Info, Redo2, Undo2 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { FieldError, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { waterQuery } from "@/lib/queries";
 import { queryClient } from "@/lib/query";
 import { syncWaterReminders } from "@/lib/reminders";
-import { colors } from "@/lib/theme";
+import { makeStyles, useColors } from "@/lib/theme";
 import type { WaterDay } from "@/lib/types";
 
 const L = (ml: number) => (Math.round(ml / 100) / 10).toFixed(1);
@@ -35,6 +35,8 @@ export function useWater() {
 
 /** Fourth bar under Protein / Carbs / Fat in the Today card: "1.0 / 3.5 L". */
 export function WaterBar({ day }: { day: WaterDay | undefined }) {
+  const c = useColors();
+  const styles = useStyles();
   const pct = day ? Math.min(100, (day.consumedMl / day.targetMl) * 100) : 0;
   return (
     <View
@@ -46,7 +48,7 @@ export function WaterBar({ day }: { day: WaterDay | undefined }) {
         <Text weight={600} size={13}>
           Water
         </Text>
-        <Text weight={600} size={13} color={colors.ink2} tabular>
+        <Text weight={600} size={13} color={c.ink2} tabular>
           {day ? `${L(day.consumedMl)} / ${L(day.targetMl)} L` : "—"}
         </Text>
       </View>
@@ -62,6 +64,8 @@ export function WaterBar({ day }: { day: WaterDay | undefined }) {
  * that shows how the target was worked out.
  */
 export function WaterQuickAdd({ water }: { water: ReturnType<typeof useWater> }) {
+  const c = useColors();
+  const styles = useStyles();
   const [why, setWhy] = useState(false);
   // Amounts taken off with Undo, newest last; Redo adds them back. A new add starts fresh.
   const [undone, setUndone] = useState<number[]>([]);
@@ -87,36 +91,30 @@ export function WaterQuickAdd({ water }: { water: ReturnType<typeof useWater> })
   return (
     <View style={{ gap: 8 }}>
       <View style={styles.quick}>
-        <Text
-          weight={600}
-          size={13}
-          color={reached ? colors.protein : colors.water}
-          style={{ flex: 1 }}
-          numberOfLines={1}
-        >
+        <Text weight={600} size={13} color={reached ? c.protein : c.water} style={{ flex: 1 }} numberOfLines={1}>
           {reached ? "Target reached" : `${L(d.targetMl - d.consumedMl)} L left`}
         </Text>
         <Chip label="+250 ml" a11y="Add a glass, 250 ml" onPress={() => add(250)} disabled={busy} />
         <Chip label="+500 ml" a11y="Add a bottle, 500 ml" onPress={() => add(500)} disabled={busy} />
         {last && (
           <IconButton label={`Undo last ${last.ml} ml`} onPress={undo} disabled={busy}>
-            <Undo2 size={16} color={colors.ink2} />
+            <Undo2 size={16} color={c.ink2} />
           </IconButton>
         )}
         {redoMl != null && (
           <IconButton label={`Redo ${redoMl} ml`} onPress={redo} disabled={busy}>
-            <Redo2 size={16} color={colors.ink2} />
+            <Redo2 size={16} color={c.ink2} />
           </IconButton>
         )}
         <IconButton
           label={why ? "Hide how the water target works" : "How the water target works"}
           onPress={() => setWhy((w) => !w)}
         >
-          <Info size={16} color={why ? colors.water : colors.ink3} />
+          <Info size={16} color={why ? c.water : c.ink3} />
         </IconButton>
       </View>
       {why && (
-        <Text size={12} color={colors.ink2} tabular>
+        <Text size={12} color={c.ink2} tabular>
           {d.reason}. {d.tip}
           {d.caution ? ` ${d.caution}` : ""}
         </Text>
@@ -137,6 +135,8 @@ function Chip({
   onPress: () => void;
   disabled: boolean;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -144,10 +144,10 @@ function Chip({
       onPress={onPress}
       disabled={disabled}
       hitSlop={6}
-      style={({ pressed }) => [styles.chip, pressed && { backgroundColor: colors.water }, disabled && { opacity: 0.6 }]}
+      style={({ pressed }) => [styles.chip, pressed && { backgroundColor: c.water }, disabled && { opacity: 0.6 }]}
     >
       {({ pressed }) => (
-        <Text weight={600} size={13} color={pressed ? colors.white : colors.water} tabular>
+        <Text weight={600} size={13} color={pressed ? c.surface : c.water} tabular>
           {label}
         </Text>
       )}
@@ -166,6 +166,7 @@ function IconButton({
   disabled?: boolean;
   children: React.ReactNode;
 }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="button"
@@ -180,18 +181,18 @@ function IconButton({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
-  track: { height: 8, borderRadius: 4, backgroundColor: colors.track, overflow: "hidden" },
-  fill: { height: "100%", borderRadius: 4, backgroundColor: colors.water },
+  track: { height: 8, borderRadius: 4, backgroundColor: c.track, overflow: "hidden" },
+  fill: { height: "100%", borderRadius: 4, backgroundColor: c.water },
   quick: { flexDirection: "row", alignItems: "center", gap: 6 },
   chip: {
     height: 32,
     paddingHorizontal: 9,
     borderRadius: 16,
-    backgroundColor: colors.waterSoft,
+    backgroundColor: c.waterSoft,
     alignItems: "center",
     justifyContent: "center",
   },
   icon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-});
+}));

@@ -4,7 +4,7 @@ import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from "react-nat
 import Svg, { Circle } from "react-native-svg";
 import { Text } from "@/components/ui";
 import { NATIVE_DRIVER } from "@/lib/motion";
-import { colors } from "@/lib/theme";
+import { makeStyles, useColors } from "@/lib/theme";
 
 const STEPS = ["Reading your body stats", "Setting calories and macros", "Planning your training week"];
 const STEP_MS = 850;
@@ -18,6 +18,8 @@ const CIRC = 2 * Math.PI * R;
  * completes when `done` is true. Still (no loop) under Reduce Motion.
  */
 export function PlanBuilder({ done }: { done: boolean }) {
+  const c = useColors();
+  const styles = useStyles();
   const reduce = useReduceMotion();
   const [press] = useState(() => new Animated.Value(0));
   const [ring] = useState(() => new Animated.Value(0));
@@ -72,14 +74,14 @@ export function PlanBuilder({ done }: { done: boolean }) {
     <View style={styles.root} accessibilityLiveRegion="polite" accessibilityLabel="Building your plan">
       <View style={{ width: SIZE, height: SIZE }}>
         <Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ transform: [{ rotate: "-90deg" }] }}>
-          <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} fill={colors.surface} stroke={colors.track} strokeWidth={10} />
+          <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} fill={c.surface} stroke={c.track} strokeWidth={10} />
           {fill > 0.001 && (
             <Circle
               cx={SIZE / 2}
               cy={SIZE / 2}
               r={R}
               fill="none"
-              stroke={colors.brand}
+              stroke={c.brand}
               strokeWidth={10}
               strokeLinecap="round"
               strokeDasharray={`${CIRC} ${CIRC}`}
@@ -114,7 +116,7 @@ export function PlanBuilder({ done }: { done: boolean }) {
         <Text variant="h1" center>
           {done ? "Your plan is ready" : "Building your plan…"}
         </Text>
-        <Text color={colors.ink2} center>
+        <Text color={c.ink2} center>
           {done ? "Here's what your coach set up." : "Your coach is warming up."}
         </Text>
       </View>
@@ -133,14 +135,14 @@ export function PlanBuilder({ done }: { done: boolean }) {
                 style={[
                   styles.tick,
                   complete
-                    ? { backgroundColor: colors.protein }
-                    : { borderWidth: 2, borderColor: current ? colors.brand : colors.lineStrong },
+                    ? { backgroundColor: c.protein }
+                    : { borderWidth: 2, borderColor: current ? c.brandText : c.lineStrong },
                 ]}
               >
-                {complete && <Check size={14} color={colors.white} strokeWidth={3} />}
+                {complete && <Check size={14} color={c.surface} strokeWidth={3} />}
                 {current && <View style={styles.dot} />}
               </View>
-              <Text weight={current ? 600 : 400} color={complete ? colors.ink2 : current ? colors.ink : colors.ink3}>
+              <Text weight={current ? 600 : 400} color={complete ? c.ink2 : current ? c.ink : c.ink3}>
                 {label}
               </Text>
             </View>
@@ -153,6 +155,7 @@ export function PlanBuilder({ done }: { done: boolean }) {
 
 /** Held at the hand end of each arm, so it swings up with it. */
 function Dumbbell() {
+  const styles = useStyles();
   return (
     <View style={styles.dumbbell}>
       <View style={styles.plate} />
@@ -175,12 +178,14 @@ function useReduceMotion() {
 }
 
 const SKIN = "#E9C58E";
+/** Hair and face drawn on the skin tone, so a fixed dark ink in both schemes. */
+const FACE = "#151724";
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   root: {
     ...StyleSheet.absoluteFill,
     zIndex: 50,
-    backgroundColor: colors.ground,
+    backgroundColor: c.ground,
     alignItems: "center",
     justifyContent: "center",
     gap: 28,
@@ -196,8 +201,8 @@ const styles = StyleSheet.create({
     backgroundColor: SKIN,
     overflow: "hidden",
   },
-  hair: { position: "absolute", top: 0, left: 0, right: 0, height: 12, backgroundColor: colors.ink },
-  eye: { position: "absolute", top: 20, width: 5, height: 5, borderRadius: 3, backgroundColor: colors.ink },
+  hair: { position: "absolute", top: 0, left: 0, right: 0, height: 12, backgroundColor: FACE },
+  eye: { position: "absolute", top: 20, width: 5, height: 5, borderRadius: 3, backgroundColor: FACE },
   smile: {
     position: "absolute",
     top: 27,
@@ -208,7 +213,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 7,
     borderWidth: 2,
     borderTopWidth: 0,
-    borderColor: colors.ink,
+    borderColor: FACE,
   },
   torso: {
     position: "absolute",
@@ -217,12 +222,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 62,
     borderRadius: 20,
-    backgroundColor: colors.brand,
+    backgroundColor: c.brand,
     alignItems: "center",
     paddingTop: 14,
   },
-  logoDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.ground },
-  leg: { position: "absolute", top: 138, width: 16, height: 30, borderRadius: 8, backgroundColor: colors.ink },
+  logoDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.ground },
+  leg: { position: "absolute", top: 138, width: 16, height: 30, borderRadius: 8, backgroundColor: c.ink },
   arm: {
     position: "absolute",
     top: 90,
@@ -235,8 +240,8 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   dumbbell: { flexDirection: "row", alignItems: "center", marginBottom: -9 },
-  plate: { width: 8, height: 20, borderRadius: 3, backgroundColor: colors.brandGlow },
-  bar: { width: 14, height: 5, backgroundColor: colors.ink },
+  plate: { width: 8, height: 20, borderRadius: 3, backgroundColor: c.brandGlow },
+  bar: { width: 14, height: 5, backgroundColor: c.ink },
   tick: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brand },
-});
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: c.brandText },
+}));

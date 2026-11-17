@@ -2,12 +2,15 @@ import { Controller, Get, HttpCode, Post } from "@nestjs/common";
 import {
   GoalOptionSchema,
   OnboardingSchema,
+  WelcomeBackSchema,
   type GoalOptionDto,
   type GoalOptionInput,
   type OnboardingInput,
   type PlanDto,
   type PlanSummaryDto,
   type TargetsDto,
+  type WelcomeBackDto,
+  type WelcomeBackInput,
 } from "@fitr8/contracts";
 import { UserId } from "../../common/auth/decorators.js";
 import { ZodBody } from "../../common/http/zod.js";
@@ -26,6 +29,16 @@ export class PlanController {
     @ZodBody(OnboardingSchema) input: OnboardingInput,
   ): Promise<PlanSummaryDto> {
     return wire(this.plans.onboard(userId, input));
+  }
+
+  /** Back after 90+ days away: refresh the numbers that change, keep the goal, recompute targets. */
+  @Post("welcome-back")
+  @HttpCode(200)
+  welcomeBack(
+    @UserId() userId: string,
+    @ZodBody(WelcomeBackSchema) input: WelcomeBackInput,
+  ): Promise<WelcomeBackDto> {
+    return wire(this.plans.welcomeBack(userId, input));
   }
 
   @Get("targets")

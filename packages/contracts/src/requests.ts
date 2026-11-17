@@ -126,6 +126,27 @@ export const GoalOptionSchema = z.object({
   choice: z.enum(["KEEP_GOAL", "KEEP_DATE"]),
 });
 
+/**
+ * POST /api/welcome-back: back after a long break (MeDto.welcomeBack), only the numbers that change
+ * over time. Sex, birth date, diet, experience and the goal are kept. Ranges match onboarding.
+ */
+export const WelcomeBackSchema = z.object({
+  weightKg: z.number().min(30).max(250),
+  heightCm: z.number().min(120).max(230),
+  /** Needed when the active goal is a body-fat target (fresh body fat from the Navy formula). */
+  waistCm: z.number().min(40).max(200).optional(),
+  neckCm: z.number().min(20).max(70).optional(),
+  hipCm: z.number().min(50).max(200).optional(),
+  activityLevel: z.enum(["SEDENTARY", "LIGHT", "MODERATE", "VERY_ACTIVE", "ATHLETE"]),
+  equipment: z.enum(["FULL_GYM", "DUMBBELLS", "BODYWEIGHT"]),
+  trainingDaysPerWeek: z.number().int().min(2).max(6),
+  sessionMinutes: z.number().int().min(15).max(120),
+  injuries: z.array(z.string().max(60)).max(10),
+  /** Pregnancy or a medical condition can start during a break: no calorie deficit when true. */
+  medicalFlag: z.boolean(),
+  timezone: z.string().default("Asia/Kolkata"),
+});
+
 export const RemindersSchema = z.object({
   lunch: z.boolean().optional(),
   dinner: z.boolean().optional(),
@@ -266,6 +287,7 @@ export type CheckinInput = z.infer<typeof CheckinSchema>;
 export type ParseItemsInput = z.infer<typeof ParseItemsSchema>;
 export type RelogInput = z.infer<typeof RelogSchema>;
 export type GoalOptionInput = z.infer<typeof GoalOptionSchema>;
+export type WelcomeBackInput = z.infer<typeof WelcomeBackSchema>;
 export type RemindersInput = z.infer<typeof RemindersSchema>;
 export type PreferredNameInput = z.infer<typeof PreferredNameSchema>;
 export type WaterAddInput = z.infer<typeof WaterAddSchema>;

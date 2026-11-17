@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
-import { colors } from "@/lib/theme";
+import { useColors } from "@/lib/theme";
 
 export default function LogLayout() {
-  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ground } }} />;
+  const c = useColors();
+  return <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ground } }} />;
 }

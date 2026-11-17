@@ -7,7 +7,7 @@ import { Button, FieldError, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { formatInt, sentenceCase, type MealType } from "@/lib/format";
 import { rowFromFood, type Row } from "@/lib/meal-rows";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 
 export type FoodHit = FoodHitDto;
 
@@ -25,6 +25,8 @@ export function AddItemSheet({
   onClose: () => void;
   onAdd: (rows: Row[]) => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<FoodHit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -113,7 +115,7 @@ export function AddItemSheet({
               >
                 <Text weight={600}>
                   1 {u.unit}{" "}
-                  <Text weight={500} color={colors.ink3}>
+                  <Text weight={500} color={c.ink3}>
                     · {formatInt(u.grams)} {picked.isLiquid ? "ml" : "g"}
                   </Text>
                 </Text>
@@ -130,7 +132,7 @@ export function AddItemSheet({
       ) : (
         <View style={{ gap: 12 }}>
           <View style={styles.search}>
-            <Search size={20} color={colors.ink3} />
+            <Search size={20} color={c.ink3} />
             <TextInput
               accessibilityLabel="Search foods"
               value={q}
@@ -139,11 +141,11 @@ export function AddItemSheet({
                 setDescribeError(null);
               }}
               placeholder="Search sugar, roti, dal…"
-              placeholderTextColor="rgba(107,110,118,0.6)"
+              placeholderTextColor={c.ink3}
               autoCorrect={false}
               style={styles.searchInput}
             />
-            {loading && <ActivityIndicator size="small" color={colors.ink3} />}
+            {loading && <ActivityIndicator size="small" color={c.ink3} />}
           </View>
           <View>
             {hits.map((f) => (
@@ -151,13 +153,13 @@ export function AddItemSheet({
                 <Text weight={600} style={{ flex: 1 }}>
                   {sentenceCase(f.name)}
                 </Text>
-                <Text size={13} color={colors.ink3} tabular>
+                <Text size={13} color={c.ink3} tabular>
                   {formatInt(f.per100g.kcal)} kcal / 100 g
                 </Text>
               </Pressable>
             ))}
             {!loading && hits.length === 0 && (
-              <Text size={13} color={colors.ink3} center style={{ paddingVertical: 16 }}>
+              <Text size={13} color={c.ink3} center style={{ paddingVertical: 16 }}>
                 No match in our food list. Describe it below instead.
               </Text>
             )}
@@ -172,7 +174,7 @@ export function AddItemSheet({
               {`Add “${text}”`}
             </Button>
           ) : (
-            <Text size={13} color={colors.ink3}>
+            <Text size={13} color={c.ink3}>
               Or describe it, like “2 sachets sugar” or “half cup milk”.
             </Text>
           )}
@@ -183,16 +185,16 @@ export function AddItemSheet({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   portion: {
     minHeight: 56,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
   },
   search: {
@@ -201,19 +203,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
   },
-  searchInput: { flex: 1, fontFamily: fonts.sans400, fontSize: 16, color: colors.ink, padding: 0 },
+  searchInput: { flex: 1, fontFamily: fonts.sans400, fontSize: 16, color: c.ink, padding: 0 },
   hit: {
     minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
+    borderBottomColor: c.line,
     paddingVertical: 8,
   },
-});
+}));

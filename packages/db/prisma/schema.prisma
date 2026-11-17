@@ -104,6 +104,8 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  /// Last app use (GET /me, throttled to hourly). 90+ days old → "welcome back" check-in (@fitr8/domain/activity).
+  lastActiveAt  DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

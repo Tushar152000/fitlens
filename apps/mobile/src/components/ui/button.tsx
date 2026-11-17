@@ -1,26 +1,26 @@
 import type { LucideIcon } from "lucide-react-native";
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
-import { colors, radius } from "@/lib/theme";
+import { ActivityIndicator, Pressable, View, type StyleProp, type ViewStyle } from "react-native";
+import { makeStyles, radius, useColors, type Colors } from "@/lib/theme";
 import { Text } from "./text";
 
 export type ButtonVariant = "primary" | "strong" | "secondary" | "dashed" | "ghostDark";
 
-const BG: Record<ButtonVariant, [string, string]> = {
-  primary: [colors.brand, colors.brandHover],
-  strong: [colors.ink, "#2c2e34"],
-  secondary: [colors.surface, colors.sunken],
-  dashed: ["transparent", "rgba(255,255,255,0.6)"],
+const bg = (c: Colors): Record<ButtonVariant, [string, string]> => ({
+  primary: [c.brand, c.brandHover],
+  strong: [c.strong, c.strongHover],
+  secondary: [c.surface, c.sunken],
+  dashed: ["transparent", c.sunken],
   ghostDark: ["rgba(255,255,255,0.10)", "rgba(255,255,255,0.16)"],
-};
+});
 
-const FG: Record<ButtonVariant, string> = {
-  primary: colors.white,
-  strong: colors.white,
-  secondary: colors.ink,
-  dashed: colors.brand,
-  ghostDark: colors.white,
-};
+const fg = (c: Colors): Record<ButtonVariant, string> => ({
+  primary: c.white,
+  strong: c.onStrong,
+  secondary: c.ink,
+  dashed: c.brandText,
+  ghostDark: c.white,
+});
 
 /** Full-width 54 px button (48 for dashed), radius 16. One primary per screen. */
 export function Button({
@@ -44,7 +44,10 @@ export function Button({
   height?: number;
   accessibilityLabel?: string;
 }) {
-  const fg = FG[variant];
+  const c = useColors();
+  const styles = useStyles();
+  const color = fg(c)[variant];
+  const fills = bg(c)[variant];
   const off = disabled || loading;
   return (
     <Pressable
@@ -55,7 +58,7 @@ export function Button({
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
-        { height: height ?? (variant === "dashed" ? 48 : 54), backgroundColor: BG[variant][pressed ? 1 : 0] },
+        { height: height ?? (variant === "dashed" ? 48 : 54), backgroundColor: fills[pressed ? 1 : 0] },
         variant === "secondary" && styles.secondary,
         variant === "dashed" && styles.dashed,
         variant === "ghostDark" && styles.ghostDark,
@@ -64,12 +67,12 @@ export function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={fg} />
+        <ActivityIndicator color={color} />
       ) : (
         <View style={styles.row}>
-          {Icon && <Icon size={20} color={fg} strokeWidth={2} />}
+          {Icon && <Icon size={20} color={color} strokeWidth={2} />}
           {isText(children) ? (
-            <Text variant="button" color={fg}>
+            <Text variant="button" color={color}>
               {children}
             </Text>
           ) : (
@@ -87,7 +90,7 @@ function isText(node: ReactNode): boolean {
   return Array.isArray(node) && node.every((n) => typeof n === "string" || typeof n === "number");
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   base: {
     width: "100%",
     borderRadius: radius.button,
@@ -96,7 +99,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
-  secondary: { borderWidth: 1, borderColor: colors.lineStrong },
-  dashed: { borderWidth: 1.5, borderStyle: "dashed", borderColor: colors.dash },
+  secondary: { borderWidth: 1, borderColor: c.lineStrong },
+  dashed: { borderWidth: 1.5, borderStyle: "dashed", borderColor: c.dash },
   ghostDark: { borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
-});
+}));

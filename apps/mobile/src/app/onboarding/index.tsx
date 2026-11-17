@@ -1,25 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { FormSkeleton } from "@/components/skeletons";
 import { router } from "expo-router";
-import {
-  Armchair,
-  Bike,
-  CalendarDays,
-  Check,
-  Dumbbell,
-  Footprints,
-  House,
-  Info,
-  Medal,
-  Scale,
-  Sparkles,
-  Trophy,
-} from "lucide-react-native";
+import { CalendarDays, Check, Dumbbell, Info, Scale, Sparkles } from "lucide-react-native";
 import { useRef, useState, type ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BackHeader } from "@/components/back-header";
 import { PlanBuilder } from "@/components/plan-builder";
+import { ACTIVITY_OPTIONS, choiceIcon, EQUIPMENT_OPTIONS } from "@/components/profile-options";
 import {
   Button,
   ChipGroup,
@@ -46,7 +34,7 @@ import {
   type DraftErrors,
   type OnboardingDraft,
 } from "@/lib/onboarding-draft";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 import type { PlanResponse } from "@/lib/types-plan";
 
 const STEP_TITLES = ["Your goal", "About you", "Food and training"];
@@ -62,9 +50,10 @@ export default function OnboardingScreen() {
     queryFn: () => api<PlanResponse>("/api/plan"),
     enabled: returning,
   });
+  const c = useColors();
   if (returning && plan.isPending) {
     return (
-      <View style={{ flex: 1, padding: 24, paddingTop: 72, gap: 20, backgroundColor: colors.ground }}>
+      <View style={{ flex: 1, padding: 24, paddingTop: 72, gap: 20, backgroundColor: c.ground }}>
         <FormSkeleton />
       </View>
     );
@@ -100,6 +89,8 @@ export default function OnboardingScreen() {
 }
 
 function OnboardingForm({ initial, returning }: { initial: Partial<OnboardingDraft>; returning: boolean }) {
+  const c = useColors();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const scroll = useRef<ScrollView>(null);
   const [step, setStep] = useState(1);
@@ -117,7 +108,9 @@ function OnboardingForm({ initial, returning }: { initial: Partial<OnboardingDra
   const back = () => {
     setErrors({});
     if (step > 1) setStep(step - 1);
-    else router.back();
+    // Opened by replace (welcome back → "Set a new goal") there's nothing behind it.
+    else if (router.canGoBack()) router.back();
+    else router.replace("/today");
   };
 
   async function next() {
@@ -154,7 +147,7 @@ function OnboardingForm({ initial, returning }: { initial: Partial<OnboardingDra
 
   const props = { draft, set, errors };
   return (
-    <View style={{ flex: 1, backgroundColor: colors.ground }}>
+    <View style={{ flex: 1, backgroundColor: c.ground }}>
       <ScrollView
         ref={scroll}
         keyboardShouldPersistTaps="handled"
@@ -177,7 +170,7 @@ function OnboardingForm({ initial, returning }: { initial: Partial<OnboardingDra
       <View style={[styles.footer, { paddingBottom: Math.max(16, insets.bottom) }]}>
         {serverError && <FieldError>{serverError}</FieldError>}
         {Object.keys(errors).some((k) => errors[k as keyof DraftErrors]) && (
-          <Text size={13} color={colors.ink2} center>
+          <Text size={13} color={c.ink2} center>
             Check the highlighted fields above.
           </Text>
         )}
@@ -206,12 +199,6 @@ function Field({ label, error, children }: { label: string; error?: string; chil
   );
 }
 
-function icon(I: typeof Scale) {
-  return function ChoiceIcon(color: string) {
-    return <I size={20} color={color} />;
-  };
-}
-
 function GoalStep({ draft, set, errors }: StepProps) {
   return (
     <>
@@ -221,18 +208,23 @@ function GoalStep({ draft, set, errors }: StepProps) {
           value={draft.goalType}
           onChange={(v) => set("goalType", v)}
           options={[
-            { value: "FAT_LOSS", label: "Lose fat", description: "Drop fat, keep your muscle", icon: icon(Scale) },
+            {
+              value: "FAT_LOSS",
+              label: "Lose fat",
+              description: "Drop fat, keep your muscle",
+              icon: choiceIcon(Scale),
+            },
             {
               value: "MUSCLE_GAIN",
               label: "Build muscle",
               description: "A lean surplus with progressive training",
-              icon: icon(Dumbbell),
+              icon: choiceIcon(Dumbbell),
             },
             {
               value: "RECOMPOSITION",
               label: "Recomposition",
               description: "Stay near your weight, lose fat, gain muscle",
-              icon: icon(Sparkles),
+              icon: choiceIcon(Sparkles),
             },
           ]}
         />
@@ -282,6 +274,7 @@ const WEEK_OPTIONS = [12, 16, 24];
 
 /** Design 2: "By when?" — three quick tiles with end dates, or an exact date. */
 function ByWhen({ draft, set, error }: { draft: OnboardingDraft; set: StepProps["set"]; error?: string }) {
+  const c = useColors();
   const today = new Date();
   const dateIn = (weeks: number) => ymd(new Date(today.getTime() + weeks * 7 * 86_400_000));
   const short = (d: string) =>
@@ -314,8 +307,8 @@ function ByWhen({ draft, set, error }: { draft: OnboardingDraft; set: StepProps[
           onPress={() => setExact(true)}
           style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, alignSelf: "flex-start" }}
         >
-          <CalendarDays size={20} color={colors.brand} />
-          <Text weight={600} color={colors.brand}>
+          <CalendarDays size={20} color={c.brandText} />
+          <Text weight={600} color={c.brandText}>
             Choose an exact date
           </Text>
         </Pressable>
@@ -325,6 +318,8 @@ function ByWhen({ draft, set, error }: { draft: OnboardingDraft; set: StepProps[
 }
 
 function AboutStep({ draft, set, errors }: StepProps) {
+  const c = useColors();
+  const styles = useStyles();
   const optional = wantsBodyFat(draft) ? "" : " (optional)";
   return (
     <>
@@ -400,8 +395,8 @@ function AboutStep({ draft, set, errors }: StepProps) {
       </View>
 
       <View style={styles.tip}>
-        <Info size={20} color={colors.ink2} style={{ marginTop: 2 }} />
-        <Text size={13} color={colors.ink2} style={{ flex: 1 }}>
+        <Info size={20} color={c.ink2} style={{ marginTop: 2 }} />
+        <Text size={13} color={c.ink2} style={{ flex: 1 }}>
           <Text size={13} weight={600}>
             Measuring tip:
           </Text>{" "}
@@ -415,38 +410,7 @@ function AboutStep({ draft, set, errors }: StepProps) {
           label="Activity level"
           value={draft.activityLevel}
           onChange={(v) => set("activityLevel", v)}
-          options={[
-            {
-              value: "SEDENTARY",
-              label: "Mostly sitting",
-              description: "Desk job, under 5k steps",
-              icon: icon(Armchair),
-            },
-            {
-              value: "LIGHT",
-              label: "Lightly active",
-              description: "5–8k steps, some walking",
-              icon: icon(Footprints),
-            },
-            {
-              value: "MODERATE",
-              label: "Moderately active",
-              description: "8–12k steps or an active job",
-              icon: icon(Bike),
-            },
-            {
-              value: "VERY_ACTIVE",
-              label: "Very active",
-              description: "On your feet all day or hard training",
-              icon: icon(Medal),
-            },
-            {
-              value: "ATHLETE",
-              label: "Athlete",
-              description: "Twice-a-day training or a very physical job",
-              icon: icon(Trophy),
-            },
-          ]}
+          options={ACTIVITY_OPTIONS}
         />
       </Field>
     </>
@@ -454,6 +418,8 @@ function AboutStep({ draft, set, errors }: StepProps) {
 }
 
 function TrainingStep({ draft, set, errors }: StepProps) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <>
       <Field label="Diet" error={errors.dietType}>
@@ -475,11 +441,7 @@ function TrainingStep({ draft, set, errors }: StepProps) {
           label="Where I train"
           value={draft.equipment}
           onChange={(v) => set("equipment", v)}
-          options={[
-            { value: "FULL_GYM", label: "Gym", sub: "Machines, barbells", icon: icon(Dumbbell) },
-            { value: "DUMBBELLS", label: "Home", sub: "A few dumbbells", icon: icon(House) },
-            { value: "BODYWEIGHT", label: "Anywhere", sub: "No equipment", icon: icon(Footprints) },
-          ]}
+          options={EQUIPMENT_OPTIONS}
         />
       </Field>
 
@@ -508,10 +470,10 @@ function TrainingStep({ draft, set, errors }: StepProps) {
           value={draft.injuries}
           onChangeText={(v) => set("injuries", v)}
           placeholder="e.g. left knee, lower back"
-          placeholderTextColor="rgba(107,110,118,0.6)"
+          placeholderTextColor={`${c.ink3}99`}
           style={styles.textInput}
         />
-        <Text size={13} color={colors.ink3}>
+        <Text size={13} color={c.ink3}>
           We&apos;ll avoid exercises that load these.
         </Text>
       </View>
@@ -522,12 +484,12 @@ function TrainingStep({ draft, set, errors }: StepProps) {
         onPress={() => set("medicalFlag", !draft.medicalFlag)}
         style={styles.check}
       >
-        <View style={[styles.box, draft.medicalFlag && { backgroundColor: colors.brand, borderColor: colors.brand }]}>
-          {draft.medicalFlag && <Check size={16} color={colors.white} strokeWidth={3} />}
+        <View style={[styles.box, draft.medicalFlag && { backgroundColor: c.brand, borderColor: c.brand }]}>
+          {draft.medicalFlag && <Check size={16} color={c.white} strokeWidth={3} />}
         </View>
         <View style={{ flex: 1 }}>
           <Text weight={600}>I have a medical condition, am pregnant, or am under 18</Text>
-          <Text size={13} color={colors.ink3}>
+          <Text size={13} color={c.ink3}>
             We&apos;ll keep calories at maintenance instead of a deficit. Check with your doctor.
           </Text>
         </View>
@@ -536,35 +498,35 @@ function TrainingStep({ draft, set, errors }: StepProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   footer: {
     paddingTop: 12,
     paddingHorizontal: 24,
     gap: 10,
-    backgroundColor: colors.ground,
+    backgroundColor: c.ground,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
+    borderTopColor: c.line,
   },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   cell: { width: "47%", flexGrow: 1 },
-  tip: { flexDirection: "row", gap: 12, borderRadius: radius.card, backgroundColor: colors.sunken, padding: 16 },
+  tip: { flexDirection: "row", gap: 12, borderRadius: radius.card, backgroundColor: c.sunken, padding: 16 },
   textInput: {
     height: 52,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     fontFamily: fonts.sans400,
     fontSize: 16,
-    color: colors.ink,
+    color: c.ink,
   },
   check: {
     flexDirection: "row",
     gap: 12,
     alignItems: "flex-start",
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     padding: 16,
   },
   box: {
@@ -573,8 +535,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     alignItems: "center",
     justifyContent: "center",
   },
-});
+}));

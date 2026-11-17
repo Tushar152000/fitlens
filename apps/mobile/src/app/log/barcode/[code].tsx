@@ -15,7 +15,7 @@ import { formatInt, formatQty, MEAL_LABEL } from "@/lib/format";
 import { choiceParams, dayFromParam, mealFromParam, useMealChoice } from "@/lib/meal-param";
 import { refreshDay } from "@/lib/query";
 import { showDay } from "@/lib/view-day";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 
 type Reason = "unknown" | "invalid" | "unreachable";
 
@@ -53,6 +53,8 @@ export default function ProductRoute() {
 
 /** Design 7d: a known product. Amount in servings (0.5 steps) or grams (5 g steps). */
 function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
+  const c = useColors();
+  const styles = useStyles();
   const { mealType, setMealType, date, setDate, dateBody } = useMealChoice();
   const [missing, setMissing] = useState(false);
   const hasServing = Boolean(food.servingSizeG);
@@ -106,17 +108,17 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
         <>
           <View style={styles.total}>
             <View>
-              <Text weight={600} size={12} color={colors.ink3}>
+              <Text weight={600} size={12} color={c.ink3}>
                 Total
               </Text>
               <Text variant="h1" size={26} tabular>
                 {formatInt(food.kcalPer100g * k)}{" "}
-                <Text weight={600} size={13} color={colors.ink3}>
+                <Text weight={600} size={13} color={c.ink3}>
                   kcal
                 </Text>
               </Text>
             </View>
-            <Text weight={600} size={13} color={colors.protein}>
+            <Text weight={600} size={13} color={c.protein}>
               No AI scan used
             </Text>
           </View>
@@ -130,8 +132,8 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
       <BackHeader />
       <View style={{ gap: 16 }}>
         <View style={styles.badge}>
-          <BadgeCheck size={16} color={colors.protein} />
-          <Text weight={600} size={13} color={colors.protein}>
+          <BadgeCheck size={16} color={c.protein} />
+          <Text weight={600} size={13} color={c.protein}>
             {fromOff || food.verified ? "Exact label values" : "Your label scan"}
           </Text>
         </View>
@@ -140,12 +142,12 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
             {food.imageUrl ? (
               <Image source={{ uri: food.imageUrl }} style={StyleSheet.absoluteFill} contentFit="contain" />
             ) : (
-              <Package size={32} color={colors.ink3} />
+              <Package size={32} color={c.ink3} />
             )}
           </View>
           <View style={{ flex: 1 }}>
             {food.brand && (
-              <Text weight={600} size={13} color={colors.ink3}>
+              <Text weight={600} size={13} color={c.ink3}>
                 {food.brand}
               </Text>
             )}
@@ -153,7 +155,7 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
               {displayName}
             </Text>
             {food.servingSizeG && (
-              <Text size={13} color={colors.ink2} tabular style={{ marginTop: 4 }}>
+              <Text size={13} color={c.ink2} tabular style={{ marginTop: 4 }}>
                 1 serving = {formatQty(food.servingSizeG)} {measure}
                 {food.servingLabel && food.servingLabel !== `${food.servingSizeG} ${measure}`
                   ? ` (${food.servingLabel})`
@@ -189,7 +191,7 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
                 onChange={setGrams}
               />
             )}
-            <Text weight={600} size={13} color={colors.ink3} tabular>
+            <Text weight={600} size={13} color={c.ink3} tabular>
               {mode === "SERVINGS" ? `${formatInt(amountG)} ${measure}` : measure}
             </Text>
           </View>
@@ -208,13 +210,13 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
 
         <View style={styles.table} accessibilityLabel={`Nutrition per 100 ${measure} and for your amount`}>
           <View style={styles.tr}>
-            <Text weight={600} size={12} color={colors.ink3} style={{ flex: 1.4 }}>
+            <Text weight={600} size={12} color={c.ink3} style={{ flex: 1.4 }}>
               Nutrition
             </Text>
-            <Text weight={600} size={12} color={colors.ink3} style={styles.num}>
+            <Text weight={600} size={12} color={c.ink3} style={styles.num}>
               per 100 {measure}
             </Text>
-            <Text weight={600} size={12} color={colors.ink3} style={styles.num}>
+            <Text weight={600} size={12} color={c.ink3} style={styles.num}>
               You
             </Text>
           </View>
@@ -226,12 +228,12 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
                 <View key={label} style={[styles.tr, styles.rowLine]}>
                   <Text
                     weight={sub ? 400 : 600}
-                    color={sub ? colors.ink2 : colors.ink}
+                    color={sub ? c.ink2 : c.ink}
                     style={{ flex: 1.4, paddingLeft: sub ? 12 : 0 }}
                   >
                     {label}
                   </Text>
-                  <Text color={colors.ink2} tabular style={styles.num}>
+                  <Text color={c.ink2} tabular style={styles.num}>
                     {fmt(per!, unit)} {unit}
                   </Text>
                   <Text weight={600} tabular style={styles.num}>
@@ -244,14 +246,14 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
 
         {fromOff && (
           <View style={{ flexDirection: "row", justifyContent: "center", flexWrap: "wrap" }}>
-            <Text size={12} color={colors.ink3}>
+            <Text size={12} color={c.ink3}>
               Data: Open Food Facts (ODbL).{" "}
             </Text>
             <Pressable
               accessibilityRole="link"
               onPress={() => Linking.openURL(`https://world.openfoodfacts.org/product/${code}`)}
             >
-              <Text size={12} weight={600} color={colors.brand}>
+              <Text size={12} weight={600} color={c.brandText}>
                 Report it
               </Text>
             </Pressable>
@@ -280,6 +282,8 @@ function NotFound({
   choice: { meal?: string; date?: string };
   reason: Reason;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const [name, setName] = useState("");
   const title =
     reason === "invalid"
@@ -312,12 +316,12 @@ function NotFound({
       <BackHeader />
       <View style={{ gap: 8 }}>
         <View style={styles.searchX}>
-          <SearchX size={24} color={colors.ink2} />
+          <SearchX size={24} color={c.ink2} />
         </View>
         <Text variant="h1" size={26}>
           {title}
         </Text>
-        <Text color={colors.ink2}>
+        <Text color={c.ink2}>
           {reason === "invalid"
             ? "Scan it again, or photograph the nutrition label instead."
             : reason === "unreachable"
@@ -325,7 +329,7 @@ function NotFound({
               : "Photograph its nutrition label once and it's saved for next time."}
         </Text>
         {reason !== "invalid" && (
-          <Text size={13} color={colors.ink3} tabular>
+          <Text size={13} color={c.ink3} tabular>
             Barcode {code}
           </Text>
         )}
@@ -334,8 +338,8 @@ function NotFound({
         <Text weight={600}>For a good label photo</Text>
         {TIPS.map((tip) => (
           <View key={tip} style={{ flexDirection: "row", gap: 8 }}>
-            <BadgeCheck size={16} color={colors.protein} style={{ marginTop: 3 }} />
-            <Text color={colors.ink2} style={{ flex: 1 }}>
+            <BadgeCheck size={16} color={c.protein} style={{ marginTop: 3 }} />
+            <Text color={c.ink2} style={{ flex: 1 }}>
               {tip}
             </Text>
           </View>
@@ -348,7 +352,7 @@ function NotFound({
           value={name}
           onChangeText={setName}
           placeholder="e.g. Parle-G Gold"
-          placeholderTextColor="rgba(107,110,118,0.6)"
+          placeholderTextColor={c.ink3}
           style={styles.input}
         />
       </View>
@@ -356,14 +360,14 @@ function NotFound({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   badge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     alignSelf: "flex-start",
     borderRadius: 999,
-    backgroundColor: colors.proteinSoft,
+    backgroundColor: c.proteinSoft,
     paddingHorizontal: 12,
     paddingVertical: 4,
   },
@@ -371,27 +375,28 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    // Pack shots are photographed on white; a white box keeps them clean in dark mode too.
+    backgroundColor: c.white,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
   table: {
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 4,
   },
   tr: { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
-  rowLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  rowLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line },
   num: { flex: 1, textAlign: "right" },
   total: {
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
@@ -399,19 +404,19 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.sunken,
+    backgroundColor: c.sunken,
     alignItems: "center",
     justifyContent: "center",
   },
   input: {
     height: 52,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     fontFamily: fonts.sans400,
     fontSize: 16,
-    color: colors.ink,
+    color: c.ink,
   },
-});
+}));

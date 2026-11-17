@@ -89,6 +89,21 @@ export class TargetsService {
       orderBy: [{ effectiveFrom: "desc" }, { createdAt: "desc" }],
     });
   }
+
+  /**
+   * The target to measure a day's meals against. Days before the first plan (meals backfilled for
+   * the days before onboarding) use that first plan rather than "no target"; null only when the
+   * user has no plan at all.
+   */
+  async targetForDay(userId: string, date: Date) {
+    return (
+      (await this.currentTarget(userId, date)) ??
+      this.prisma.dailyTarget.findFirst({
+        where: { userId },
+        orderBy: [{ effectiveFrom: "asc" }, { createdAt: "asc" }],
+      })
+    );
+  }
 }
 
 /** The "Your plan" payload: returned by POST /api/onboarding and rendered by /onboarding/plan. */

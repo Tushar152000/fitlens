@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { Chip, Text } from "@/components/ui";
 import { MEAL_LABEL, MEAL_TYPES, type MealType } from "@/lib/format";
 import { dayLabel, recentDays } from "@/lib/meal-param";
-import { colors } from "@/lib/theme";
+import { useColors } from "@/lib/theme";
 
 /**
  * "Which meal?" (always asked: nothing is preselected unless the user came from "Add lunch") and
@@ -31,9 +31,10 @@ export function MealWhen({
   /** false hides "Which day?" (the camera keeps it minimal; a day from the route still applies). */
   showDay?: boolean;
 }) {
+  const c = useColors();
   const days = recentDays();
-  const labelColor = tone === "dark" ? "rgba(255,255,255,0.75)" : colors.ink3;
-  const alertColor = tone === "dark" ? "#ffb68a" : colors.cautionText;
+  const labelColor = tone === "dark" ? "rgba(255,255,255,0.75)" : c.ink3;
+  const alertColor = tone === "dark" ? "#ffb68a" : c.cautionText;
   return (
     <View style={{ gap: 8 }}>
       <Text weight={600} size={12} color={missing ? alertColor : labelColor} style={{ paddingHorizontal: gutter }}>

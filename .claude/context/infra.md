@@ -14,6 +14,7 @@ On successful CI `workflow_run` on main (or manual, input `all`). WIF auth, no k
 - `web`: Vercel CLI (`pull/build --prod/deploy --prebuilt`) when secret `VERCEL_TOKEN` (+ vars `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`); else ghcr image (build arg `NEXT_PUBLIC_API_URL`) + `WEB_DEPLOY_HOOK_URL`. `apps/web/vercel.json` disables Vercel's own Git deploys of `main` (PR previews stay).
 - `app-update`: matrix `preview`/`production`; when `changes.app` and secret `EXPO_TOKEN`; `eas update --channel X --environment X`.
 - The old ungated `eas-update.yml` is deleted. Store builds: `mobile-release.yml` (manual: platform, profile, optional auto-submit).
+- 2026-11-17: `apps/mobile/app.json` version 0.4.0 (`userInterfaceStyle: automatic` for dark mode). runtimeVersion = appVersion, so OTA updates from this commit on reach only 0.4.0 store builds; 0.3.0 installs keep their JS until updated from the store. API changes in the same release are additive (MeDto.welcomeBack, new routes), so 0.3.0 keeps working.
 
 ## Provisioning and checks
 

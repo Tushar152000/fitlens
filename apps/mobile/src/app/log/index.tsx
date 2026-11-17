@@ -14,7 +14,10 @@ import { api, ApiError } from "@/lib/api";
 import { normalizeBarcode } from "@/lib/barcode";
 import { useMealChoice } from "@/lib/meal-param";
 import { compressPhoto, uploadPhoto } from "@/lib/photo";
-import { colors, radius } from "@/lib/theme";
+import { palettes, radius } from "@/lib/theme";
+
+/** The camera stays dark in both schemes, so its colours are fixed (the light palette's). */
+const cam = palettes.light;
 
 type Phase = "idle" | "checking" | "uploading" | "analysing";
 type Photo = { uri: string; width: number; height: number };
@@ -159,9 +162,9 @@ export default function CameraScreen() {
           onPress={() => router.back()}
           style={styles.close}
         >
-          <X size={26} color={colors.white} />
+          <X size={26} color={cam.white} />
         </Pressable>
-        <Text weight={600} color={colors.white} style={{ flex: 1 }}>
+        <Text weight={600} color={cam.white} style={{ flex: 1 }}>
           Snap your meal
         </Text>
       </View>
@@ -196,7 +199,7 @@ export default function CameraScreen() {
         ) : (
           <View style={styles.center}>
             <Camera size={32} color="rgba(255,255,255,0.6)" />
-            <Text weight={600} color={colors.white} center>
+            <Text weight={600} color={cam.white} center>
               {permission?.canAskAgain === false ? "Camera access is off" : "Allow the camera to snap your plate"}
             </Text>
             <Text size={13} color="rgba(255,255,255,0.7)" center>
@@ -212,14 +215,13 @@ export default function CameraScreen() {
           </View>
         )}
         {held && <Image source={{ uri: held.uri }} style={StyleSheet.absoluteFill} contentFit="cover" />}
-        <Corners color={seen ? colors.proteinSoft : undefined} />
+        <Corners color={seen ? cam.proteinSoft : undefined} />
         <View
-          style={[styles.hint, seen && { backgroundColor: colors.protein }]}
-          pointerEvents="none"
+          style={[styles.hint, { pointerEvents: "none" }, seen && { backgroundColor: cam.protein }]}
           accessibilityLiveRegion="polite"
         >
-          {seen && <Barcode size={16} color={colors.white} />}
-          <Text weight={600} size={13} color={colors.white} tabular>
+          {seen && <Barcode size={16} color={cam.white} />}
+          <Text weight={600} size={13} color={cam.white} tabular>
             {held
               ? "Pick a meal above to read this photo"
               : seen
@@ -229,8 +231,8 @@ export default function CameraScreen() {
         </View>
         {busy && (
           <View style={[StyleSheet.absoluteFill, styles.center, { backgroundColor: "rgba(23,24,28,0.75)" }]}>
-            <ActivityIndicator color={colors.white} size="large" />
-            <Text weight={600} color={colors.white} accessibilityLiveRegion="polite">
+            <ActivityIndicator color={cam.white} size="large" />
+            <Text weight={600} color={cam.white} accessibilityLiveRegion="polite">
               {phase === "checking"
                 ? "Checking the photo…"
                 : phase === "uploading"
@@ -274,15 +276,15 @@ export default function CameraScreen() {
               <View
                 style={[
                   styles.shutterInner,
-                  seen && { backgroundColor: colors.protein },
+                  seen && { backgroundColor: cam.protein },
                   pressed && { transform: [{ scale: 0.95 }] },
                 ]}
               >
-                {seen && <Barcode size={28} color={colors.white} />}
+                {seen && <Barcode size={28} color={cam.white} />}
               </View>
             )}
           </Pressable>
-          <Text weight={600} size={12} color={seen ? colors.proteinSoft : "rgba(255,255,255,0.85)"}>
+          <Text weight={600} size={12} color={seen ? cam.proteinSoft : "rgba(255,255,255,0.85)"}>
             {seen ? "Look up product" : "Snap"}
           </Text>
         </View>
@@ -312,7 +314,7 @@ function SideButton({
   return (
     <Pressable accessibilityRole="button" onPress={onPress} disabled={disabled} style={styles.side}>
       <View style={styles.sideIcon}>
-        <Icon size={24} color={colors.white} />
+        <Icon size={24} color={cam.white} />
       </View>
       <Text weight={600} size={12} color="rgba(255,255,255,0.85)">
         {label}
@@ -325,7 +327,7 @@ function SideButton({
 function Corners({ color = "rgba(255,255,255,0.85)" }: { color?: string }) {
   const c = { position: "absolute" as const, width: 36, height: 36, borderColor: color };
   return (
-    <View pointerEvents="none" style={[StyleSheet.absoluteFill, { margin: 20 }]}>
+    <View style={[StyleSheet.absoluteFill, { margin: 20, pointerEvents: "none" }]}>
       <View style={[c, { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 16 }]} />
       <View style={[c, { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 16 }]} />
       <View style={[c, { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 16 }]} />
@@ -337,7 +339,7 @@ function Corners({ color = "rgba(255,255,255,0.85)" }: { color?: string }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: cam.panel },
   top: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12 },
   close: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   viewfinder: {
@@ -391,7 +393,7 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    backgroundColor: colors.brandGlow,
+    backgroundColor: cam.brandGlow,
     alignItems: "center",
     justifyContent: "center",
   },

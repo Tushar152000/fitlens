@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
-import { colors, fonts, radius } from "@/lib/theme";
+import { TextInput, View } from "react-native";
+import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 import { FieldError } from "./field-error";
 import { Text } from "./text";
 
@@ -36,6 +36,8 @@ export function DateField({
   error?: string;
   hint?: string;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const [parts, setParts] = useState(() => split(value));
   const month = useRef<TextInput>(null);
   const year = useRef<TextInput>(null);
@@ -57,14 +59,14 @@ export function DateField({
   };
 
   const box = (key: "d" | "m" | "y", placeholder: string, flex: number, ref?: React.Ref<TextInput>) => (
-    <View style={[styles.box, { flex, borderColor: error ? colors.caution : colors.lineStrong }]}>
+    <View style={[styles.box, { flex, borderColor: error ? c.caution : c.lineStrong }]}>
       <TextInput
         ref={ref}
         accessibilityLabel={`${label}: ${key === "d" ? "day" : key === "m" ? "month" : "year"}`}
         value={parts[key]}
         onChangeText={(v) => update(key, v)}
         placeholder={placeholder}
-        placeholderTextColor="rgba(107,110,118,0.6)"
+        placeholderTextColor={`${c.ink3}99`}
         keyboardType="number-pad"
         maxLength={key === "y" ? 4 : 2}
         style={styles.input}
@@ -83,7 +85,7 @@ export function DateField({
       {error ? (
         <FieldError>{error}</FieldError>
       ) : hint ? (
-        <Text size={13} color={colors.ink3}>
+        <Text size={13} color={c.ink3}>
           {hint}
         </Text>
       ) : null}
@@ -91,14 +93,14 @@ export function DateField({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   box: {
     height: 52,
     borderWidth: 1,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     justifyContent: "center",
   },
-  input: { fontFamily: fonts.sans600, fontSize: 18, color: colors.ink, fontVariant: ["tabular-nums"], padding: 0 },
-});
+  input: { fontFamily: fonts.sans600, fontSize: 18, color: c.ink, fontVariant: ["tabular-nums"], padding: 0 },
+}));

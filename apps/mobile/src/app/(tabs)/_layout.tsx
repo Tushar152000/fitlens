@@ -5,14 +5,13 @@ import { TabBar } from "@/components/tab-bar";
 import { remindersQuery } from "@/lib/queries";
 import { syncCustomReminders } from "@/lib/reminders";
 
-/** Today, Workout, [camera], Progress, Profile. */
+/** Today, Workout, [camera], [coach], Profile. Camera and coach are buttons that open stacks (tab-bar.tsx). */
 export default function TabsLayout() {
   useReminderSync();
   return (
     <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="today" />
       <Tabs.Screen name="workout" />
-      <Tabs.Screen name="progress" />
       <Tabs.Screen name="profile" />
     </Tabs>
   );

@@ -10,7 +10,7 @@ import { api, ApiError, apiStream } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import { readConversationId, writeConversationId } from "@/lib/coach-store";
 import { queryClient } from "@/lib/query";
-import { colors, fonts, gutter, radius } from "@/lib/theme";
+import { fonts, gutter, makeStyles, radius, useColors } from "@/lib/theme";
 
 type ToolStatus = Extract<CoachStreamEvent, { type: "tool" }>["status"];
 type ToolChip = { id: string; label: string; status: ToolStatus };
@@ -47,6 +47,8 @@ function upsertTool(tools: ToolChip[], e: Extract<CoachStreamEvent, { type: "too
 
 /** Chat with the FITR8 coach. Replies stream in; the thread is kept so reopening continues it. */
 export default function CoachScreen() {
+  const c = useColors();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -202,7 +204,7 @@ export default function CoachScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: colors.ground }}
+      style={{ flex: 1, backgroundColor: c.ground }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
@@ -220,8 +222,8 @@ export default function CoachScreen() {
                 hitSlop={8}
                 style={styles.newChat}
               >
-                <SquarePen size={18} color={colors.brand} />
-                <Text weight={600} size={13} color={colors.brand}>
+                <SquarePen size={18} color={c.brandText} />
+                <Text weight={600} size={13} color={c.brandText}>
                   New chat
                 </Text>
               </Pressable>
@@ -257,7 +259,7 @@ export default function CoachScreen() {
             {problem.kind === "limit" ? (
               <Card>
                 <Text weight={600}>That&apos;s today&apos;s coach chats used up</Text>
-                <Text size={13} color={colors.ink2}>
+                <Text size={13} color={c.ink2}>
                   {problem.message} Logging meals, water and workouts still works as usual.
                 </Text>
               </Card>
@@ -277,7 +279,7 @@ export default function CoachScreen() {
           multiline
           maxLength={MAX_LENGTH}
           placeholder="Ask your coach"
-          placeholderTextColor={colors.ink3}
+          placeholderTextColor={c.ink3}
           style={styles.input}
           textAlignVertical="top"
         />
@@ -286,9 +288,9 @@ export default function CoachScreen() {
             accessibilityRole="button"
             accessibilityLabel="Stop the reply"
             onPress={() => streamRef.current?.abort()}
-            style={[styles.send, { backgroundColor: colors.ink }]}
+            style={[styles.send, { backgroundColor: c.strong }]}
           >
-            <Square size={16} color={colors.white} fill={colors.white} />
+            <Square size={16} color={c.onStrong} fill={c.onStrong} />
           </Pressable>
         ) : (
           <Pressable
@@ -299,11 +301,11 @@ export default function CoachScreen() {
             onPress={() => send(draft)}
             style={({ pressed }) => [
               styles.send,
-              { backgroundColor: pressed ? colors.brandHover : colors.brand },
+              { backgroundColor: pressed ? c.brandHover : c.brand },
               !canSend && { opacity: 0.5 },
             ]}
           >
-            <ArrowUp size={22} color={colors.white} strokeWidth={2} />
+            <ArrowUp size={22} color={c.white} strokeWidth={2} />
           </Pressable>
         )}
       </View>
@@ -312,11 +314,13 @@ export default function CoachScreen() {
 }
 
 function Intro({ onPick }: { onPick: (text: string) => void }) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <View style={{ gap: 16 }}>
       <Card>
         <Text variant="h2">Ask me anything about your plan</Text>
-        <Text color={colors.ink2}>
+        <Text color={c.ink2}>
           I can see your meals, targets, water and workouts, and I can log water or a weigh-in for you. Every number
           comes from your logs.
         </Text>
@@ -334,10 +338,12 @@ function Intro({ onPick }: { onPick: (text: string) => void }) {
 }
 
 function Bubble({ message: m }: { message: Message }) {
+  const c = useColors();
+  const styles = useStyles();
   if (m.role === "user") {
     return (
       <View style={[styles.bubble, styles.mine]}>
-        <Text color={colors.white}>{m.text}</Text>
+        <Text color={c.onStrong}>{m.text}</Text>
       </View>
     );
   }
@@ -353,7 +359,7 @@ function Bubble({ message: m }: { message: Message }) {
       )}
       {(m.text || thinking) && (
         <View style={[styles.bubble, styles.theirs]} accessibilityLiveRegion={m.streaming ? "polite" : "none"}>
-          {m.text ? <Text>{m.text}</Text> : <Text color={colors.ink3}>Thinking…</Text>}
+          {m.text ? <Text>{m.text}</Text> : <Text color={c.ink3}>Thinking…</Text>}
         </View>
       )}
       {m.cut && <Text variant="meta">Reply stopped before it finished.</Text>}
@@ -362,12 +368,14 @@ function Bubble({ message: m }: { message: Message }) {
 }
 
 function ToolStatusChip({ tool }: { tool: ToolChip }) {
+  const c = useColors();
+  const styles = useStyles();
   const Icon = tool.status === "running" ? LoaderCircle : tool.status === "done" ? Check : CircleAlert;
-  const tint = tool.status === "done" ? colors.protein : tool.status === "error" ? colors.caution : colors.ink3;
+  const tint = tool.status === "done" ? c.protein : tool.status === "error" ? c.caution : c.ink3;
   return (
     <View style={styles.tool} accessibilityLabel={`${tool.label}${tool.status === "running" ? ", working" : ""}`}>
       <Icon size={14} color={tint} strokeWidth={2} />
-      <Text weight={600} size={12} color={colors.ink2}>
+      <Text weight={600} size={12} color={c.ink2}>
         {tool.label}
       </Text>
     </View>
@@ -375,6 +383,7 @@ function ToolStatusChip({ tool }: { tool: ToolChip }) {
 }
 
 function ThreadSkeleton() {
+  const styles = useStyles();
   return (
     <View style={{ gap: 16 }}>
       <View style={[styles.bubble, styles.theirs, { gap: 8 }]}>
@@ -393,21 +402,21 @@ function ThreadSkeleton() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   header: {
     paddingHorizontal: gutter,
     paddingBottom: 8,
-    backgroundColor: colors.ground,
+    backgroundColor: c.ground,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
+    borderBottomColor: c.line,
   },
   headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   newChat: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6 },
   thread: { flexGrow: 1, paddingHorizontal: gutter, paddingVertical: 20, gap: 16 },
   suggestions: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   bubble: { maxWidth: "88%", borderRadius: radius.card, paddingHorizontal: 16, paddingVertical: 12 },
-  mine: { alignSelf: "flex-end", backgroundColor: colors.ink, borderBottomRightRadius: 6 },
-  theirs: { alignSelf: "flex-start", backgroundColor: colors.surface, borderBottomLeftRadius: 6 },
+  mine: { alignSelf: "flex-end", backgroundColor: c.strong, borderBottomRightRadius: 6 },
+  theirs: { alignSelf: "flex-start", backgroundColor: c.surface, borderBottomLeftRadius: 6 },
   tools: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   tool: {
     height: 28,
@@ -416,7 +425,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: colors.chip,
+    backgroundColor: c.chip,
   },
   composer: {
     flexDirection: "row",
@@ -424,25 +433,25 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingTop: 12,
     paddingHorizontal: gutter,
-    backgroundColor: colors.ground,
+    backgroundColor: c.ground,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
+    borderTopColor: c.line,
   },
   input: {
     flex: 1,
     minHeight: 48,
     maxHeight: 140,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 14,
     paddingTop: 13,
     paddingBottom: 13,
     fontFamily: fonts.sans400,
     fontSize: 15,
     lineHeight: 20,
-    color: colors.ink,
+    color: c.ink,
   },
   send: { width: 48, height: 48, borderRadius: radius.input, alignItems: "center", justifyContent: "center" },
-});
+}));

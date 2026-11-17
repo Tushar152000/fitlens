@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReminderDraftDto, ReminderDto, ReminderRuleDto } from "@fitr8/contracts";
 import { BellOff, BellRing, Minus, Plus, Sparkles, Trash2 } from "lucide-react-native";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { AppState, Linking, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { AppState, Linking, Pressable, TextInput, View } from "react-native";
 import { BackHeader } from "@/components/back-header";
 import { QueryError } from "@/components/query-error";
 import { Sheet } from "@/components/sheet";
@@ -14,7 +14,7 @@ import { confirmAction } from "@/lib/confirm";
 import { queryClient } from "@/lib/query";
 import { remindersQuery } from "@/lib/queries";
 import { ensureNotificationPermission, localDate, notificationStatus } from "@/lib/reminders";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 
 /** The one shape the sheet edits directly: days of the week + time(s). */
 type Weekly = NonNullable<ReminderRuleDto["weekly"]>;
@@ -51,6 +51,8 @@ const WEEK = [
 
 /** Reminders you describe in words. The server keeps the list; this phone schedules the alerts. */
 export default function RemindersScreen() {
+  const c = useColors();
+  const styles = useStyles();
   const list = useQuery(remindersQuery);
   const status = useNotificationStatus();
   const [text, setText] = useState("");
@@ -114,7 +116,7 @@ export default function RemindersScreen() {
       <BackHeader />
       <View style={{ gap: 6 }}>
         <Text variant="h1">Reminders</Text>
-        <Text color={colors.ink2}>Say what and when, in your own words. Your phone does the reminding.</Text>
+        <Text color={c.ink2}>Say what and when, in your own words. Your phone does the reminding.</Text>
       </View>
 
       <PermissionNote status={status.value} />
@@ -132,7 +134,7 @@ export default function RemindersScreen() {
           maxLength={300}
           editable={!full}
           placeholder="e.g. Remind me to take creatine every day at 9 am"
-          placeholderTextColor="rgba(107,110,118,0.6)"
+          placeholderTextColor={c.ink3}
           style={styles.textarea}
           textAlignVertical="top"
         />
@@ -147,7 +149,7 @@ export default function RemindersScreen() {
         )}
         {parseError && <FieldError>{parseError}</FieldError>}
         {full ? (
-          <Text size={13} color={colors.ink3}>
+          <Text size={13} color={c.ink3}>
             You have {max} reminders, the most you can keep. Delete one to add another.
           </Text>
         ) : (
@@ -161,7 +163,7 @@ export default function RemindersScreen() {
         <View style={styles.sectionHead}>
           <Text variant="h2">Your reminders</Text>
           {reminders.length > 0 && (
-            <Text size={13} color={colors.ink3} tabular>
+            <Text size={13} color={c.ink3} tabular>
               {reminders.length} of {max}
             </Text>
           )}
@@ -172,11 +174,11 @@ export default function RemindersScreen() {
           <QueryError error={list.error} onRetry={() => list.refetch()} />
         ) : reminders.length === 0 ? (
           <Card style={{ alignItems: "center", gap: 8, paddingVertical: 24 }}>
-            <BellRing size={28} color={colors.ink3} />
+            <BellRing size={28} color={c.ink3} />
             <Text weight={600} center>
               No reminders yet
             </Text>
-            <Text size={13} color={colors.ink3} center>
+            <Text size={13} color={c.ink3} center>
               Creatine, water, a walk after dinner, Monday weigh-ins — describe one above.
             </Text>
           </Card>
@@ -226,6 +228,8 @@ function ReminderCard({
   onToggle: (enabled: boolean) => void;
   onOpen: () => void;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const next = r.enabled && r.nextAt ? localDate(r.nextAt) : null;
   return (
     <View style={[styles.card, !r.enabled && { opacity: 0.7 }]}>
@@ -239,15 +243,15 @@ function ReminderCard({
           {r.title}
         </Text>
         {r.description ? (
-          <Text size={13} color={colors.ink2} numberOfLines={2}>
+          <Text size={13} color={c.ink2} numberOfLines={2}>
             {r.description}
           </Text>
         ) : null}
-        <Text size={13} color={colors.ink3}>
+        <Text size={13} color={c.ink3}>
           {r.summary}
         </Text>
         {next && (
-          <Text weight={600} size={13} color={colors.brand}>
+          <Text weight={600} size={13} color={c.brandText}>
             Next: {formatNext(next)}
           </Text>
         )}
@@ -270,6 +274,8 @@ function ReminderSheet({ draft, onClose, onSaved }: { draft: Draft | null; onClo
 }
 
 function ReminderForm({ draft, onSaved }: { draft: Draft; onSaved: () => void }) {
+  const c = useColors();
+  const styles = useStyles();
   const [title, setTitle] = useState(draft.title);
   const [description, setDescription] = useState(draft.description);
   // One days-of-the-week rule is edited with the day toggles and time stepper; anything richer
@@ -345,15 +351,15 @@ function ReminderForm({ draft, onSaved }: { draft: Draft; onSaved: () => void })
   return (
     <>
       <View style={styles.summary} accessibilityLiveRegion="polite">
-        <BellRing size={18} color={colors.brand} style={{ marginTop: 2 }} />
+        <BellRing size={18} color={c.brandText} style={{ marginTop: 2 }} />
         <View style={{ flex: 1, gap: 4 }}>
           {schedule ? (
-            <Text weight={600} color={colors.brand}>
+            <Text weight={600} color={c.brandText}>
               {describe(schedule)}
             </Text>
           ) : (
             draft.rules.map((r) => (
-              <Text key={r.cron} weight={600} color={colors.brand}>
+              <Text key={r.cron} weight={600} color={c.brandText}>
                 {draft.rules.length > 1 ? `• ${r.summary}` : r.summary}
               </Text>
             ))
@@ -380,7 +386,7 @@ function ReminderForm({ draft, onSaved }: { draft: Draft; onSaved: () => void })
           onChangeText={setDescription}
           maxLength={200}
           placeholder="Shown under the title"
-          placeholderTextColor="rgba(107,110,118,0.6)"
+          placeholderTextColor={c.ink3}
           style={styles.input}
         />
       </Field>
@@ -398,7 +404,7 @@ function ReminderForm({ draft, onSaved }: { draft: Draft; onSaved: () => void })
                   onPress={() => toggleDay(day)}
                   style={[styles.day, schedule.weekdays.includes(day) && styles.dayOn]}
                 >
-                  <Text weight={600} size={13} color={schedule.weekdays.includes(day) ? colors.white : colors.ink2}>
+                  <Text weight={600} size={13} color={schedule.weekdays.includes(day) ? c.onStrong : c.ink2}>
                     {label.slice(0, 2)}
                   </Text>
                 </Pressable>
@@ -420,7 +426,7 @@ function ReminderForm({ draft, onSaved }: { draft: Draft; onSaved: () => void })
                 <Text weight={600} tabular>
                   {schedule.hours.map((h) => clock(h, schedule.minute)).join(" · ")}
                 </Text>
-                <Text size={13} color={colors.ink3}>
+                <Text size={13} color={c.ink3}>
                   To change these times, describe the reminder again.
                 </Text>
               </View>
@@ -428,7 +434,7 @@ function ReminderForm({ draft, onSaved }: { draft: Draft; onSaved: () => void })
           </Field>
         </>
       ) : (
-        <Text size={13} color={colors.ink3}>
+        <Text size={13} color={c.ink3}>
           {draft.rules.some((r) => !r.repeating)
             ? "Dates that move (like the second-last day) are planned a few ahead and topped up each time you open FITR8. "
             : ""}
@@ -450,9 +456,10 @@ function ReminderForm({ draft, onSaved }: { draft: Draft; onSaved: () => void })
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
+  const c = useColors();
   return (
     <View style={{ gap: 8 }}>
-      <Text weight={600} size={13} color={colors.ink2}>
+      <Text weight={600} size={13} color={c.ink2}>
         {label}
       </Text>
       {children}
@@ -461,29 +468,33 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 function RoundButton({ icon: Icon, label, onPress }: { icon: typeof Plus; label: string; onPress: () => void }) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.round} hitSlop={4}>
-      <Icon size={20} color={colors.ink} />
+      <Icon size={20} color={c.ink} />
     </Pressable>
   );
 }
 
 /** Explains why nothing will ring, with the way to fix it. Hidden when notifications work. */
 function PermissionNote({ status }: { status: Status | null }) {
+  const c = useColors();
+  const styles = useStyles();
   if (status === null || status === "granted" || status === "undetermined") return null;
   const unavailable = status === "unavailable";
   return (
     <View style={styles.note}>
-      <BellOff size={20} color={colors.cautionText} />
+      <BellOff size={20} color={c.cautionText} />
       <View style={{ flex: 1, gap: 8 }}>
-        <Text size={14} color={colors.cautionText}>
+        <Text size={14} color={c.cautionText}>
           {unavailable
             ? "Reminders ring in the installed FITR8 app. You can still set them up here."
             : "Notifications are off for FITR8, so reminders can't ring. Turn them on in Settings."}
         </Text>
         {!unavailable && (
           <Pressable accessibilityRole="button" onPress={() => Linking.openSettings()} hitSlop={6}>
-            <Text weight={600} size={14} color={colors.cautionText} style={{ textDecorationLine: "underline" }}>
+            <Text weight={600} size={14} color={c.cautionText} style={{ textDecorationLine: "underline" }}>
               Open Settings
             </Text>
           </Pressable>
@@ -565,18 +576,18 @@ function formatNext(d: Date): string {
   return `${day}, ${time}`;
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   textarea: {
     minHeight: 88,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     padding: 14,
     fontFamily: fonts.sans400,
     fontSize: 16,
     lineHeight: 22,
-    color: colors.ink,
+    color: c.ink,
   },
   examples: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   sectionHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
@@ -585,7 +596,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
@@ -594,44 +605,44 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 8,
     borderRadius: radius.input,
-    backgroundColor: colors.sunken,
+    backgroundColor: c.sunken,
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
   input: {
     height: 52,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     fontFamily: fonts.sans600,
     fontSize: 16,
-    color: colors.ink,
+    color: c.ink,
   },
   days: { flexDirection: "row", justifyContent: "space-between", gap: 6 },
   day: {
     flex: 1,
     height: 44,
     borderRadius: 999,
-    backgroundColor: colors.chip,
+    backgroundColor: c.chip,
     alignItems: "center",
     justifyContent: "center",
   },
-  dayOn: { backgroundColor: colors.ink },
+  dayOn: { backgroundColor: c.strong },
   time: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     padding: 6,
   },
   round: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.sunken,
+    backgroundColor: c.sunken,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -639,7 +650,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     borderRadius: radius.card,
-    backgroundColor: colors.cautionSoft,
+    backgroundColor: c.cautionSoft,
     padding: 14,
   },
-});
+}));

@@ -3,14 +3,14 @@ import { PlanSkeleton } from "@/components/skeletons";
 import { router } from "expo-router";
 import { CircleCheck, TriangleAlert } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, View } from "react-native";
 import Svg, { Circle, Line } from "react-native-svg";
 import { QueryError } from "@/components/query-error";
 import { Button, Card, ChoiceCardGroup, FieldError, ProgressSteps, Screen, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatInt } from "@/lib/format";
-import { colors, radius } from "@/lib/theme";
+import { makeStyles, radius, useColors, type Colors } from "@/lib/theme";
 import type { PlanResponse, PlanSummary } from "@/lib/types-plan";
 
 const dateLabel = (ymd: string) =>
@@ -23,6 +23,8 @@ export default function PlanScreen() {
   const { refresh } = useAuth();
   const plan = useQuery({ queryKey: ["plan"], queryFn: () => api<PlanResponse>("/api/plan") });
   const [starting, setStarting] = useState(false);
+  const c = useColors();
+  const styles = useStyles();
 
   // Onboarding is saved; re-reading /api/me flips the app into the signed-in tabs.
   async function start() {
@@ -70,9 +72,9 @@ export default function PlanScreen() {
       </View>
       <View style={{ gap: 12 }}>
         <Text variant="h1">Your plan</Text>
-        <View style={[styles.badge, { backgroundColor: colors.proteinSoft }]}>
-          <CircleCheck size={16} color={colors.protein} />
-          <Text weight={600} size={13} color={colors.protein}>
+        <View style={[styles.badge, { backgroundColor: c.proteinSoft }]}>
+          <CircleCheck size={16} color={c.protein} />
+          <Text weight={600} size={13} color={c.protein}>
             {pace.atTarget && !recomp ? "At your target weight" : "Realistic goal"}
           </Text>
         </View>
@@ -82,30 +84,30 @@ export default function PlanScreen() {
         <Card>
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
             <View>
-              <Text weight={600} size={12} color={colors.ink3}>
+              <Text weight={600} size={12} color={c.ink3}>
                 Now
               </Text>
               <Text variant="h1" size={26} tabular>
                 {metric.weightKg}{" "}
-                <Text weight={600} size={15} color={colors.ink3}>
+                <Text weight={600} size={15} color={c.ink3}>
                   kg
                 </Text>
               </Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>
-              <Text weight={600} size={12} color={colors.ink3}>
+              <Text weight={600} size={12} color={c.ink3}>
                 Goal · {dateLabel(goal.targetDate)}
               </Text>
               <Text variant="h1" size={26} tabular>
                 {recomp ? "Hold" : summary.plan.targetWeightKg}{" "}
-                <Text weight={600} size={15} color={colors.ink3}>
+                <Text weight={600} size={15} color={c.ink3}>
                   {recomp ? "weight" : "kg"}
                 </Text>
               </Text>
             </View>
           </View>
           <ProjectionLine from={metric.weightKg} to={recomp ? metric.weightKg : summary.plan.targetWeightKg} />
-          <Text size={13} color={colors.ink2}>
+          <Text size={13} color={c.ink2}>
             {recomp ? "Weight stays steady while you lose fat and build muscle." : pace.text}
             {goal.targetBodyFatPct != null && ` · body fat ${summary.bodyFatPct ?? "?"}% → ${goal.targetBodyFatPct}%`}
           </Text>
@@ -133,7 +135,7 @@ export default function PlanScreen() {
           {summary.plan.warnings.map((w) => (
             <View key={w} style={{ flexDirection: "row", gap: 8 }}>
               <View style={styles.bullet} />
-              <Text size={13} color={colors.ink2} style={{ flex: 1 }}>
+              <Text size={13} color={c.ink2} style={{ flex: 1 }}>
                 {w}
               </Text>
             </View>
@@ -172,6 +174,8 @@ function TooFast({ data, onStart, starting }: { data: PlanResponse; onStart: () 
   const [choice, setChoice] = useState<Choice>(suggestedDate ? "KEEP_GOAL" : "KEEP_DATE");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const c = useColors();
+  const styles = useStyles();
   const verb = goal.type === "FAT_LOSS" ? "Losing" : "Gaining";
 
   async function start() {
@@ -202,7 +206,7 @@ function TooFast({ data, onStart, starting }: { data: PlanResponse; onStart: () 
             onPress={() => router.replace("/onboarding")}
             style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}
           >
-            <Text weight={600} color={colors.ink2}>
+            <Text weight={600} color={c.ink2}>
               Change my goal
             </Text>
           </Pressable>
@@ -213,16 +217,16 @@ function TooFast({ data, onStart, starting }: { data: PlanResponse; onStart: () 
         <ProgressSteps current={4} total={4} />
       </View>
       <View style={{ gap: 12 }}>
-        <View style={[styles.badge, { backgroundColor: colors.cautionSoft }]}>
-          <TriangleAlert size={16} color={colors.cautionText} />
-          <Text weight={600} size={13} color={colors.cautionText}>
+        <View style={[styles.badge, { backgroundColor: c.cautionSoft }]}>
+          <TriangleAlert size={16} color={c.cautionText} />
+          <Text weight={600} size={13} color={c.cautionText}>
             Too fast to be safe
           </Text>
         </View>
         <Text variant="h1">
           {verb} {Math.abs(p.neededWeeklyChangeKg).toFixed(1)} kg a week isn&apos;t safe
         </Text>
-        <Text color={colors.ink2}>
+        <Text color={c.ink2}>
           A safe pace for you is about {Math.abs(p.weeklyChangeKg).toFixed(1)} kg a week. Pick what matters more:
         </Text>
       </View>
@@ -261,9 +265,13 @@ function TooFast({ data, onStart, starting }: { data: PlanResponse; onStart: () 
   );
 }
 
-const MACRO_DOTS = { protein: "#5fae88", carbs: colors.carbs, fat: "#9d84d6" };
+/** Dots on the dark target card; protein and fat are lifted shades that read on the panel. */
+const macroDots = (c: Colors) => ({ protein: "#5fae88", carbs: c.carbs, fat: "#9d84d6" });
 
 function TargetCard({ summary }: { summary: PlanSummary }) {
+  const c = useColors();
+  const styles = useStyles();
+  const MACRO_DOTS = macroDots(c);
   const { kcal, proteinG, carbsG, fatG } = summary.target;
   const adjustment = kcal - summary.plan.tdee;
   const k = { p: proteinG * 4, c: carbsG * 4, f: fatG * 9 };
@@ -274,7 +282,7 @@ function TargetCard({ summary }: { summary: PlanSummary }) {
       <Text weight={600} size={13} color={white70}>
         Daily target
       </Text>
-      <Text variant="display" color={colors.white} tabular>
+      <Text variant="display" color={c.white} tabular>
         {formatInt(kcal)}{" "}
         <Text weight={600} size={15} color={white70}>
           kcal
@@ -304,6 +312,7 @@ function TargetCard({ summary }: { summary: PlanSummary }) {
 }
 
 function Macro({ label, grams, dot }: { label: string; grams: number; dot: string }) {
+  const c = useColors();
   return (
     <View style={{ flex: 1 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -312,7 +321,7 @@ function Macro({ label, grams, dot }: { label: string; grams: number; dot: strin
           {label}
         </Text>
       </View>
-      <Text weight={700} size={16} color={colors.white} tabular>
+      <Text weight={700} size={16} color={c.white} tabular>
         {grams} g
       </Text>
     </View>
@@ -320,15 +329,17 @@ function Macro({ label, grams, dot }: { label: string; grams: number; dot: strin
 }
 
 function Tile({ label, value, sub }: { label: string; value: string; sub: string }) {
+  const c = useColors();
+  const styles = useStyles();
   return (
     <View style={styles.tile}>
-      <Text weight={600} size={12} color={colors.ink3}>
+      <Text weight={600} size={12} color={c.ink3}>
         {label}
       </Text>
       <Text variant="h2" size={22} tabular>
         {value}
       </Text>
-      <Text size={12} color={colors.ink3}>
+      <Text size={12} color={c.ink3}>
         {sub}
       </Text>
     </View>
@@ -337,6 +348,7 @@ function Tile({ label, value, sub }: { label: string; value: string; sub: string
 
 /** Straight-line projection from now to goal. Decorative; the numbers above carry the meaning. */
 function ProjectionLine({ from, to }: { from: number; to: number }) {
+  const c = useColors();
   const w = 300;
   const h = 64;
   const pad = 8;
@@ -345,24 +357,24 @@ function ProjectionLine({ from, to }: { from: number; to: number }) {
   const y2 = flat ? h / 2 : from > to ? h - pad : pad;
   return (
     <Svg viewBox={`0 0 ${w} ${h}`} width="100%" height={64} aria-hidden>
-      <Line x1={pad} y1={y1} x2={w - pad} y2={y2} stroke={colors.line} strokeWidth={2} />
+      <Line x1={pad} y1={y1} x2={w - pad} y2={y2} stroke={c.line} strokeWidth={2} />
       <Line
         x1={pad}
         y1={y1}
         x2={w - pad}
         y2={y2}
-        stroke={colors.brand}
+        stroke={c.brand}
         strokeWidth={2.5}
         strokeDasharray="6 6"
         strokeLinecap="round"
       />
-      <Circle cx={pad} cy={y1} r={5} fill={colors.ink} />
-      <Circle cx={w - pad} cy={y2} r={5} fill={colors.brand} />
+      <Circle cx={pad} cy={y1} r={5} fill={c.ink} />
+      <Circle cx={w - pad} cy={y2} r={5} fill={c.brand} />
     </Svg>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   badge: {
     flexDirection: "row",
     alignItems: "center",
@@ -373,6 +385,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   split: { flexDirection: "row", height: 10, gap: 2, borderRadius: 5, overflow: "hidden", marginTop: 16 },
-  tile: { flex: 1, borderRadius: radius.card, backgroundColor: colors.surface, padding: 12 },
-  bullet: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.ink3, marginTop: 9 },
-});
+  tile: { flex: 1, borderRadius: radius.card, backgroundColor: c.surface, padding: 12 },
+  bullet: { width: 4, height: 4, borderRadius: 2, backgroundColor: c.ink3, marginTop: 9 },
+}));

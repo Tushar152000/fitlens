@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import type { RemindersInput } from "@fitr8/contracts";
+import { isWelcomeBack, shouldTouchActivity } from "@fitr8/domain/activity";
 import { localDate, mealDateProblem, parseDateOnly } from "@fitr8/domain/dates";
 import { AppError } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
@@ -96,14 +97,31 @@ export class UsersService {
     if (Object.keys(data).length) await this.prisma.user.update({ where: { id: userId }, data });
   }
 
-  async me(userId: string) {
+  /**
+   * The app's launch call. Also records the visit (hourly at most) as activity, except while a
+   * "welcome back" is pending, so that prompt survives restarts until it is answered or dismissed.
+   */
+  async me(userId: string, now = new Date()) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { id: true, name: true, email: true, image: true, profile: true },
+      select: { id: true, name: true, email: true, image: true, lastActiveAt: true, profile: true },
     });
-    const { profile, ...rest } = user;
+    const { profile, lastActiveAt, ...rest } = user;
+    const activity = { onboardedAt: profile?.onboardedAt ?? null, lastActiveAt };
+    if (shouldTouchActivity(activity, now)) await this.markActive(userId, now);
     const plan = await this.billing.plan(userId);
-    return { ...rest, onboarded: Boolean(profile?.onboardedAt), profile, plan };
+    return {
+      ...rest,
+      onboarded: Boolean(profile?.onboardedAt),
+      welcomeBack: isWelcomeBack(activity, now),
+      profile,
+      plan,
+    };
+  }
+
+  /** The user is here now: ends a pending "welcome back" (answered, or "Not now"). */
+  async markActive(userId: string, now = new Date()) {
+    await this.prisma.user.update({ where: { id: userId }, data: { lastActiveAt: now } });
   }
 
   /** The name the user asked to be called in the web welcome flow. Google sign-in won't overwrite it. */

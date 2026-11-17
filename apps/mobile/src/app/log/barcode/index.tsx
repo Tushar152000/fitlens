@@ -9,10 +9,15 @@ import { Sheet } from "@/components/sheet";
 import { Button, FieldError, Text } from "@/components/ui";
 import { normalizeBarcode } from "@/lib/barcode";
 import { choiceParams, dayFromParam, mealFromParam } from "@/lib/meal-param";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, palettes, radius, useColors } from "@/lib/theme";
+
+/** The camera stays dark in both schemes, so its colours are fixed (the light palette's). */
+const cam = palettes.light;
 
 /** Screen 7c: scan a packaged food's barcode (EAN-13/8, UPC-A/E). One code = one lookup. */
 export default function BarcodeScreen() {
+  const c = useColors();
+  const themed = useStyles();
   // The meal and day are picked on the product screen; just carry what's chosen so far.
   const route = useLocalSearchParams<{ meal?: string; date?: string }>();
   const params = choiceParams(mealFromParam(route.meal), dayFromParam(route.date));
@@ -59,9 +64,9 @@ export default function BarcodeScreen() {
           onPress={() => router.back()}
           style={styles.icon}
         >
-          <X size={26} color={colors.white} />
+          <X size={26} color={cam.white} />
         </Pressable>
-        <Text weight={600} color={colors.white}>
+        <Text weight={600} color={cam.white}>
           Scan barcode
         </Text>
         {granted ? (
@@ -72,7 +77,7 @@ export default function BarcodeScreen() {
             onPress={() => setTorch((t) => !t)}
             style={styles.icon}
           >
-            {torch ? <FlashlightOff size={24} color={colors.white} /> : <Flashlight size={24} color={colors.white} />}
+            {torch ? <FlashlightOff size={24} color={cam.white} /> : <Flashlight size={24} color={cam.white} />}
           </Pressable>
         ) : (
           <View style={styles.icon} />
@@ -102,16 +107,16 @@ export default function BarcodeScreen() {
           </View>
         )}
         {/* Wide scan box; a thick translucent border dims everything around it. */}
-        <View pointerEvents="none" style={styles.dim}>
-          <View style={[styles.box, { borderColor: code ? colors.proteinSoft : "rgba(255,255,255,0.9)" }]}>
+        <View style={[styles.dim, { pointerEvents: "none" }]}>
+          <View style={[styles.box, { borderColor: code ? cam.proteinSoft : "rgba(255,255,255,0.9)" }]}>
             {!code && granted && <View style={styles.laser} />}
           </View>
         </View>
         <View
           accessibilityLiveRegion="polite"
-          style={[styles.status, { backgroundColor: code ? colors.protein : "rgba(23,24,28,0.75)" }]}
+          style={[styles.status, { backgroundColor: code ? cam.protein : "rgba(23,24,28,0.75)" }]}
         >
-          <Text weight={600} size={13} color={colors.white} tabular>
+          <Text weight={600} size={13} color={cam.white} tabular>
             {status}
             {code ? ` · ${code}` : ""}
           </Text>
@@ -160,8 +165,8 @@ export default function BarcodeScreen() {
           }}
           onSubmitEditing={submitTyped}
           placeholder="8901719110023"
-          placeholderTextColor="rgba(107,110,118,0.6)"
-          style={styles.number}
+          placeholderTextColor={c.ink3}
+          style={themed.number}
         />
         {typedError && <FieldError>{typedError}</FieldError>}
         <Button onPress={submitTyped}>Find product</Button>
@@ -171,7 +176,7 @@ export default function BarcodeScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
+  root: { flex: 1, backgroundColor: cam.panel },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12 },
   icon: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   viewfinder: {
@@ -195,7 +200,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     height: 2,
     borderRadius: 1,
-    backgroundColor: colors.brandGlow,
+    backgroundColor: cam.brandGlow,
     boxShadow: "0 0 12px 2px rgba(232, 119, 46, 0.7)",
   },
   status: {
@@ -206,17 +211,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
+});
+
+const useStyles = makeStyles((c) => ({
   number: {
     height: 52,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     fontFamily: fonts.sans600,
     fontSize: 18,
     letterSpacing: 1,
-    color: colors.ink,
+    color: c.ink,
     fontVariant: ["tabular-nums"],
   },
-});
+}));

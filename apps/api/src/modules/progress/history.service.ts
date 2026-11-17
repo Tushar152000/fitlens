@@ -29,8 +29,9 @@ export class HistoryService {
       }),
     ]);
 
+    // Days before the first plan (backfilled before onboarding) use that first plan, like the dashboard.
     const targetOn = (date: Date) => {
-      let kcal: number | null = null;
+      let kcal: number | null = targets[0]?.kcal ?? null;
       for (const t of targets) if (t.effectiveFrom.getTime() <= date.getTime()) kcal = t.kcal;
       return kcal;
     };

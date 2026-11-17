@@ -1,6 +1,6 @@
 import { Check } from "lucide-react-native";
 import { useState } from "react";
-import { StyleSheet, TextInput } from "react-native";
+import { TextInput } from "react-native";
 import { Sheet } from "@/components/sheet";
 import { Button, FieldError, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
@@ -10,7 +10,7 @@ import type { Row } from "@/lib/meal-rows";
 import { queryClient } from "@/lib/query";
 import { savedMealsQuery } from "@/lib/queries";
 import { toSavedPayload } from "@/lib/saved-meals";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 
 /** "Save as a meal" on meal review: the items as they are now, under a name, for one-tap logging later. */
 export function SaveMealSheet({
@@ -51,6 +51,8 @@ function SaveMealForm({
   mealType: MealType;
   initialName: string;
 }) {
+  const c = useColors();
+  const styles = useStyles();
   const [name, setName] = useState(initialName);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +75,7 @@ function SaveMealForm({
 
   return (
     <>
-      <Text color={colors.ink2}>
+      <Text color={c.ink2}>
         Next time, add these {rows.length} {rows.length === 1 ? "item" : "items"} with one tap from &quot;Type&quot; —
         no photo, no AI scan.
       </Text>
@@ -88,7 +90,7 @@ function SaveMealForm({
         onSubmitEditing={save}
         maxLength={60}
         placeholder="e.g. Usual breakfast"
-        placeholderTextColor="rgba(107,110,118,0.6)"
+        placeholderTextColor={c.ink3}
         style={styles.input}
         returnKeyType="done"
       />
@@ -100,16 +102,16 @@ function SaveMealForm({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   input: {
     height: 52,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     fontFamily: fonts.sans600,
     fontSize: 17,
-    color: colors.ink,
+    color: c.ink,
   },
-});
+}));

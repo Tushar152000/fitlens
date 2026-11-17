@@ -4,7 +4,7 @@ import { ProductSkeleton } from "@/components/skeletons";
 import { router, useLocalSearchParams } from "expo-router";
 import { BadgeCheck, TriangleAlert } from "lucide-react-native";
 import { useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 import { BackHeader } from "@/components/back-header";
 import { QueryError } from "@/components/query-error";
 import { Button, Card, FieldError, NumberField, Screen, Stepper, Text } from "@/components/ui";
@@ -16,7 +16,7 @@ import { labelAddsUp } from "@/lib/label";
 import { useMealChoice } from "@/lib/meal-param";
 import { refreshDay } from "@/lib/query";
 import { showDay } from "@/lib/view-day";
-import { colors, fonts, radius } from "@/lib/theme";
+import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 
 type ScanDto = LabelScanDto;
 
@@ -50,6 +50,8 @@ export default function CheckLabelScreen() {
 }
 
 function CheckLabel({ scan }: { scan: ScanDto }) {
+  const c = useColors();
+  const styles = useStyles();
   const { mealType, setMealType, date, setDate, dateBody, params } = useMealChoice();
   const [missing, setMissing] = useState(false);
   const [name, setName] = useState(scan.name);
@@ -105,17 +107,17 @@ function CheckLabel({ scan }: { scan: ScanDto }) {
         <>
           <View style={styles.total}>
             <View>
-              <Text weight={600} size={12} color={colors.ink3}>
+              <Text weight={600} size={12} color={c.ink3}>
                 Total
               </Text>
               <Text variant="h1" size={26} tabular accessibilityLiveRegion="polite">
                 {formatInt(total)}{" "}
-                <Text weight={600} size={13} color={colors.ink3}>
+                <Text weight={600} size={13} color={c.ink3}>
                   kcal
                 </Text>
               </Text>
             </View>
-            <Text weight={600} size={13} color={colors.ink3} tabular>
+            <Text weight={600} size={13} color={c.ink3} tabular>
               {formatInt(grams)} g
             </Text>
           </View>
@@ -131,7 +133,7 @@ function CheckLabel({ scan }: { scan: ScanDto }) {
         <Text variant="h1" size={26}>
           Check the label values
         </Text>
-        <Text color={colors.ink2}>We read these per 100 g. Fix anything that doesn&apos;t match the pack.</Text>
+        <Text color={c.ink2}>We read these per 100 g. Fix anything that doesn&apos;t match the pack.</Text>
       </View>
 
       <View style={{ gap: 16 }}>
@@ -142,7 +144,7 @@ function CheckLabel({ scan }: { scan: ScanDto }) {
             value={name}
             onChangeText={setName}
             placeholder="e.g. Parle-G Gold"
-            placeholderTextColor="rgba(107,110,118,0.6)"
+            placeholderTextColor={c.ink3}
             style={styles.input}
           />
         </View>
@@ -150,16 +152,16 @@ function CheckLabel({ scan }: { scan: ScanDto }) {
         {check &&
           (check.ok ? (
             <View style={styles.ok}>
-              <BadgeCheck size={16} color={colors.protein} />
-              <Text weight={600} size={13} color={colors.protein}>
+              <BadgeCheck size={16} color={c.protein} />
+              <Text weight={600} size={13} color={c.protein}>
                 Numbers add up
               </Text>
             </View>
           ) : (
             <View style={styles.warn}>
-              <TriangleAlert size={20} color={colors.cautionText} />
-              <Text size={13} color={colors.cautionText} style={{ flex: 1 }}>
-                <Text size={13} weight={700} color={colors.cautionText}>
+              <TriangleAlert size={20} color={c.cautionText} />
+              <Text size={13} color={c.cautionText} style={{ flex: 1 }}>
+                <Text size={13} weight={700} color={c.cautionText}>
                   Please check.
                 </Text>{" "}
                 Protein, carbs and fat add up to {formatInt(check.fromMacros)} kcal, but energy says{" "}
@@ -212,17 +214,17 @@ function CheckLabel({ scan }: { scan: ScanDto }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   input: {
     height: 52,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: c.lineStrong,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     fontFamily: fonts.sans400,
     fontSize: 16,
-    color: colors.ink,
+    color: c.ink,
   },
   ok: {
     flexDirection: "row",
@@ -230,11 +232,11 @@ const styles = StyleSheet.create({
     gap: 6,
     alignSelf: "flex-start",
     borderRadius: 999,
-    backgroundColor: colors.proteinSoft,
+    backgroundColor: c.proteinSoft,
     paddingHorizontal: 12,
     paddingVertical: 4,
   },
-  warn: { flexDirection: "row", gap: 10, borderRadius: radius.card, backgroundColor: colors.cautionSoft, padding: 12 },
+  warn: { flexDirection: "row", gap: 10, borderRadius: radius.card, backgroundColor: c.cautionSoft, padding: 12 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   cell: { width: "47%", flexGrow: 1 },
   total: {
@@ -242,8 +244,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     justifyContent: "space-between",
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-});
+}));

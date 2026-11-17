@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { StyleSheet, TextInput, View, type TextInputProps } from "react-native";
-import { colors, fonts, radius } from "@/lib/theme";
+import { TextInput, View, type TextInputProps } from "react-native";
+import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 import { FieldError } from "./field-error";
 import { Text } from "./text";
 
@@ -22,11 +22,13 @@ export function NumberField({
   hint?: string;
   error?: string;
 } & Omit<TextInputProps, "value" | "onChangeText">) {
+  const c = useColors();
+  const styles = useStyles();
   const [focused, setFocused] = useState(false);
   return (
     <View style={{ gap: 6, flex: 1 }}>
       <Text variant="label">{label}</Text>
-      <View style={[styles.box, { borderColor: error ? colors.caution : focused ? colors.ink : colors.lineStrong }]}>
+      <View style={[styles.box, { borderColor: error ? c.caution : focused ? c.ink : c.lineStrong }]}>
         <TextInput
           accessibilityLabel={label}
           value={value}
@@ -34,12 +36,12 @@ export function NumberField({
           keyboardType={keyboardType}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholderTextColor="rgba(107,110,118,0.6)"
+          placeholderTextColor={`${c.ink3}99`}
           style={styles.input}
           {...props}
         />
         {unit && (
-          <Text weight={500} color={colors.ink3} style={{ marginLeft: 8 }}>
+          <Text weight={500} color={c.ink3} style={{ marginLeft: 8 }}>
             {unit}
           </Text>
         )}
@@ -47,7 +49,7 @@ export function NumberField({
       {error ? (
         <FieldError>{error}</FieldError>
       ) : hint ? (
-        <Text size={13} color={colors.ink3}>
+        <Text size={13} color={c.ink3}>
           {hint}
         </Text>
       ) : null}
@@ -55,14 +57,14 @@ export function NumberField({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((c) => ({
   box: {
     height: 52,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
     borderRadius: radius.input,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     paddingHorizontal: 16,
   },
   input: {
@@ -70,8 +72,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
     fontFamily: fonts.sans600,
     fontSize: 18,
-    color: colors.ink,
+    color: c.ink,
     fontVariant: ["tabular-nums"],
     padding: 0,
   },
-});
+}));

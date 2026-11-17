@@ -2,13 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { ProgressSkeleton } from "@/components/skeletons";
 import { useState } from "react";
 import { View } from "react-native";
+import { BackHeader } from "@/components/back-header";
 import { QueryError } from "@/components/query-error";
 import { TrendChart, type Progress } from "@/components/trend-chart";
 import { Button, Card, FieldError, InsightCard, NumberField, Screen, Text } from "@/components/ui";
 import { api } from "@/lib/api";
 import { formatInt } from "@/lib/format";
 import { queryClient } from "@/lib/query";
-import { colors, radius } from "@/lib/theme";
+import { progressQuery } from "@/lib/queries";
+import { radius, useColors } from "@/lib/theme";
 
 const signed = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)} kg`;
 
@@ -35,12 +37,13 @@ function insight(p: Progress) {
   };
 }
 
-/** Screen 11: weekly check-in, trend vs plan, last-7-day stats. */
+/** Screen 11: weekly check-in, trend vs plan, last-7-day stats. Opened from the Progress card on Today. */
 export default function ProgressScreen() {
-  const progress = useQuery({ queryKey: ["progress"], queryFn: () => api<Progress>("/api/progress") });
+  const progress = useQuery(progressQuery);
 
   return (
-    <Screen tabBar refreshing={progress.isRefetching} onRefresh={() => progress.refetch()}>
+    <Screen refreshing={progress.isRefetching} onRefresh={() => progress.refetch()}>
+      <BackHeader />
       <View>
         <Text variant="meta">Weekly check-in</Text>
         <Text variant="h1">Progress</Text>
@@ -57,6 +60,7 @@ export default function ProgressScreen() {
 }
 
 function ProgressBody({ p }: { p: Progress }) {
+  const c = useColors();
   const { headline, reason } = insight(p);
   return (
     <>
@@ -67,14 +71,14 @@ function ProgressBody({ p }: { p: Progress }) {
           <Text variant="h2">Weight trend</Text>
           <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <View style={{ width: 16, height: 2, borderRadius: 1, backgroundColor: colors.brand }} />
-              <Text weight={600} size={12} color={colors.ink3}>
+              <View style={{ width: 16, height: 2, borderRadius: 1, backgroundColor: c.brand }} />
+              <Text weight={600} size={12} color={c.ink3}>
                 You
               </Text>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <View style={{ width: 16, borderTopWidth: 2, borderStyle: "dashed", borderColor: colors.ink3 }} />
-              <Text weight={600} size={12} color={colors.ink3}>
+              <View style={{ width: 16, borderTopWidth: 2, borderStyle: "dashed", borderColor: c.ink3 }} />
+              <Text weight={600} size={12} color={c.ink3}>
                 Plan
               </Text>
             </View>
@@ -96,6 +100,7 @@ function ProgressBody({ p }: { p: Progress }) {
 }
 
 function CheckinForm({ lastWeightKg, lastWaistCm }: { lastWeightKg: number | null; lastWaistCm: number | null }) {
+  const c = useColors();
   const [weight, setWeight] = useState("");
   const [waist, setWaist] = useState("");
   const [errors, setErrors] = useState<{ weight?: string; waist?: string }>({});
@@ -155,7 +160,7 @@ function CheckinForm({ lastWeightKg, lastWaistCm }: { lastWeightKg: number | nul
           error={errors.waist}
         />
       </View>
-      <Text size={13} color={colors.ink3}>
+      <Text size={13} color={c.ink3}>
         Weigh in the morning, after the loo, before food.
       </Text>
       {serverError && <FieldError>{serverError}</FieldError>}
@@ -167,15 +172,16 @@ function CheckinForm({ lastWeightKg, lastWaistCm }: { lastWeightKg: number | nul
 }
 
 function Tile({ label, value, sub }: { label: string; value: string; sub: string }) {
+  const c = useColors();
   return (
-    <View style={{ flex: 1, borderRadius: radius.card, backgroundColor: colors.surface, padding: 12 }}>
-      <Text weight={600} size={12} color={colors.ink3}>
+    <View style={{ flex: 1, borderRadius: radius.card, backgroundColor: c.surface, padding: 12 }}>
+      <Text weight={600} size={12} color={c.ink3}>
         {label}
       </Text>
       <Text variant="h2" size={22} tabular>
         {value}
       </Text>
-      <Text size={12} color={colors.ink3}>
+      <Text size={12} color={c.ink3}>
         {sub}
       </Text>
     </View>
