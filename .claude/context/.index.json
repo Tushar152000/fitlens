@@ -153,8 +153,8 @@
   }
  },
  "web": {
-  "syncedAt": "2026-11-17T19:57:04.456Z",
-  "head": "01e8cb7",
+  "syncedAt": "2026-11-17T20:01:36.441Z",
+  "head": "c1facf9",
   "files": {
    "apps/web/AGENTS.md": "8a38a9be445f",
    "apps/web/CLAUDE.md": "c140473a3a5f",
@@ -270,7 +270,7 @@
    "apps/web/src/components/onboarding/button-styles.ts": "f30d10781cd9",
    "apps/web/src/components/onboarding/fold-section.tsx": "4e2d8ebbbe0f",
    "apps/web/src/components/onboarding/get-app.tsx": "95e71a6ceedc",
-   "apps/web/src/components/onboarding/onboarding-flow.tsx": "a38d3f30ee83",
+   "apps/web/src/components/onboarding/onboarding-flow.tsx": "c5b5af06b380",
    "apps/web/src/components/onboarding/plan-building.tsx": "de325a3f67d4",
    "apps/web/src/components/onboarding/shell.tsx": "8a30eedfffa2",
    "apps/web/src/components/onboarding/steps-meta.ts": "e8ffb6a6f207",
@@ -327,8 +327,8 @@
   }
  },
  "mobile": {
-  "syncedAt": "2026-11-17T19:57:04.461Z",
-  "head": "01e8cb7",
+  "syncedAt": "2026-11-17T20:01:36.448Z",
+  "head": "c1facf9",
   "files": {
    "apps/mobile/.claude/settings.json": "14b797af98bf",
    "apps/mobile/.gitignore": "1b3d2a4eff0b",
@@ -365,7 +365,7 @@
    "apps/mobile/src/app/log/type.tsx": "b0bc243e5a41",
    "apps/mobile/src/app/login.tsx": "8ed8887dff1d",
    "apps/mobile/src/app/onboarding/_layout.tsx": "a0a4ccfe60ff",
-   "apps/mobile/src/app/onboarding/index.tsx": "098bc33b513e",
+   "apps/mobile/src/app/onboarding/index.tsx": "a253ab349b0e",
    "apps/mobile/src/app/onboarding/plan.tsx": "da05e643fd44",
    "apps/mobile/src/app/pro.tsx": "8dd8f1ce31df",
    "apps/mobile/src/app/progress.tsx": "56c1786f80c1",

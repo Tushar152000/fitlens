@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { DevLogin } from "@/components/dev-login";
+import { cn } from "@/lib/cn";
 import { track } from "@/lib/client/analytics";
 import { api, ApiError } from "@/lib/client/api";
 import {
@@ -330,14 +331,19 @@ function Flow({
 
   const hasErrors = Object.values(errors).some(Boolean);
   /** Continue / Build my plan unlock once this step's required answers are valid. */
-  const stepValid =
+  /** What still blocks this step, in field order (body before food on "About you"). */
+  const problems: DraftErrors & PersonProblems =
     step === "name"
-      ? Object.keys(personProblems(person)).length === 0
+      ? personProblems(person)
       : step === "goal"
-        ? Object.keys(validateStep(1, draft)).length === 0
+        ? validateStep(1, draft)
         : step === "about"
-          ? bodyDone && foodDone
-          : true;
+          ? { ...validateStep(2, draft), ...validateStep(3, draft) }
+          : {};
+  const stepValid = Object.keys(problems).length === 0;
+  // The hint names the first thing to fix, so a filled-in but rejected field never looks stuck.
+  const firstProblem = Object.entries(problems).find(([, message]) => message);
+  const continueHint = firstProblem ? hintFor(firstProblem[0], firstProblem[1]) : null;
   const stepNo = `Step ${index + 1} of ${steps.length}`;
   const greeting = person.name.trim() ? `, ${person.name.trim().split(" ")[0]}` : "";
 
@@ -381,9 +387,7 @@ function Flow({
             !stepValid &&
             step !== "signin" && (
               <p id="continue-hint" className="text-center text-[13px] text-ink-3">
-                {step === "about" && bodyDone
-                  ? "Finish Food and training to build your plan."
-                  : "Fill in the required fields to continue."}
+                {continueHint}
               </p>
             )
           )}
@@ -408,9 +412,12 @@ function Flow({
                 <button
                   type="button"
                   onClick={next}
-                  disabled={!stepValid || building || checking}
+                  // Looks disabled until the step is valid, but a click still runs the checks:
+                  // it highlights what's wrong instead of doing nothing.
+                  disabled={building || checking}
+                  aria-disabled={!stepValid}
                   aria-describedby={!stepValid ? "continue-hint" : undefined}
-                  className={onboardingButton}
+                  className={cn(onboardingButton, NOT_READY)}
                 >
                   {index === steps.length - 1 ? "Build my plan" : "Continue"}
                   <ArrowRight className="size-5" aria-hidden />
@@ -508,8 +515,8 @@ function Flow({
               <button
                 type="button"
                 onClick={finishBody}
-                disabled={!bodyDone}
-                className="inline-flex h-12 items-center justify-center gap-2 justify-self-start rounded-full bg-fitr8-lilac-soft px-5 font-semibold text-fitr8 hover:bg-fitr8-lilac-soft/70 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-fitr8-lilac-soft md:col-span-2"
+                aria-disabled={!bodyDone}
+                className="inline-flex h-12 items-center justify-center gap-2 justify-self-start rounded-full bg-fitr8-lilac-soft px-5 font-semibold text-fitr8 hover:bg-fitr8-lilac-soft/70 aria-disabled:opacity-50 md:col-span-2"
               >
                 Next: Food and training
                 <ArrowRight className="size-4" aria-hidden />
@@ -558,6 +565,40 @@ const STEP_LEADS = {
   about:
     "Your body, food and training decide your calories, macros and training week. Only you can see them.",
 } as const;
+
+/** Names for the Continue hint ("Weight: That's already your target weight…"). */
+const FIELD_LABELS: Record<string, string> = {
+  name: "First name",
+  lastName: "Last name",
+  phone: "Phone",
+  goalType: "Goal",
+  targetWeightKg: "Target weight",
+  targetBodyFatPct: "Target body fat",
+  targetDate: "Target date",
+  sex: "Sex",
+  birthDate: "Date of birth",
+  heightCm: "Height",
+  weightKg: "Weight",
+  waistCm: "Waist",
+  neckCm: "Neck",
+  hipCm: "Hip",
+  activityLevel: "Activity",
+  dietType: "Diet",
+  equipment: "Where you train",
+  medicalNote: "Medical note",
+};
+
+/** "Enter your height" stands alone; "Choose one" gets its field: "Sex: Choose one". */
+function hintFor(key: string, message: string) {
+  const label = FIELD_LABELS[key];
+  if (!label || message.toLowerCase().includes(label.toLowerCase().split(" ").pop()!))
+    return message;
+  return `${label}: ${message}`;
+}
+
+/** Continue while the step isn't valid yet: dimmed, no lift on hover, still clickable. */
+const NOT_READY =
+  "aria-disabled:opacity-60 aria-disabled:shadow-none aria-disabled:hover:translate-0 aria-disabled:hover:bg-fitr8";
 
 /** A step's fields: one child, so the shell's landscape layout puts them in the right column. */
 function StepBody({ children }: { children: React.ReactNode }) {

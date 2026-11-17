@@ -197,12 +197,17 @@ function OnboardingForm({
   }
 
   /** Continue / Build my plan unlock once this step's required answers are valid. */
-  const stepValid =
+  /** What still blocks this step, in field order (body before food on "About you"). */
+  const problems: DraftErrors & PersonProblems =
     step === 0
-      ? Object.keys(personProblems(person)).length === 0
+      ? personProblems(person)
       : step === 1
-        ? Object.keys(validateStep(1, draft)).length === 0
-        : bodyDone && foodDone;
+        ? validateStep(1, draft)
+        : { ...validateStep(2, draft), ...validateStep(3, draft) };
+  const stepValid = Object.keys(problems).length === 0;
+  // Names the first thing to fix, so a filled-in but rejected field never looks stuck.
+  const firstProblem = Object.entries(problems).find(([, message]) => message);
+  const continueHint = firstProblem ? hintFor(firstProblem[0], firstProblem[1]) : null;
 
   async function next() {
     const found: DraftErrors & PersonProblems =
@@ -314,7 +319,6 @@ function OnboardingForm({
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ disabled: !bodyDone }}
-                disabled={!bodyDone}
                 onPress={finishBody}
                 style={[styles.nextPart, !bodyDone && { opacity: 0.5 }]}
               >
@@ -346,13 +350,11 @@ function OnboardingForm({
         ) : (
           !stepValid && (
             <Text size={13} color={c.ink3} center>
-              {step === 2 && bodyDone
-                ? "Finish Food and training to build your plan."
-                : "Fill in the required fields to continue."}
+              {continueHint}
             </Text>
           )
         )}
-        <Button onPress={next} loading={submitting} disabled={!stepValid}>
+        <Button onPress={next} loading={submitting} style={!stepValid && { opacity: 0.6 }}>
           {step < LAST_STEP ? "Continue" : "Build my plan"}
         </Button>
       </View>
@@ -475,6 +477,34 @@ function DetailsStep({
       </Sheet>
     </View>
   );
+}
+
+/** Names for the Continue hint ("Sex: Choose one"; "Enter your height" stands alone). Web has the same. */
+const FIELD_LABELS: Record<string, string> = {
+  name: "First name",
+  lastName: "Last name",
+  phone: "Phone",
+  goalType: "Goal",
+  targetWeightKg: "Target weight",
+  targetBodyFatPct: "Target body fat",
+  targetDate: "Target date",
+  sex: "Sex",
+  birthDate: "Date of birth",
+  heightCm: "Height",
+  weightKg: "Weight",
+  waistCm: "Waist",
+  neckCm: "Neck",
+  hipCm: "Hip",
+  activityLevel: "Activity",
+  dietType: "Diet",
+  equipment: "Where you train",
+  medicalNote: "Medical note",
+};
+
+function hintFor(key: string, message: string) {
+  const label = FIELD_LABELS[key];
+  if (!label || message.toLowerCase().includes(label.toLowerCase().split(" ").pop()!)) return message;
+  return `${label}: ${message}`;
 }
 
 /** One part of the merged "About you" step: tap the header to fold it open and shut. */
