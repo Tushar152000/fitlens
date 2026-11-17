@@ -59,10 +59,15 @@ SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loadin
 - Unused native deps: expo-device, expo-glass-effect, @expo/ui, expo-symbols, expo-system-ui, expo-constants.
 - OTA: see infra.md (`eas-update.yml`).
 
+## Camera permission (2026-11-18)
+
+- Bug fixed: `expo-image-picker` plugin with `"cameraPermission": false` BLOCKS `android.permission.CAMERA` app-wide (`tools:node="remove"`), so expo-camera could never get permission on Android (every build since 2026-09-29; iOS unaffected). `app.json` now gives image-picker the same camera string as expo-camera. Native change → needs a store build (0.4.0 not yet shipped, so no version bump).
+- Camera screens (`log/index.tsx`, `log/barcode/index.tsx`, `log/label/index.tsx`) request the system prompt on first open when status is `undetermined`; the in-screen "Allow camera" button remains the fallback.
+
 ## Notifications
 
 - Water reminders = one-off local notifications, 7 days ahead (`src/lib/reminders.ts`). Lunch/dinner switches are saved server-side only; nothing delivers them.
-- Custom reminders: `syncCustomReminders` (`lib/reminders.ts:185`) cancels every `rem-*` notification and schedules each enabled reminder's API `slots` as MONTHLY (`day`), WEEKLY (weekday+1, expo 1 = Sunday) or DAILY triggers, plus one-off DATE triggers for `upcoming` wall-clock times (`localDate`), re-planned whenever the list is fetched (launch); runs serialized. Called by `useReminderSync` in `(tabs)/_layout.tsx:25` whenever `remindersQuery` data changes (launch, any change on the Reminders screen). Permission asked on first save (`ensureNotificationPermission`). `auth.tsx` `clear()` cancels water + custom reminders.
+- Custom reminders: `syncCustomReminders` (`lib/reminders.ts:185`) cancels every `rem-*` notification and schedules each enabled reminder's API `slots` as MONTHLY (`day`), WEEKLY (weekday+1, expo 1 = Sunday) or DAILY triggers, plus one-off DATE triggers for `upcoming` wall-clock times (`localDate`), re-planned whenever the list is fetched (launch); runs serialized. Called by `useReminderSync` in `(tabs)/_layout.tsx:25` whenever `remindersQuery` data changes (launch, any change on the Reminders screen). Permission asked on first save (`ensureNotificationPermission`), on turning water reminders on (Profile), and by `components/reminder-prompt.tsx` (mounted in `(tabs)/_layout.tsx`): once per install (SecureStore `fitr8.reminderPromptShown`), 1.2 s after reaching the app, only if notification status is undetermined, water reminders are off and `remindersAvailable`; "Turn on" → system prompt → PATCH water on + `syncWaterReminders` + confirmation; "Not now" never asks again. `auth.tsx` `clear()` cancels water + custom reminders.
 
 ## Photo scanner: barcode path
 

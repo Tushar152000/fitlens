@@ -52,6 +52,13 @@ export default function CameraScreen() {
   const insets = useSafeAreaInsets();
   const camera = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
+  // First visit: show the system camera prompt straight away (the in-screen button stays as the
+  // fallback). Not again once the user has answered.
+  useEffect(() => {
+    if (permission && !permission.granted && permission.status === "undetermined" && permission.canAskAgain) {
+      void requestPermission();
+    }
+  }, [permission, requestPermission]);
   const [ready, setReady] = useState(false);
   const [missing, setMissing] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");

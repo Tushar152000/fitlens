@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Tabs } from "expo-router";
 import { useEffect } from "react";
+import { ReminderPrompt } from "@/components/reminder-prompt";
 import { TabBar } from "@/components/tab-bar";
 import { remindersQuery } from "@/lib/queries";
 import { syncCustomReminders } from "@/lib/reminders";
@@ -9,11 +10,15 @@ import { syncCustomReminders } from "@/lib/reminders";
 export default function TabsLayout() {
   useReminderSync();
   return (
-    <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
-      <Tabs.Screen name="today" />
-      <Tabs.Screen name="workout" />
-      <Tabs.Screen name="profile" />
-    </Tabs>
+    <>
+      <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
+        <Tabs.Screen name="today" />
+        <Tabs.Screen name="workout" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
+      {/* Once per install: offer reminders, then the system notification prompt. */}
+      <ReminderPrompt />
+    </>
   );
 }
 

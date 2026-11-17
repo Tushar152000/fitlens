@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
 import { router, useLocalSearchParams } from "expo-router";
 import { Camera, Flashlight, FlashlightOff, Hash, ScanText, X } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, Vibration, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ModeTabs } from "@/components/log/mode-tabs";
@@ -23,6 +23,13 @@ export default function BarcodeScreen() {
   const params = choiceParams(mealFromParam(route.meal), dayFromParam(route.date));
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
+  // First visit: show the system camera prompt straight away (the in-screen button stays as the
+  // fallback). Not again once the user has answered.
+  useEffect(() => {
+    if (permission && !permission.granted && permission.status === "undetermined" && permission.canAskAgain) {
+      void requestPermission();
+    }
+  }, [permission, requestPermission]);
   const [code, setCode] = useState<string | null>(null);
   const [torch, setTorch] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);

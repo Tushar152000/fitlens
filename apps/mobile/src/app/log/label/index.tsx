@@ -2,7 +2,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { Camera, ChevronLeft, Images } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AiLimitSheet, type ScanUsage } from "@/components/log/ai-limit-sheet";
@@ -26,6 +26,13 @@ export default function LabelCamera() {
   const insets = useSafeAreaInsets();
   const camera = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
+  // First visit: show the system camera prompt straight away (the in-screen button stays as the
+  // fallback). Not again once the user has answered.
+  useEffect(() => {
+    if (permission && !permission.granted && permission.status === "undetermined" && permission.canAskAgain) {
+      void requestPermission();
+    }
+  }, [permission, requestPermission]);
   const [ready, setReady] = useState(false);
   const [phase, setPhase] = useState<"idle" | "uploading" | "reading">("idle");
   const [error, setError] = useState<string | null>(null);
