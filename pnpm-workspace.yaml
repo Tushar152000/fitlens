@@ -12,3 +12,8 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - msgpackr-extract
+
+# read-excel-file (packages/db INDB converter) accepts worker-f ^0.1.12; pin a release old enough for
+# Dependabot's minimum-release-age check (0.1.25 was too new and failed every Dependabot run).
+overrides:
+  worker-f: 0.1.21
