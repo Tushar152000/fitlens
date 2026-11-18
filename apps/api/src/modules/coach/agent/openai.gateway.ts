@@ -44,7 +44,7 @@ export class OpenAiGateway implements ModelGateway {
           prompt_cache_key: "fitr8-coach",
           reasoning: { effort: this.effort },
           instructions: req.system.map((b) => b.text).join("\n\n"),
-          input: toInput(req.messages),
+          input: toInput(recentHistory(req.messages)),
           ...(req.tools.length && {
             tools: req.tools.map(toFunctionTool),
             tool_choice: req.toolChoice,
@@ -74,6 +74,30 @@ function toFunctionTool(tool: Anthropic.Beta.BetaTool): OpenAI.Responses.Functio
     // Strict mode requires every property to be required; the loop validates inputs with Zod instead.
     strict: false,
   };
+}
+
+/** Messages kept on OpenAI, which has no server-side compaction: the opening message plus the tail. */
+export const OPENAI_HISTORY_LIMIT = 60;
+
+/**
+ * Long threads on OpenAI: keep the chat's first message (its <context> holds the profile and memories)
+ * and the latest messages, starting the tail at a message the user typed so no tool result is cut off
+ * from its call.
+ */
+export function recentHistory(
+  messages: BetaMessageParam[],
+  limit = OPENAI_HISTORY_LIMIT,
+): BetaMessageParam[] {
+  if (messages.length <= limit) return messages;
+  const typed = (m: BetaMessageParam) =>
+    m.role === "user" &&
+    (typeof m.content === "string" || m.content.some((b) => b.type === "text"));
+  for (let i = messages.length - limit + 1; i < messages.length; i++) {
+    if (typed(messages[i]!)) return [messages[0]!, ...messages.slice(i)];
+  }
+  // One very long turn: start at its typed message even if that's over the limit.
+  const start = messages.findLastIndex(typed);
+  return start > 0 ? [messages[0]!, ...messages.slice(start)] : messages;
 }
 
 /** Claude transcript → Responses input items. Tool outputs precede any text of the same user turn. */

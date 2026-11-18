@@ -37,3 +37,10 @@ export interface CoachConversationSummary {
 export interface CoachConversationView extends CoachConversationSummary {
   messages: CoachMessageView[];
 }
+
+/** GET /api/coach/memories — a lasting fact the coach keeps about the user (DELETE /api/coach/memories/:id). */
+export interface CoachMemoryView {
+  id: string;
+  text: string;
+  createdAt: string;
+}

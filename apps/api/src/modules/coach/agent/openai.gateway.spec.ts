@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { runAgent, type AgentStep } from "./agent-loop.js";
 import { ModelRequestError, type BetaMessageParam } from "./model-gateway.js";
-import { OpenAiGateway, toInput } from "./openai.gateway.js";
+import { OpenAiGateway, recentHistory, toInput } from "./openai.gateway.js";
 import { defineTool, toApiTools, type AgentTool } from "./tool.js";
 
 type Output = OpenAI.Responses.ResponseOutputItem;
@@ -86,6 +86,53 @@ const turn = (gateway: OpenAiGateway, toolChoice: "auto" | "none" = "auto") =>
     },
     { signal: new AbortController().signal, onTextDelta: () => {} },
   );
+
+describe("recentHistory", () => {
+  const typed = (n: number) => ({
+    role: "user" as const,
+    content: [{ type: "text" as const, text: `q${n}` }],
+  });
+  const reply = (n: number) => ({
+    role: "assistant" as const,
+    content: [{ type: "text" as const, text: `a${n}` }],
+  });
+  const call = (n: number) => ({
+    role: "assistant" as const,
+    content: [{ type: "tool_use" as const, id: `t${n}`, name: "x", input: {} }],
+  });
+  const result = (n: number) => ({
+    role: "user" as const,
+    content: [{ type: "tool_result" as const, tool_use_id: `t${n}`, content: "{}" }],
+  });
+
+  it("keeps short threads as they are", () => {
+    const thread = [typed(0), reply(0)];
+    expect(recentHistory(thread, 10)).toBe(thread);
+  });
+
+  it("keeps the opening message and a tail that starts at a typed message", () => {
+    const thread = [typed(0), reply(0)];
+    for (let n = 1; n <= 10; n++)
+      thread.push(typed(n), call(n) as never, result(n) as never, reply(n));
+    const kept = recentHistory(thread as never, 9);
+    expect(kept[0]).toBe(thread[0]);
+    const tail = kept.slice(1);
+    expect(tail[0]).toMatchObject({ role: "user", content: [{ type: "text" }] });
+    expect(tail.length).toBeLessThanOrEqual(9);
+    expect(tail.at(-1)).toBe(thread.at(-1));
+    // Every tool result in the tail still has its call.
+    const calls = new Set(
+      tail.flatMap((m) =>
+        (m.content as { type: string; id?: string }[])
+          .filter((b) => b.type === "tool_use")
+          .map((b) => b.id),
+      ),
+    );
+    for (const m of tail)
+      for (const b of m.content as { type: string; tool_use_id?: string }[])
+        if (b.type === "tool_result") expect(calls.has(b.tool_use_id)).toBe(true);
+  });
+});
 
 describe("OpenAiGateway", () => {
   it("translates the Claude transcript into Responses input", () => {

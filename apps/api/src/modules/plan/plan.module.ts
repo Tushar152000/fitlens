@@ -6,6 +6,6 @@ import { TargetsService } from "./targets.service.js";
 @Module({
   controllers: [PlanController],
   providers: [PlanService, TargetsService],
-  exports: [TargetsService],
+  exports: [PlanService, TargetsService],
 })
 export class PlanModule {}

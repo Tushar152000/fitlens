@@ -131,6 +131,7 @@ model User {
   labelScans   LabelScan[]
   waterLogs    WaterLog[]
   coachChats   CoachConversation[]
+  coachMemories CoachMemory[]
   entitlement  Entitlement?
   savedMeals   SavedMeal[]
   reminders    Reminder[]
@@ -691,6 +692,37 @@ model CoachMessage {
 
   @@index([conversationId, createdAt])
   @@map("coach_messages")
+}
+
+/// A lasting fact the coach keeps about the user across chats ("left knee pain", "trains at 6 am",
+/// "lactose intolerant"). Written by the coach's `remember` tool, shown to and deletable by the user.
+/// Owned by `coach`.
+model CoachMemory {
+  id        String   @id @default(cuid())
+  userId    String
+  text      String   @db.VarChar(300)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("coach_memories")
+}
+
+/// The coach's science notes (packages/db/prisma/data/knowledge/*.md, loaded by the seed): written in
+/// FITR8's own words, each with its sources. Searched with Postgres full-text search (GIN index on
+/// title + keywords + body, created in the migration). Owned by `coach`.
+model KnowledgeNote {
+  slug      String   @id
+  title     String
+  topic     String
+  keywords  String   @default("")
+  body      String
+  sources   String[] @default([])
+  reviewed  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  @@map("knowledge_notes")
 }
 
 /// FITR8 Pro access from RevenueCat, one row per user who has ever subscribed. Owned by `billing`.

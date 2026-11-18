@@ -68,11 +68,12 @@ The seed loads two sets of generic foods (packaged foods come from the barcode s
 
 - **Licence:** INDB is published as open access, but its GitHub repository has no licence file. Get written OK for commercial use from the authors before relying on it in production.
 - **Known limit:** INDB weighs some recipes raw (poha with dry flakes) and some with all their cooking water (khichdi), so per-100 g values vary in "as eaten" density. Logging by INDB's own unit ("1 bowl") is accurate; logging by grams of a dish INDB weighed differently is not.
+- **Coach knowledge notes** (`prisma/data/knowledge/*.md`, about 30): FITR8's own science notes for the coach's `search_knowledge` tool, each with its sources. The seed upserts them and deletes notes removed from the folder. How to write one: `docs/knowledge/README.md`.
 - The seed only creates or updates `INDB` rows: a name already used by a starter food, barcode product or label scan is skipped, and INDB rows dropped from a newer file are deleted unless someone logged them.
 
 ## 3. First deploy and seed
 
-Push to `main` (or run **Deploy** manually). The workflow creates the job and service on first run. Then seed foods and exercises (idempotent upserts; run it again after a release that changes `packages/db/prisma/seed.ts` or `prisma/data/indb.json`):
+Push to `main` (or run **Deploy** manually). The workflow creates the job and service on first run. Then seed foods and exercises (idempotent upserts; run it again after a release that changes `packages/db/prisma/seed.ts`, `prisma/data/indb.json` or `prisma/data/knowledge/`):
 
 ```bash
 gcloud run jobs execute fitlens-migrate --project=fitlens-prod --region=asia-south1 --args=npx,prisma,db,seed --wait

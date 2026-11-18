@@ -5,7 +5,7 @@ Baseline: HEAD 107c0ee, 2026-11-11.
 
 ## Blockers / high
 
-1. ✔ **Coach daily cap counts tool_result rows.** `apps/api/src/modules/coach/coach.service.ts:66` counts every `role:"user"` row; tool results are stored as `role:"user"`. Tool-using messages cost 2+. Free (paywall on) ≈ 2 real messages, not 5. e2e seeds fake rows so doesn't catch it.
+1. FIXED (branch feat/ai-coach-knowledge, 2026-11-19): coach daily cap now counts only typed user messages (`text <> ''`), so tool_result rows no longer use up the limit; e2e "counts only typed messages".
 2. ✔ **Auth cleanup never runs in prod.** `auth-cleanup.service.ts:33` skips `APP_ROLE=api`; prod runs only api. Sessions/codes/events grow forever; "90-day retention" false.
 3. FIXED (uncommitted): OTA now runs as the last Deploy job, after the API, with `--environment` per channel (preview + production).
 4. PARTLY FIXED (uncommitted, 2026-11-12): profile plan card + photo-scan limit sheet now show Pro only when `usage.paywall` and an SDK key; profile header pill reads `usage.plan`. Still open: label 402 and coach 429 have no Pro CTA; `pro.tsx` itself doesn't check `paywall` (only reachable from gated buttons).
@@ -23,7 +23,7 @@ Baseline: HEAD 107c0ee, 2026-11-11.
 11. Barcode hijack: unverified label-scan Food claims a barcode → everyone else gets not_found, permanent after account delete (`submittedById` no FK). OFF imports `isVeg: true` always.
 12. Mobile: iOS keeps only 64 pending local notifications per app; water reminders schedule up to 49 one-offs, custom reminders up to 24 repeating alerts each (max 20 reminders) — heavy users can exceed it and iOS silently drops the rest (unverified on device). Custom reminders + barcode-in-photo never run on a real device here (only web preview + typecheck). Lunch/dinner reminders never delivered. OfflineBanner promises sync that doesn't exist. FIXED 2026-11-12 (uncommitted): purchase-then-refresh-failure shows "payment received" instead of an error; water reminders cancelled in `auth.tsx` `clear()`; invalidations after onboarding (all), check-in (plan, day), scans (`refreshDay` → usage); `history.tsx` empty guard.
 13. Food visibility: `buildItem`/`logItems` with a `foodId` skip the unreviewed-label check that `quickAdd` has (saved meals check it, `saved-meals.service.ts:117`). Saved-meal items are snapshots: editing a Food row later doesn't re-price them.
-14. OpenAI coach: no compaction and no history cap → long threads eventually fail.
+14. FIXED (feat/ai-coach-knowledge): OpenAI coach keeps the chat's first message plus the last ~60 messages, cut at a typed message (`recentHistory` in `openai.gateway.ts`).
 15. Sandbox purchases grant Pro in prod (intentional for App Review; TestFlight testers get real Pro).
 16. Seed food values are placeholders (launch item) — the main accuracy limit: matched items take nutrition from these 32 rows.
 17. Photo-meal latency (2026-11-11): model call dominates; also Cloud Run `min-instances=0` cold starts, 3 phone→server hops (upload-url, PUT to R2, POST /meals) plus a server R2 GET, no streaming (user sees nothing until the whole JSON is done), app re-fetches GET /meals/:id after a 201. Food-name "contains" matching (wrong dish/kcal) FIXED in this change.
