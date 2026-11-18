@@ -18,7 +18,7 @@
 # and prints the one step only a browser can do (the Google OAuth redirect URI).
 set -euo pipefail
 
-REPO="${GITHUB_REPO:-Tushar152000/fitlens}"
+REPO="${GITHUB_REPO:-Tushar152000/fitr8}"
 SITE="${SITE:-fitr8.com}"
 API_HOST="api.$SITE"
 API_URL="https://$API_HOST"

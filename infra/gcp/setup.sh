@@ -32,7 +32,7 @@ set -euo pipefail
 : "${PROJECT_ID:?set PROJECT_ID, e.g. fitlens-prod}"
 : "${PUBLIC_URL:?set PUBLIC_URL, the web origin users reach (https://...)}"
 REGION="${REGION:-asia-south1}"
-GITHUB_REPO="${GITHUB_REPO:-Tushar152000/fitlens}"
+GITHUB_REPO="${GITHUB_REPO:-Tushar152000/fitr8}"
 SQL_INSTANCE="${SQL_INSTANCE:-fitlens-db}"
 SQL_TIER="${SQL_TIER:-db-custom-1-3840}"
 BUCKET="${BUCKET:-fitlens-meals}"
