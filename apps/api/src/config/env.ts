@@ -147,8 +147,14 @@ export const EnvSchema = z
     /** Edamam Food Database API: UPC/EAN lookup. */
     EDAMAM_APP_ID: optional,
     EDAMAM_APP_KEY: optional,
-    /** UPCitemdb free trial (no key, ~100 lookups/day): product name and photo only, no nutrition. */
-    UPCITEMDB_ENABLED: flag,
+    /**
+     * UPCitemdb free trial (no key, ~100 lookups/day): product name and photo only, no nutrition.
+     * On by default; set "false" to turn it off (e.g. if its quota or data become a problem).
+     */
+    UPCITEMDB_ENABLED: z
+      .string()
+      .optional()
+      .transform((v) => (v ? v === "true" || v === "1" : true)),
   })
   // Resolve environment-dependent defaults, then validate the result.
   .transform((env) => {

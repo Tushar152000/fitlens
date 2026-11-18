@@ -1,3 +1,4 @@
+import { MealWhen } from "@/components/log/meal-when";
 import { useQuery } from "@tanstack/react-query";
 import { NATIVE_DRIVER } from "@/lib/motion";
 import { MealSkeleton } from "@/components/skeletons";
@@ -135,6 +136,8 @@ function Editor({
   const setRows = (f: (all: Row[]) => Row[]) => edits.set((e) => ({ ...e, rows: f(e.rows) }));
   const setGhee = (g: boolean) => edits.set((e) => ({ ...e, ghee: g }));
   const [note, setNote] = useState(meal.note ?? "");
+  // Starts as the slot it was logged in (from the time of day); the user can move it.
+  const [slot, setSlot] = useState(meal.mealType);
   // Design 8 → 9: after a live analysis, show "Found N items" until the user taps Review.
   const [found, setFound] = useState(live && meal.status === "READY" && initial.rows.length > 0);
   const [saving, setSaving] = useState(false);
@@ -150,7 +153,7 @@ function Editor({
   const gheeRelevant = rows.length === 0 || rows.some((r) => !r.isLiquid);
   const withGhee = ghee && gheeRelevant;
   const sum = totals(rows, withGhee);
-  const mealLabel = MEAL_LABEL[meal.mealType].toLowerCase();
+  const mealLabel = MEAL_LABEL[slot].toLowerCase();
   // A forgotten meal logged for an earlier day: say which day, and go back to it after saving.
   const pastDay = dayFromParam(meal.date.slice(0, 10));
   const limitParams = choiceParams(meal.mealType, pastDay);
@@ -164,7 +167,10 @@ function Editor({
     setSaving(true);
     setError(null);
     try {
-      await api(`/api/meals/${meal.id}`, { method: "PUT", json: toConfirmPayload(rows, withGhee, note) });
+      await api(`/api/meals/${meal.id}`, {
+        method: "PUT",
+        json: { ...toConfirmPayload(rows, withGhee, note), mealType: slot },
+      });
       // Editing an already-saved meal is not a new log.
       if (meal.status !== "CONFIRMED") track("meal_logged", { method: meal.source === "PHOTO" ? "photo" : "type" });
       refreshDay();
@@ -262,6 +268,7 @@ function Editor({
                   {meal.aiNotes}
                 </Text>
               )}
+              <MealWhen mealType={slot} onMealType={setSlot} />
               {pastDay && (
                 <Text weight={600} size={13} color={c.brandText}>
                   {dayLabel(pastDay) === "Yesterday" ? "Logging for yesterday" : `Logging for ${dayLabel(pastDay)}`}

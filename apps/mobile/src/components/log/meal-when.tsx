@@ -1,47 +1,36 @@
-import { ScrollView, StyleSheet, View } from "react-native";
+import { View } from "react-native";
 import { Chip, Text } from "@/components/ui";
 import { MEAL_LABEL, MEAL_TYPES, type MealType } from "@/lib/format";
-import { dayLabel, recentDays } from "@/lib/meal-param";
+import { dayLabel } from "@/lib/meal-param";
 import { useColors } from "@/lib/theme";
 
 /**
- * "Which meal?" (always asked: nothing is preselected unless the user came from "Add lunch") and
- * "Which day?" (today, or a forgotten day up to a week back). Used by every way of logging a meal.
+ * The meal chips, always in view: one is already selected (the slot for the time of day, or the one
+ * the route asked for), so logging never waits on it and one tap changes it. The day is never asked:
+ * it is the day the user was on in Today (swiped back to yesterday → yesterday), shown as a note on a
+ * past day. Used by every way of logging a meal, and by a logged meal to move it.
  */
 export function MealWhen({
   mealType,
   onMealType,
-  date,
-  onDate,
+  date = null,
   tone = "light",
-  missing = false,
   gutter = 0,
-  showDay = true,
 }: {
-  mealType: MealType | null;
+  mealType: MealType;
   onMealType: (m: MealType) => void;
-  /** null = today */
-  date: string | null;
-  onDate: (d: string | null) => void;
+  /** The day being logged (null = today); read-only, from the route. */
+  date?: string | null;
   tone?: "light" | "dark";
-  /** The user tried to continue without picking a meal: say so. */
-  missing?: boolean;
-  /** Horizontal padding of the screen, so the day row can scroll edge to edge. */
+  /** Horizontal padding of the screen. */
   gutter?: number;
-  /** false hides "Which day?" (the camera keeps it minimal; a day from the route still applies). */
-  showDay?: boolean;
 }) {
   const c = useColors();
-  const days = recentDays();
-  const labelColor = tone === "dark" ? "rgba(255,255,255,0.75)" : c.ink3;
-  const alertColor = tone === "dark" ? "#ffb68a" : c.cautionText;
+  const past = date ? dayLabel(date) : null;
   return (
-    <View style={{ gap: 8 }}>
-      <Text weight={600} size={12} color={missing ? alertColor : labelColor} style={{ paddingHorizontal: gutter }}>
-        {missing ? "Pick a meal first: breakfast, lunch, snack or dinner" : "Which meal?"}
-      </Text>
+    <View style={{ gap: 8, paddingHorizontal: gutter }}>
       <View
-        style={[styles.row, { paddingHorizontal: gutter }]}
+        style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}
         accessibilityRole="radiogroup"
         accessibilityLabel="Which meal"
       >
@@ -51,32 +40,11 @@ export function MealWhen({
           </Chip>
         ))}
       </View>
-      {showDay && (
-        <>
-          <Text weight={600} size={12} color={labelColor} style={{ paddingHorizontal: gutter, marginTop: 4 }}>
-            Which day?
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={[styles.row, { flexWrap: "nowrap", paddingHorizontal: gutter }]}
-            accessibilityLabel="Which day"
-          >
-            {days.map((d, i) => {
-              const value = i === 0 ? null : d;
-              return (
-                <Chip key={d} tone={tone} selected={value === date} onPress={() => onDate(value)}>
-                  {dayLabel(d)}
-                </Chip>
-              );
-            })}
-          </ScrollView>
-        </>
+      {past && (
+        <Text weight={600} size={13} color={tone === "dark" ? c.white : c.brandText}>
+          {past === "Yesterday" ? "Logging for yesterday" : `Logging for ${past}`}
+        </Text>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-});

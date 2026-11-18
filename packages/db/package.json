@@ -23,7 +23,9 @@
     "deploy:migrations": "prisma migrate deploy",
     "drift": "prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code",
     "seed": "prisma db seed",
-    "studio": "prisma studio"
+    "studio": "prisma studio",
+    "test": "vitest run",
+    "indb:convert": "tsx scripts/indb-convert.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
@@ -37,7 +39,9 @@
     "@types/pg": "^8.23.1",
     "dotenv": "^18.0.3",
     "prisma": "^7.10.0",
+    "read-excel-file": "^9.3.17",
     "tsx": "^4.23.15",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   }
 }

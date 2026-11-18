@@ -21,5 +21,7 @@ export function applyTestEnv() {
     S3_ACCESS_KEY_ID: "test",
     S3_SECRET_ACCESS_KEY: "test",
     PUBLIC_URL: "http://localhost:3000",
+    // On by default in the app; off here so barcode tests only see the sources they mock.
+    UPCITEMDB_ENABLED: "false",
   });
 }

@@ -187,7 +187,7 @@ function Session({
           )}
 
           <View style={{ gap: 8 }}>
-            <Text variant="h2">Exercises</Text>
+            <Text variant="h2">Recommended exercises</Text>
             {session.exercises.map((e, i) => {
               const done = sets[i]?.every((s) => s.done);
               return (

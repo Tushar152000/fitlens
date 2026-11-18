@@ -592,6 +592,42 @@ describe("auth", () => {
       expect(await t.prisma.authIdentity.count({ where: { userId } })).toBe(0);
       expect(await t.prisma.authEvent.count({ where: { userId } })).toBe(0);
     });
+
+    it("keeps the reasons and feedback, with no link to the user", async () => {
+      const { agent, userId } = await t.signIn();
+      await agent
+        .delete("/api/account")
+        .send({ reasons: ["bored"] })
+        .expect(400);
+      await agent
+        .delete("/api/account")
+        .send({ feedback: "x".repeat(1001) })
+        .expect(400);
+      expect(await t.prisma.user.count({ where: { id: userId } })).toBe(1);
+
+      const feedback = `too slow to log ${randomUUID()}`;
+      await agent
+        .delete("/api/account")
+        .send({ reasons: ["logging_effort", "price"], feedback: `  ${feedback} ` })
+        .expect(204);
+      expect(await t.prisma.user.count({ where: { id: userId } })).toBe(0);
+      const saved = await t.prisma.accountDeletionFeedback.findMany({ where: { feedback } });
+      expect(saved).toEqual([
+        expect.objectContaining({
+          reasons: ["logging_effort", "price"],
+          feedback,
+          accountAgeDays: 0,
+        }),
+      ]);
+      expect(JSON.stringify(saved)).not.toContain(userId);
+    });
+
+    it("stores nothing when the user says nothing", async () => {
+      const { agent } = await t.signIn();
+      const before = await t.prisma.accountDeletionFeedback.count();
+      await agent.delete("/api/account").expect(204);
+      expect(await t.prisma.accountDeletionFeedback.count()).toBe(before);
+    });
   });
 
   describe("housekeeping", () => {

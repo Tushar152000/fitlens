@@ -7,8 +7,8 @@
  *
  * Dark palette rules (see docs/DESIGN.md "Dark mode"):
  * - Not an inversion. Neutrals keep the light palette's cool blue-violet hue (~235°), so the brand
- *   purple stays the one warm-leaning accent; the ground is near-black, never #000 (OLED smear,
- *   halation of white text).
+ *   purple stays the one warm-leaning accent. The ground is true black (#000, darkest possible and
+ *   kind to OLED batteries); cards sit just above it so edges still read.
  * - Elevation is lightness: ground < surface < sunken (wells, pressed rows) < panel (feature cards).
  * - Saturated colours shift lighter and slightly desaturated so they read on dark without vibrating;
  *   every text pair keeps WCAG AA (>= 4.5:1), most >= 7:1.
@@ -43,6 +43,9 @@ const light = {
   cautionSoft: "#fdebd3",
   cautionText: "#8a3c08",
   danger: "#c0392b",
+  dangerHover: "#a33024",
+  /** Text on a `danger` fill. */
+  onDanger: "#ffffff",
   water: "#2f6f9f", // water card and bar; text-safe on ground and surface
   waterSoft: "#dde9f2",
   chip: "#ebebf1",
@@ -65,13 +68,13 @@ export type Colors = { readonly [K in keyof typeof light]: string };
 export type ColorScheme = "light" | "dark";
 
 const dark: Colors = {
-  ground: "#0e0f15",
-  surface: "#181a23",
-  sunken: "#20222c",
-  raised: "#363848",
-  track: "#272935",
-  line: "#2a2c38",
-  lineStrong: "#3a3c4a",
+  ground: "#000000",
+  surface: "#0f1015",
+  sunken: "#17181f",
+  raised: "#2c2d38",
+  track: "#1c1d25",
+  line: "#1f2029",
+  lineStrong: "#2e2f3a",
   ink: "#eceef5",
   ink2: "#b6b8c7",
   ink3: "#9092a3",
@@ -79,21 +82,23 @@ const dark: Colors = {
   brandHover: "#7a2fd8",
   brandGlow: "#b98af8",
   brandText: "#c09cfa",
-  brandSoft: "#2a1d45",
+  brandSoft: "#1e1433",
   protein: "#5fc490",
-  proteinSoft: "#16301f",
+  proteinSoft: "#0e2417",
   carbs: "#e8ad52",
   carbsText: "#f0bd6a",
   fat: "#ec7aa2",
   caution: "#eba765",
-  cautionSoft: "#3a2916",
+  cautionSoft: "#2a1d0f",
   cautionText: "#f5be86",
   danger: "#f07a6d",
+  dangerHover: "#e0675a",
+  onDanger: "#151724",
   water: "#6eb1e0",
-  waterSoft: "#14283a",
-  chip: "#252733",
-  dash: "#4b4d5c",
-  panel: "#2a2342",
+  waterSoft: "#0c1c2a",
+  chip: "#1a1b23",
+  dash: "#3a3b47",
+  panel: "#1b1530",
   panelLine: "rgba(255,255,255,0.08)",
   strong: "#eceef5",
   strongHover: "#d4d6e0",

@@ -170,8 +170,11 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
       : day.streak > 1
         ? `You've logged ${day.streak} days in a row. One day over doesn't undo that. Tomorrow resets.`
         : "Logging it honestly is the hard part, and you did it. Tomorrow resets.";
-  // Every "add" names its meal (the user picks it) and, for a past day, carries the date.
-  const logParams = (meal?: string) => ({ ...(meal ? { meal } : {}), ...(pastDay ? { date: pastDay } : {}) });
+  // One way in: the log screens pick the meal from the time of day (changeable there and later);
+  // a past day carries its date.
+  const logParams = () => (pastDay ? { date: pastDay } : {});
+  // A past meal is long eaten: typing it is the default there, the camera is for today.
+  const logPath = pastDay ? "/log/type" : "/log";
   const dayName = pastDay ? dayLabel(pastDay).toLowerCase() : "today";
 
   return (
@@ -219,7 +222,7 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
         </View>
 
         {day.meals.length === 0 && (
-          // Design 6b: nothing logged yet. Snap / Type ask which meal on the next screen.
+          // Design 6b: nothing logged yet. Snap / Type set the meal from the time (changeable there).
           <Card dark>
             <View style={{ gap: 4 }}>
               <Text variant="h2" size={22} color={c.white}>
@@ -227,19 +230,24 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
               </Text>
               <Text size={13} color="rgba(255,255,255,0.75)">
                 {pastDay
-                  ? "Forgot to log? Add what you ate below and it counts for that day."
+                  ? "Forgot to log? Type what you ate and it counts for that day."
                   : "Snap your plate and we'll find the foods, or type it in a line."}
               </Text>
             </View>
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            {/* Today: Snap first. A past day: Type first (the meal is long eaten). */}
+            <View style={{ flexDirection: pastDay ? "row-reverse" : "row", gap: 8 }}>
               <View style={{ flex: 1 }}>
-                <Button icon={Camera} onPress={() => router.push({ pathname: "/log", params: logParams() })}>
+                <Button
+                  variant={pastDay ? "ghostDark" : "primary"}
+                  icon={Camera}
+                  onPress={() => router.push({ pathname: "/log", params: logParams() })}
+                >
                   Snap
                 </Button>
               </View>
               <View style={{ flex: 1 }}>
                 <Button
-                  variant="ghostDark"
+                  variant={pastDay ? "primary" : "ghostDark"}
                   icon={Keyboard}
                   onPress={() => router.push({ pathname: "/log/type", params: logParams() })}
                 >
@@ -250,20 +258,19 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
           </Card>
         )}
 
-        {/* One section per meal, in day order, each with its own add button. */}
+        {/* Logged meals grouped by meal, in day order; empty meals take no space. */}
         {MEAL_TYPES.map((t) => {
           const meals = day.meals.filter((m) => m.mealType === t);
+          if (meals.length === 0) return null;
           const kcal = meals.reduce((sum, m) => sum + (m.status === "CONFIRMED" ? m.totalKcal : 0), 0);
           return (
             <View key={t} style={{ gap: 8 }}>
-              {meals.length > 0 && (
-                <View style={styles.sectionHead}>
-                  <Text weight={600}>{MEAL_LABEL[t]}</Text>
-                  <Text weight={600} size={13} color={c.ink3} tabular>
-                    {formatInt(kcal)} kcal
-                  </Text>
-                </View>
-              )}
+              <View style={styles.sectionHead}>
+                <Text weight={600}>{MEAL_LABEL[t]}</Text>
+                <Text weight={600} size={13} color={c.ink3} tabular>
+                  {formatInt(kcal)} kcal
+                </Text>
+              </View>
               {meals.map((m) => (
                 <MealRow
                   key={m.id}
@@ -278,17 +285,15 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
                   status={m.status}
                 />
               ))}
-              <Button
-                variant="dashed"
-                icon={Plus}
-                height={meals.length ? undefined : 52}
-                onPress={() => router.push({ pathname: "/log", params: logParams(t) })}
-              >
-                {meals.length ? `Add more to ${MEAL_LABEL[t].toLowerCase()}` : `Add ${MEAL_LABEL[t].toLowerCase()}`}
-              </Button>
             </View>
           );
         })}
+
+        {day.meals.length > 0 && (
+          <Button variant="dashed" icon={Plus} onPress={() => router.push({ pathname: logPath, params: logParams() })}>
+            Log food
+          </Button>
+        )}
       </View>
     </>
   );
