@@ -91,6 +91,19 @@ Health: startup and liveness probes hit `GET /api/health/live`; `GET /api/health
 
 **Adding Redis later:** create a Redis (Upstash, or Memorystore with a VPC connector), add a `REDIS_URL` secret, and deploy a second service from the same image with command `node dist/worker.js`, `APP_ROLE=worker`, `--no-cpu-throttling --min-instances=1`.
 
+### Barcode sources
+
+A scanned barcode is looked up in FITR8's own foods first, then in every configured product database **at once** (`apps/api/src/modules/foods/barcode-sources.ts`); the most trusted full answer is saved, so each database sees each product once. Open Food Facts is always on. The others switch on when their variables are set (Cloud Run console, they survive deploys):
+
+| Source                | Variables                                        | Gives                   | Notes                                                                                                                                                                                         |
+| --------------------- | ------------------------------------------------ | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FatSecret             | `FATSECRET_CLIENT_ID`, `FATSECRET_CLIENT_SECRET` | nutrition               | Barcode lookup is a Premier feature (Premier Free for start-ups: US data, attribution). Other markets, India included, are paid. Allow the server's IPs in the FatSecret console if required. |
+| USDA FoodData Central | `USDA_FDC_API_KEY`                               | nutrition               | Free key. US branded foods: helps with imported products.                                                                                                                                     |
+| Edamam Food Database  | `EDAMAM_APP_ID`, `EDAMAM_APP_KEY`                | nutrition               | Paid plans.                                                                                                                                                                                   |
+| UPCitemdb             | `UPCITEMDB_ENABLED=true`                         | name, brand, photo only | Free trial, about 100 lookups a day. Prefills the label scan.                                                                                                                                 |
+
+When no source has the nutrition, the app goes to "photograph the label" (prefilled with any name a source knew). A label scan whose numbers add up (energy within 15 % of 4P + 4C + 9F) is shared with everyone at once, so each product only ever needs one scan. A miss is remembered for 24 h, but only when every source answered.
+
 ## 5. Web
 
 **Vercel:** import the repo, root directory `apps/web`, framework Next.js; install command `pnpm install --frozen-lockfile`, build command `cd ../.. && pnpm turbo run build --filter=@fitr8/web`. Env: `NEXT_PUBLIC_API_URL=https://api.fitr8.com` (used by the browser and, unless `API_INTERNAL_URL` is set, by server rendering). It's inlined at build time, so redeploy the web after changing it.

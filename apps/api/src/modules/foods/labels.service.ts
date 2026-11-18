@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import type { LabelRead, LabelSaveInput, LabelScanInput } from "@fitr8/contracts";
 import type { Prisma } from "@fitr8/db";
 import { normalizeBarcode } from "@fitr8/domain/barcode";
+import { labelAddsUp } from "@fitr8/domain/label";
 import { AppError, notFound } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { StorageService } from "../../infra/storage/storage.service.js";
@@ -104,8 +105,9 @@ export class LabelsService {
   }
 
   /**
-   * Design 7g "Save and add": create the user's (unreviewed) Food from the checked values, linked
-   * to the barcode, and log it to the meal. Visible to others only after review.
+   * Design 7g "Save and add": create a Food from the checked values, linked to the barcode, and log
+   * it to the meal. When the numbers add up (energy matches 4P + 4C + 9F), it's shared with everyone
+   * at once, so the next person who scans this barcode gets it; otherwise only its author sees it.
    */
   async save(userId: string, scanId: string, input: LabelSaveInput) {
     const scan = await this.ownedScan(userId, scanId);
@@ -113,9 +115,24 @@ export class LabelsService {
     const day = await this.users.mealDate(userId, input.date);
     const extracted = scan.extracted as unknown as LabelRead;
 
-    // Barcode is unique: skip linking if someone else's unreviewed scan already holds it.
-    const barcodeFree =
-      scan.barcode && !(await this.prisma.food.findUnique({ where: { barcode: scan.barcode } }));
+    const shared = labelAddsUp({
+      kcal: input.per100g.kcal,
+      protein: input.per100g.protein,
+      carbs: input.per100g.carbs,
+      fat: input.per100g.fat,
+    }).ok;
+    // Barcode is unique. A shared scan takes it over from an unshared one (numbers that don't add
+    // up, nobody else can see it); otherwise skip linking if another food already holds it.
+    const holder = scan.barcode
+      ? await this.prisma.food.findUnique({
+          where: { barcode: scan.barcode },
+          select: { id: true, verified: true },
+        })
+      : null;
+    if (holder && !holder.verified && shared) {
+      await this.prisma.food.update({ where: { id: holder.id }, data: { barcode: null } });
+    }
+    const barcodeFree = Boolean(scan.barcode) && (!holder || (!holder.verified && shared));
     const name = input.name.trim();
     const nameTaken = await this.prisma.food.findUnique({ where: { name }, select: { id: true } });
 
@@ -123,7 +140,7 @@ export class LabelsService {
       data: {
         name: nameTaken ? `${name} · ${scan.barcode ?? scan.id.slice(-6)}` : name,
         source: "LABEL_SCAN",
-        verified: false,
+        verified: shared,
         submittedById: userId,
         barcode: barcodeFree ? scan.barcode : null,
         kcalPer100g: input.per100g.kcal,

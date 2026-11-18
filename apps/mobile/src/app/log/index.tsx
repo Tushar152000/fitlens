@@ -1,7 +1,7 @@
 import { CameraView, scanFromURLAsync, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
+import { router, useIsFocused } from "expo-router";
 import { Barcode, Camera, Images, Keyboard, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Vibration, View } from "react-native";
@@ -26,6 +26,9 @@ type Photo = { uri: string; width: number; height: number };
 const BARCODE_TYPES = ["ean13", "ean8", "upc_a", "upc_e"] as const;
 /** A barcode counts as "in frame" until the camera hasn't seen it for this long. */
 const SEEN_FOR_MS = 1200;
+/** Auto-open once the same code is read this many times in a row (one stray read is often wrong). */
+const READS_TO_OPEN = 2;
+const READ_GAP_MS = 800;
 
 /** A valid barcode in a still photo, or null. Never throws: no barcode just means "read the plate". */
 async function barcodeInPhoto(uri: string): Promise<string | null> {
@@ -43,9 +46,9 @@ async function barcodeInPhoto(uri: string): Promise<string | null> {
 }
 
 /**
- * Screen 7: one shutter, two paths. A packaged food's barcode (seen live, or found in the photo)
- * opens the product to pick a portion — exact label values, no AI scan used. Anything else goes
- * camera → compress → signed upload → AI meal → confirm.
+ * Screen 7: one camera, no modes. Point it at a packaged food's barcode and the product opens by
+ * itself (read twice in a row, no shutter): exact label values, no AI scan used. A barcode found in
+ * a photo works too. Anything else is a meal: shutter → compress → signed upload → AI → confirm.
  */
 export default function CameraScreen() {
   const { mealType, setMealType, date, setDate, dateBody, params } = useMealChoice();
@@ -71,6 +74,11 @@ export default function CameraScreen() {
   // A photo taken before a meal was picked: read as soon as the user picks one.
   const [held, setHeld] = useState<Photo | null>(null);
   const busy = phase !== "idle";
+  // Auto-open bookkeeping (refs: they change on every camera frame, nothing renders from them).
+  const reads = useRef<{ code: string; at: number; count: number } | null>(null);
+  const opened = useRef<string | null>(null);
+  // The camera keeps running under the product screen: only read barcodes while this screen shows.
+  const focused = useIsFocused();
 
   useEffect(
     () => () => {
@@ -82,12 +90,27 @@ export default function CameraScreen() {
   function onBarcode(result: BarcodeScanningResult) {
     const code = normalizeBarcode(result.data);
     if (!code) return;
-    setSeen((prev) => {
-      if (prev !== code) Vibration.vibrate(30);
-      return code;
-    });
+    setSeen(code);
     if (seenTimer.current) clearTimeout(seenTimer.current);
-    seenTimer.current = setTimeout(() => setSeen(null), SEEN_FOR_MS);
+    seenTimer.current = setTimeout(() => {
+      setSeen(null);
+      // Gone from the frame: the same product can open again next time it's pointed at.
+      opened.current = null;
+      reads.current = null;
+    }, SEEN_FOR_MS);
+
+    // Auto-open: the same code twice in a row, once per time it's in frame (coming back from the
+    // product screen with the pack still in view doesn't reopen it).
+    if (opened.current === code) return;
+    const now = Date.now();
+    const last = reads.current;
+    const count = last && last.code === code && now - last.at < READ_GAP_MS ? last.count + 1 : 1;
+    reads.current = { code, at: now, count };
+    if (count >= READS_TO_OPEN) {
+      opened.current = code;
+      Vibration.vibrate(40);
+      openProduct(code);
+    }
   }
 
   /** The barcode path: the product screen asks for the meal and the portion. */
@@ -201,7 +224,7 @@ export default function CameraScreen() {
             facing="back"
             onCameraReady={() => setReady(true)}
             barcodeScannerSettings={{ barcodeTypes: [...BARCODE_TYPES] }}
-            onBarcodeScanned={busy || held ? undefined : onBarcode}
+            onBarcodeScanned={busy || held || !focused ? undefined : onBarcode}
           />
         ) : (
           <View style={styles.center}>
@@ -232,8 +255,8 @@ export default function CameraScreen() {
             {held
               ? "Pick a meal above to read this photo"
               : seen
-                ? `Barcode found · ${seen}`
-                : "Snap your plate, or point at a barcode"}
+                ? `Barcode found · opening ${seen}`
+                : "Point at a barcode, or snap your plate"}
           </Text>
         </View>
         {busy && (

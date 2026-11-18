@@ -5,8 +5,8 @@ import { palettes, useColors, useShadows } from "@/lib/theme";
 
 const MODES = [
   { key: "type", label: "Type", pathname: "/log/type" },
+  // No barcode mode: the camera opens a product as soon as it reads its barcode.
   { key: "photo", label: "Photo", pathname: "/log" },
-  { key: "barcode", label: "Barcode", pathname: "/log/barcode" },
 ] as const;
 
 /** The camera bar's white pill stays white in both schemes, so its label stays dark. */
