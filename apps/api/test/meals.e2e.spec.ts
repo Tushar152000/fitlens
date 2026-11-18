@@ -230,6 +230,16 @@ describe("meals", () => {
     });
     expect(confirmed.body.totalKcal).toBeCloseTo(confirmed.body.items[0].kcal, 1);
 
+    // Moved to another slot after logging; without mealType the slot stays.
+    const moved = await owner.agent
+      .put(`/api/meals/${meal.id}`)
+      .send({ items, mealType: "DINNER" })
+      .expect(200);
+    expect(moved.body.mealType).toBe("DINNER");
+    await owner.agent.put(`/api/meals/${meal.id}`).send({ items, mealType: "BRUNCH" }).expect(400);
+    const kept = await owner.agent.put(`/api/meals/${meal.id}`).send({ items }).expect(200);
+    expect(kept.body.mealType).toBe("DINNER");
+
     await stranger.agent.delete(`/api/meals/${meal.id}`).expect(404);
     await owner.agent.delete(`/api/meals/${meal.id}`).expect(204);
     await owner.agent.get(`/api/meals/${meal.id}`).expect(404);

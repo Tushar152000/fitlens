@@ -99,6 +99,8 @@ export const MealItemInputSchema = z.object({
 export const ConfirmMealSchema = z.object({
   items: z.array(MealItemInputSchema).min(1),
   note: z.string().trim().max(500).nullable().optional(),
+  /** Move the meal to another slot (it starts in the slot for the time it was logged). */
+  mealType: MealTypeSchema.optional(),
 });
 
 /** Re-run analysis; with a note ("small cup, 2 sachets sugar") or without (plain retry). */
@@ -161,6 +163,21 @@ export const RemindersSchema = z.object({
  * here so older app builds that send only `name` keep working (the UIs require the last name).
  * Omitted → unchanged; phone `null` or "" → cleared. Phones are stored as E.164 (domain `phone`).
  */
+/** Why the user is leaving (Profile → Delete account). Every field is optional. */
+export const DELETE_REASONS = [
+  "logging_effort",
+  "inaccurate",
+  "price",
+  "goal_reached",
+  "privacy",
+  "other_app",
+  "other",
+] as const;
+export const DeleteAccountSchema = z.object({
+  reasons: z.array(z.enum(DELETE_REASONS)).max(DELETE_REASONS.length).default([]),
+  feedback: z.string().trim().max(1000).optional(),
+});
+
 export const PreferredNameSchema = z.object({
   name: z.string().trim().min(1).max(60),
   lastName: z.string().trim().min(1).max(60).optional(),
@@ -330,6 +347,8 @@ export type RelogInput = z.infer<typeof RelogSchema>;
 export type GoalOptionInput = z.infer<typeof GoalOptionSchema>;
 export type WelcomeBackInput = z.infer<typeof WelcomeBackSchema>;
 export type RemindersInput = z.infer<typeof RemindersSchema>;
+export type DeleteAccountInput = z.infer<typeof DeleteAccountSchema>;
+export type DeleteReason = (typeof DELETE_REASONS)[number];
 export type PreferredNameInput = z.infer<typeof PreferredNameSchema>;
 export type PhoneCheckQuery = z.infer<typeof PhoneCheckQuerySchema>;
 export type WaterAddInput = z.infer<typeof WaterAddSchema>;

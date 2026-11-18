@@ -4,6 +4,10 @@ Record decisions as `YYYY-MM-DD — decision — why`. Move a question to Decide
 
 ## Decided
 
+- 2026-11-18 — Meal type defaults from the time of day (or the route) and is changeable on every log screen and later on the meal (`PUT /meals/:id mealType`); replaces "always the user's choice" — the owner found the meal chips cluttered.
+- 2026-11-18 — Generic foods: import the Indian Nutrient Databank (1,014 recipes) as seed data (`source INDB`), starter foods win on shared names. Open: commercial-use OK from the INDB authors (no licence file).
+- 2026-11-18 — Dark mode ground is true black `#000` (owner asked for the darkest); surfaces step up from it.
+- 2026-11-18 — Account delete: two sheets + native alert, optional reasons/note stored anonymously (`account_deletion_feedback`).
 - 2026-11-18 — Barcodes: all sources in parallel (OFF + optional FatSecret/USDA/Edamam/UPCitemdb by env); label scans whose numbers add up are shared at once (crowd coverage for Indian products); camera auto-opens a barcode, no barcode mode.
 - 2026-11-17 — App tab bar is Today · Workout · [camera] · Coach · Profile; Progress moved to a card on Today (+ `/progress` stack screen); Today's workout card and "Ask your coach" row removed; "History" link renamed "Past logs".
 - 2026-11-17 — Returning users: re-login never repeats onboarding; after 90+ days without app use (`users.lastActiveAt`, touched by GET /me hourly) the app asks only weight, height, waist/neck if body-fat goal, activity, equipment, training days/minutes, injuries, medical flag (`POST /api/welcome-back`, goal kept, targets recomputed; "Not now" = `POST /api/me/active`). Web does not show it (read-only).
@@ -24,6 +28,7 @@ Record decisions as `YYYY-MM-DD — decision — why`. Move a question to Decide
 
 ## Open (need the owner's answer)
 
+- INDB commercial use: email the authors (Lindsay Jaacks, University of Edinburgh) for written OK before production relies on it (repo has no licence file).
 - Is the web staying read-only? Delete the unreachable web app screens (~6k lines) or revive a desktop shell?
 - Paywall at launch: turn `PAYWALL_ENABLED` on, or hide Pro in the app until it is?
 - Store status: are iOS/Android builds live, in review, or unsubmitted? (decides OTA blast radius)

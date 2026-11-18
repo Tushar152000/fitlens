@@ -1,6 +1,8 @@
 import { Controller, Delete, Get, HttpCode, Patch, Post, Res } from "@nestjs/common";
 import type { Response } from "express";
 import {
+  DeleteAccountSchema,
+  type DeleteAccountInput,
   PhoneCheckQuerySchema,
   PreferredNameSchema,
   type PhoneCheckDto,
@@ -78,12 +80,15 @@ export class UsersController {
     return this.users.setReminders(userId, input);
   }
 
-  /** Design 13 "Delete account". */
+  /** Design 13 "Delete account", with optional reasons and feedback (stored without the user). */
   @Delete("account")
   @HttpCode(204)
-  async deleteAccount(@UserId() userId: string) {
+  async deleteAccount(
+    @UserId() userId: string,
+    @ZodBody(DeleteAccountSchema) input: DeleteAccountInput,
+  ) {
     // Apple requires revoking Sign in with Apple when the account goes (guideline 5.1.1(v)).
     await this.auth.revokeAppleSignIn(userId);
-    await this.users.deleteAccount(userId);
+    await this.users.deleteAccount(userId, input);
   }
 }

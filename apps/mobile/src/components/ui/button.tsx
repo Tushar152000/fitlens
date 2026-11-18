@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, View, type StyleProp, type ViewStyle } fr
 import { makeStyles, radius, useColors, type Colors } from "@/lib/theme";
 import { Text } from "./text";
 
-export type ButtonVariant = "primary" | "strong" | "secondary" | "dashed" | "ghostDark";
+export type ButtonVariant = "primary" | "strong" | "secondary" | "dashed" | "ghostDark" | "danger";
 
 const bg = (c: Colors): Record<ButtonVariant, [string, string]> => ({
   primary: [c.brand, c.brandHover],
@@ -12,6 +12,8 @@ const bg = (c: Colors): Record<ButtonVariant, [string, string]> => ({
   secondary: [c.surface, c.sunken],
   dashed: ["transparent", c.sunken],
   ghostDark: ["rgba(255,255,255,0.10)", "rgba(255,255,255,0.16)"],
+  /** Destructive and final (delete account): never the screen's primary action. */
+  danger: [c.danger, c.dangerHover],
 });
 
 const fg = (c: Colors): Record<ButtonVariant, string> => ({
@@ -20,6 +22,7 @@ const fg = (c: Colors): Record<ButtonVariant, string> => ({
   secondary: c.ink,
   dashed: c.brandText,
   ghostDark: c.white,
+  danger: c.onDanger,
 });
 
 /** Full-width 54 px button (48 for dashed), radius 16. One primary per screen. */

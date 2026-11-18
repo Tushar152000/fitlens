@@ -367,6 +367,19 @@ model Food {
   @@map("foods")
 }
 
+/// Why someone deleted their account (all optional). Kept with no link to the user, who is gone:
+/// only how long they had the account, so the reasons can be read by stage.
+model AccountDeletionFeedback {
+  id             String   @id @default(cuid())
+  reasons        String[] @default([])
+  feedback       String?  @db.VarChar(1000)
+  accountAgeDays Int
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("account_deletion_feedback")
+}
+
 /// Barcodes Open Food Facts didn't know, cached for 24 h so we stay under its rate limit.
 model BarcodeMiss {
   code      String   @id

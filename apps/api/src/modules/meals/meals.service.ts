@@ -114,7 +114,7 @@ export class MealsService {
   }
 
   /** Step 3: replace the AI's items with the user's confirmed list and recompute totals. */
-  async confirm(userId: string, id: string, { items: input, note }: ConfirmMealInput) {
+  async confirm(userId: string, id: string, { items: input, note, mealType }: ConfirmMealInput) {
     const log = await this.ownedLog(userId, id);
     this.assertNotAnalysing(log.status);
 
@@ -149,6 +149,7 @@ export class MealsService {
           status: "CONFIRMED",
           confirmedAt: new Date(),
           ...(note !== undefined ? { note: note || null } : {}),
+          ...(mealType ? { mealType } : {}),
           totalKcal: totals.kcal,
           totalProtein: totals.proteinG,
           totalCarbs: totals.carbsG,

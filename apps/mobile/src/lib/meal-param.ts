@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { MEAL_TYPES, type MealType } from "./format";
+import { MEAL_TYPES, mealTypeForHour, type MealType } from "./format";
 
 /**
  * How many days back a forgotten meal can be logged. Same rule as the API
@@ -52,18 +52,23 @@ export function choiceParams(mealType: MealType | null, date: string | null): { 
 }
 
 /**
- * Which meal and which day the user is logging. The meal is never guessed from the clock: it starts
- * empty unless the route says (e.g. "Add lunch" on Today), and saving waits until it is picked.
- * The day defaults to today; a past day comes from the route or the picker.
+ * Which meal and which day the user is logging. The meal is the one the route asked for ("Add lunch"
+ * on Today), else the slot for the time of day, so logging never stops to ask; the user can change
+ * it here or later on the meal. `mealChosen` says whether it came from the user or the route (a
+ * relogged usual keeps its own slot unless one was chosen). The day defaults to today; a past day
+ * comes from the route or the picker.
  */
 export function useMealChoice() {
   const params = useLocalSearchParams<{ meal?: string; date?: string }>();
-  const [mealType, setMealTypeState] = useState<MealType | null>(() => mealFromParam(params.meal));
+  const fromRoute = mealFromParam(params.meal);
+  const [mealChosen, setMealChosen] = useState(fromRoute != null);
+  const [mealType, setMealTypeState] = useState<MealType>(() => fromRoute ?? mealTypeForHour(new Date().getHours()));
   const [date, setDateState] = useState<string | null>(() => dayFromParam(params.date));
 
   // Keep the route in step, so switching Type / Photo / Barcode keeps the choice.
   const setMealType = (m: MealType) => {
     setMealTypeState(m);
+    setMealChosen(true);
     router.setParams({ meal: m });
   };
   const setDate = (d: string | null) => {
@@ -73,11 +78,13 @@ export function useMealChoice() {
 
   return {
     mealType,
+    mealChosen,
     setMealType,
     date,
     setDate,
     /** Spread into an API body: `{ date }` for a past day, nothing for today. */
     dateBody: date ? { date } : {},
-    params: choiceParams(mealType, date),
+    /** Carries the meal on only once chosen, so the next screen can still use its own default. */
+    params: choiceParams(mealChosen ? mealType : null, date),
   };
 }

@@ -23,9 +23,8 @@ export type Usual = UsualDto;
 export default function TypeMealScreen() {
   const c = useColors();
   const styles = useStyles();
-  const { mealType, setMealType, date, setDate, dateBody, params } = useMealChoice();
+  const { mealType, mealChosen, setMealType, date, setDate, dateBody, params } = useMealChoice();
   const insets = useSafeAreaInsets();
-  const [missing, setMissing] = useState(false);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState<string | null>(null); // "text", a usual's mealId or a saved meal's id
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +37,6 @@ export default function TypeMealScreen() {
   async function submit() {
     const value = text.trim();
     setError(null);
-    if (!mealType) return setMissing(true);
     if (value.length < 2) return setError("Tell us what you ate, e.g. 2 roti and 1 katori dal");
     setBusy("text");
     try {
@@ -53,7 +51,6 @@ export default function TypeMealScreen() {
   }
 
   async function relog(u: Usual) {
-    if (!mealType) return setMissing(true);
     setBusy(u.mealId);
     setError(null);
     try {
@@ -68,10 +65,9 @@ export default function TypeMealScreen() {
     }
   }
 
-  /** One tap: the picked meal, else the slot the user saved it for; never a guess from the clock. */
+  /** One tap: the picked meal, else the slot the user saved it for, else the one for the time of day. */
   async function logSaved(m: SavedMealDto) {
-    const slot = mealType ?? m.mealType;
-    if (!slot) return setMissing(true);
+    const slot = mealChosen ? mealType : (m.mealType ?? mealType);
     setBusy(m.id);
     setError(null);
     try {
@@ -109,16 +105,7 @@ export default function TypeMealScreen() {
 
         <Text variant="h1">What did you eat?</Text>
 
-        <MealWhen
-          mealType={mealType}
-          onMealType={(m) => {
-            setMealType(m);
-            setMissing(false);
-          }}
-          date={date}
-          onDate={setDate}
-          missing={missing}
-        />
+        <MealWhen mealType={mealType} onMealType={setMealType} date={date} onDate={setDate} />
 
         <View style={{ gap: 8 }}>
           <TextInput
@@ -194,7 +181,7 @@ export default function TypeMealScreen() {
                         <Text size={13} color={c.ink3} tabular numberOfLines={1}>
                           {formatInt(m.kcal)} kcal · {m.proteinG} g protein · {m.items.length}{" "}
                           {m.items.length === 1 ? "item" : "items"}
-                          {!mealType && m.mealType ? ` · ${MEAL_LABEL[m.mealType]}` : ""}
+                          {!mealChosen && m.mealType ? ` · ${MEAL_LABEL[m.mealType]}` : ""}
                         </Text>
                       </View>
                       <Text weight={600} size={13} color={c.brandText}>

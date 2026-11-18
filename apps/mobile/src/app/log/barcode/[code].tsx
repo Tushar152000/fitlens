@@ -63,7 +63,6 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
   const c = useColors();
   const styles = useStyles();
   const { mealType, setMealType, date, setDate, dateBody } = useMealChoice();
-  const [missing, setMissing] = useState(false);
   const hasServing = Boolean(food.servingSizeG);
   const measure = food.isLiquid ? "ml" : "g";
   const [mode, setMode] = useState<"SERVINGS" | "GRAMS">(hasServing ? "SERVINGS" : "GRAMS");
@@ -81,7 +80,6 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
   const displayName = food.name.replace(/ · \d+$/, "").replace(food.brand ? ` (${food.brand})` : /$^/, "");
 
   async function add() {
-    if (!mealType) return setMissing(true);
     setBusy(true);
     setError(null);
     try {
@@ -133,7 +131,7 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
           </View>
           {error && <FieldError>{error}</FieldError>}
           <Button onPress={add} loading={busy}>
-            {mealType ? `Add to ${MEAL_LABEL[mealType].toLowerCase()}` : "Add to a meal"}
+            {`Add to ${MEAL_LABEL[mealType].toLowerCase()}`}
           </Button>
         </>
       }
@@ -220,16 +218,7 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
           </View>
         </Card>
 
-        <MealWhen
-          mealType={mealType}
-          onMealType={(m) => {
-            setMealType(m);
-            setMissing(false);
-          }}
-          date={date}
-          onDate={setDate}
-          missing={missing}
-        />
+        <MealWhen mealType={mealType} onMealType={setMealType} date={date} onDate={setDate} />
 
         <View style={styles.table} accessibilityLabel={`Nutrition per 100 ${measure} and for your amount`}>
           <View style={styles.tr}>

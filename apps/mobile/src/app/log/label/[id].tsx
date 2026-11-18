@@ -53,7 +53,6 @@ function CheckLabel({ scan }: { scan: ScanDto }) {
   const c = useColors();
   const styles = useStyles();
   const { mealType, setMealType, date, setDate, dateBody, params } = useMealChoice();
-  const [missing, setMissing] = useState(false);
   const [name, setName] = useState(scan.name);
   const [kcal, setKcal] = useState(str(scan.per100g.kcal));
   const [protein, setProtein] = useState(str(scan.per100g.protein));
@@ -69,11 +68,15 @@ function CheckLabel({ scan }: { scan: ScanDto }) {
   const check = allNumbers ? labelAddsUp(values) : null;
   const servingG = num(serving);
   const grams = Number.isFinite(servingG) && servingG > 0 ? servingG * servings : 0;
+  // The API takes at most 100 servings and 5000 g per item: the stepper stops there.
+  const maxServings =
+    Number.isFinite(servingG) && servingG > 0
+      ? Math.max(0.5, Math.min(100, Math.floor((5000 / servingG) * 2) / 2))
+      : 100;
   const total = allNumbers ? (values.kcal * grams) / 100 : 0;
   const canSave = allNumbers && grams > 0 && name.trim().length >= 2;
 
   async function save() {
-    if (!mealType) return setMissing(true);
     setBusy(true);
     setError(null);
     try {
@@ -123,7 +126,7 @@ function CheckLabel({ scan }: { scan: ScanDto }) {
           </View>
           {error && <FieldError>{error}</FieldError>}
           <Button onPress={save} loading={busy} disabled={!canSave}>
-            {mealType ? `Save and add to ${MEAL_LABEL[mealType].toLowerCase()}` : "Save and add to a meal"}
+            {`Save and add to ${MEAL_LABEL[mealType].toLowerCase()}`}
           </Button>
         </>
       }
@@ -195,20 +198,11 @@ function CheckLabel({ scan }: { scan: ScanDto }) {
           />
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <Text weight={600}>Servings</Text>
-            <Stepper label="Servings" value={servings} step={0.5} min={0.5} onChange={setServings} />
+            <Stepper label="Servings" value={servings} step={0.5} min={0.5} max={maxServings} onChange={setServings} />
           </View>
         </Card>
 
-        <MealWhen
-          mealType={mealType}
-          onMealType={(m) => {
-            setMealType(m);
-            setMissing(false);
-          }}
-          date={date}
-          onDate={setDate}
-          missing={missing}
-        />
+        <MealWhen mealType={mealType} onMealType={setMealType} date={date} onDate={setDate} />
       </View>
     </Screen>
   );

@@ -6,9 +6,9 @@ import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { BellRing, ChevronRight, Crown, Download, Flame, LogOut, Pencil, Trash2 } from "lucide-react-native";
 import { useEffect, useState, type ReactNode } from "react";
-import { Linking, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Alert, Linking, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Sheet } from "@/components/sheet";
-import { Button, FieldError, Screen, Segmented, Switch, Text } from "@/components/ui";
+import { Button, Chip, FieldError, Screen, Segmented, Switch, Text } from "@/components/ui";
 import { api, apiText } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { formatInt, mealTitle } from "@/lib/format";
@@ -23,7 +23,7 @@ import {
 import { queryClient } from "@/lib/query";
 import { fonts, makeStyles, radius, useAppearance, useColors, type AppearancePreference } from "@/lib/theme";
 import type { PlanResponse } from "@/lib/types-plan";
-import type { UsageDto } from "@fitr8/contracts";
+import type { DeleteReason, UsageDto } from "@fitr8/contracts";
 import { openLegal } from "@/lib/legal";
 
 const GOAL_LABEL = { FAT_LOSS: "Lose fat", MUSCLE_GAIN: "Build muscle", RECOMPOSITION: "Recomposition" } as const;
@@ -197,7 +197,7 @@ export default function ProfileScreen() {
         Sign out
       </Button>
 
-      <DangerZone onDeleted={signOut} />
+      <DangerZone onDeleted={signOut} onSignOut={signOut} />
 
       <Text size={12} color={c.ink3} center>
         {me.email} · FITR8 gives general fitness guidance, not medical advice.
@@ -504,26 +504,65 @@ function ExportRow() {
   );
 }
 
-/** Delete account (danger text), with a typed confirmation. */
-function DangerZone({ onDeleted }: { onDeleted: () => void }) {
+const LEAVE_REASONS: { value: DeleteReason; label: string }[] = [
+  { value: "logging_effort", label: "Logging takes too long" },
+  { value: "inaccurate", label: "Numbers felt wrong" },
+  { value: "price", label: "Too expensive" },
+  { value: "goal_reached", label: "I reached my goal" },
+  { value: "privacy", label: "Privacy worries" },
+  { value: "other_app", label: "Using another app" },
+  { value: "other", label: "Something else" },
+];
+
+/**
+ * Delete account, deliberately slow: 1) what goes, a billing warning, an optional "why" (reasons and a
+ * note, stored without the user) and "Sign out instead"; 2) type DELETE; 3) a last system alert.
+ */
+function DangerZone({ onDeleted, onSignOut }: { onDeleted: () => void; onSignOut: () => void }) {
   const c = useColors();
   const styles = useStyles();
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<"why" | "confirm">("why");
+  const [reasons, setReasons] = useState<DeleteReason[]>([]);
+  const [feedback, setFeedback] = useState("");
   const [typed, setTyped] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const close = () => {
+    setOpen(false);
+    setStep("why");
+    setTyped("");
+    setError(null);
+  };
+  const toggle = (r: DeleteReason) => setReasons((all) => (all.includes(r) ? all.filter((x) => x !== r) : [...all, r]));
 
   async function remove() {
     setBusy(true);
     setError(null);
     try {
-      await api("/api/account", { method: "DELETE" });
+      await api("/api/account", {
+        method: "DELETE",
+        json: { reasons, ...(feedback.trim() ? { feedback: feedback.trim() } : {}) },
+      });
       queryClient.clear();
       onDeleted();
     } catch {
       setError("Couldn't delete your account. Try again.");
       setBusy(false);
     }
+  }
+
+  /** The last stop: a system alert, so it can't be a stray tap. */
+  function confirmLast() {
+    if (Platform.OS === "web") {
+      if (globalThis.confirm?.("Delete your FITR8 account for good? This can't be undone.")) void remove();
+      return;
+    }
+    Alert.alert("Delete for good?", "Your account and all your data go now. This can't be undone.", [
+      { text: "Keep my account", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => void remove() },
+    ]);
   }
 
   return (
@@ -538,27 +577,82 @@ function DangerZone({ onDeleted }: { onDeleted: () => void }) {
           Delete account
         </Text>
       </Pressable>
-      <Sheet open={open} onClose={() => setOpen(false)} title="Delete your account?">
-        <Text color={c.ink2}>
-          This deletes your account, meals, weigh-ins and plan for good. Type DELETE to confirm.
-        </Text>
-        <TextInput
-          accessibilityLabel="Type DELETE to confirm"
-          value={typed}
-          onChangeText={setTyped}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          placeholder="DELETE"
-          placeholderTextColor={c.ink3}
-          style={styles.confirm}
-        />
-        {error && <FieldError>{error}</FieldError>}
-        <Button onPress={remove} loading={busy} disabled={typed.trim().toUpperCase() !== "DELETE"}>
-          Delete my account
-        </Button>
-        <Button variant="secondary" onPress={() => setOpen(false)}>
-          Keep my account
-        </Button>
+      <Sheet open={open} onClose={close} title={step === "why" ? "Before you go" : "Delete your account?"}>
+        {step === "why" ? (
+          <>
+            <Text color={c.ink2}>
+              Deleting removes your meals, weigh-ins, workouts, streak, saved meals and plan for good. We can&apos;t
+              bring them back. You can download a copy first from &ldquo;Your data&rdquo;.
+            </Text>
+            <Text size={13} color={c.cautionText}>
+              Paying for FITR8 Pro through the App Store or Google Play? Cancel it there too: deleting your account
+              doesn&apos;t stop the store billing you.
+            </Text>
+            <View style={{ gap: 8 }}>
+              <Text weight={600}>Why are you leaving? (optional)</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {LEAVE_REASONS.map((r) => (
+                  <Chip key={r.value} selected={reasons.includes(r.value)} onPress={() => toggle(r.value)}>
+                    {r.label}
+                  </Chip>
+                ))}
+              </View>
+              <TextInput
+                accessibilityLabel="What could we do better? (optional)"
+                value={feedback}
+                onChangeText={setFeedback}
+                placeholder="What could we do better? (optional)"
+                placeholderTextColor={c.ink3}
+                multiline
+                maxLength={1000}
+                style={[styles.confirm, { height: 96, paddingTop: 12, textAlignVertical: "top" }]}
+              />
+              <Text size={12} color={c.ink3}>
+                Your answer is kept without your name or email, only to make FITR8 better.
+              </Text>
+            </View>
+            <Button variant="secondary" onPress={() => setStep("confirm")}>
+              Continue to delete
+            </Button>
+            <Button
+              onPress={() => {
+                close();
+                onSignOut();
+              }}
+            >
+              Just sign out instead
+            </Button>
+            <Button variant="secondary" onPress={close}>
+              Keep my account
+            </Button>
+          </>
+        ) : (
+          <>
+            <Text color={c.ink2}>Type DELETE to confirm. This deletes everything now, for good.</Text>
+            <TextInput
+              accessibilityLabel="Type DELETE to confirm"
+              value={typed}
+              onChangeText={setTyped}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              placeholder="DELETE"
+              placeholderTextColor={c.ink3}
+              style={styles.confirm}
+            />
+            {error && <FieldError>{error}</FieldError>}
+            <Button
+              variant="danger"
+              onPress={confirmLast}
+              loading={busy}
+              disabled={typed.trim().toUpperCase() !== "DELETE"}
+            >
+              Delete my account
+            </Button>
+            <Button variant="secondary" onPress={close} disabled={busy}>
+              Keep my account
+            </Button>
+          </>
+        )}
       </Sheet>
     </>
   );
