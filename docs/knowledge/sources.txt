@@ -1,0 +1,163 @@
+FITR8 KNOWLEDGE SOURCES
+Reference books and guidelines for the AI coach: exercise science, strength training, running,
+physiotherapy, nutrition and sports nutrition. Use the latest edition of each book.
+Updated: 2026-11-18
+
+NOTES
+- Almost all books here are copyrighted. Their text must NOT be loaded into the AI coach (RAG,
+  embeddings, prompts) without a licence from the publisher. Use them to write and check the coach's
+  rules and answers. The coach itself should quote the open guidelines and position stands in
+  section 12.
+- Books fall a few years behind current research. For anything new, check the position stands,
+  systematic reviews and meta-analyses (PubMed, Cochrane).
+- No set of sources makes the AI always right. Accuracy also needs answers that cite their source,
+  plus the coach sending users to a doctor or physio for medical or injury questions.
+
+
+1. EXERCISE PHYSIOLOGY
+- Physiology of Sport and Exercise | Kenney, Wilmore, Costill
+- Exercise Physiology: Nutrition, Energy, and Human Performance | McArdle, Katch & Katch
+- Exercise Physiology: Theory and Application to Fitness and Performance | Powers & Howley
+- Exercise Physiology: Human Bioenergetics and Its Applications | Brooks, Fahey, Baldwin
+- Textbook of Work Physiology | Åstrand, Rodahl et al.
+- ACSM's Advanced Exercise Physiology | Farrell, Joyner, Caiozzo
+- Guyton and Hall Textbook of Medical Physiology | Hall
+- Clinical Exercise Physiology | Ehrman et al.
+
+2. STRENGTH TRAINING, HYPERTROPHY AND PROGRAM DESIGN
+- Essentials of Strength Training and Conditioning (NSCA) | Haff & Triplett
+- Science and Practice of Strength Training | Zatsiorsky, Kraemer, Fry
+- Science and Development of Muscle Hypertrophy | Brad Schoenfeld
+- Periodization: Theory and Methodology of Training | Bompa & Buzzichelli
+- Block Periodization | Vladimir Issurin
+- Principles and Practice of Resistance Training | Stone, Stone, Sands
+- Supertraining | Siff & Verkhoshansky
+- High-Performance Training for Sports | Joyce & Lewindon
+- Strength and Conditioning for Young Athletes | Lloyd & Oliver
+- NSCA's Essentials of Personal Training | NSCA
+- ACSM's Resources for the Personal Trainer | ACSM
+- ACSM's Guidelines for Exercise Testing and Prescription | ACSM (screening, safe exercise doses)
+- The Muscle and Strength Pyramid: Training | Helms, Morgan, Valdez (coaching book)
+- Scientific Principles of Hypertrophy Training | Israetel et al. (coaching book)
+- Starting Strength | Mark Rippetoe (coaching book)
+
+3. RUNNING AND ENDURANCE
+- Daniels' Running Formula | Jack Daniels
+- Lore of Running | Tim Noakes
+- Advanced Marathoning | Pfitzinger & Douglas
+- Faster Road Racing | Pfitzinger & Latter
+- Endurance Training: Science and Practice | Iñigo Mujika (ed.)
+- The Science of Running | Steve Magness
+- Running Science | Owen Anderson
+- Training and Racing with a Power Meter | Allen & Coggan
+- The Triathlete's Training Bible | Joe Friel
+- Endure | Alex Hutchinson (popular science, well referenced)
+
+4. ANATOMY, KINESIOLOGY AND BIOMECHANICS
+- Gray's Anatomy | Standring
+- Clinically Oriented Anatomy | Moore, Dalley, Agur
+- Netter's Atlas of Human Anatomy | Netter
+- Kinesiology of the Musculoskeletal System | Donald Neumann
+- Kinesiology: The Mechanics and Pathomechanics of Human Movement | Carol Oatis
+- Basic Biomechanics | Susan Hall
+- Biomechanics of Sport and Exercise | Peter McGinnis
+- Introduction to Sports Biomechanics | Roger Bartlett
+- Muscles: Testing and Function with Posture and Pain | Kendall et al.
+- Strength Training Anatomy | Frédéric Delavier (exercise visuals)
+
+5. PHYSIOTHERAPY, REHAB AND SPORTS MEDICINE
+- Brukner & Khan's Clinical Sports Medicine (2 volumes) | Brukner, Khan et al. (main injury reference)
+- Therapeutic Exercise: Foundations and Techniques | Kisner, Colby, Borstad
+- Orthopedic Physical Assessment | David Magee
+- Dutton's Orthopaedic Examination, Evaluation, and Intervention | Mark Dutton
+- Netter's Orthopaedic Clinical Examination | Cleland et al.
+- Orthopedic Physical Examination Tests: An Evidence-Based Approach | Cook & Hegedus
+- Clinical Orthopaedic Rehabilitation | Brotzman (Giangarra & Manske, eds.)
+- Rehabilitation Techniques for Sports Medicine and Athletic Training | Prentice
+- Grieve's Modern Musculoskeletal Physiotherapy | Jull, Moore et al.
+- Physical Rehabilitation | O'Sullivan & Schmitz
+- Diagnosis and Treatment of Movement Impairment Syndromes | Shirley Sahrmann
+- Kinetic Control | Comerford & Mottram
+- Low Back Disorders | Stuart McGill
+- Back Mechanic | Stuart McGill
+- Explain Pain | Butler & Moseley (pain science)
+- ACSM's Exercise Management for Persons with Chronic Diseases and Disabilities | Moore, Durstine et al.
+- Physical Dimensions of Aging | Spirduso (older adults)
+
+6. NUTRITION SCIENCE (FOUNDATIONS)
+- Modern Nutrition in Health and Disease | Ross et al.
+- Present Knowledge in Nutrition (2 volumes) | ILSI
+- Advanced Nutrition and Human Metabolism | Gropper & Smith
+- Krause and Mahan's Food & the Nutrition Care Process | Raymond & Morrow
+- Essentials of Human Nutrition | Mann & Truswell
+- Human Nutrition | Geissler & Powers
+- Understanding Nutrition | Whitney & Rolfes
+- Manual of Dietetic Practice (British Dietetic Association) | Gandy
+- Nutritional Epidemiology | Walter Willett (for judging nutrition studies)
+
+7. BIOCHEMISTRY AND METABOLISM
+- Lehninger Principles of Biochemistry | Nelson & Cox
+- Harper's Illustrated Biochemistry | Rodwell et al.
+- Human Metabolism: A Regulatory Perspective | Frayn & Evans
+- Williams Textbook of Endocrinology | Melmed et al. (hormones, thyroid, diabetes)
+
+8. SPORTS NUTRITION AND BODY COMPOSITION
+- Sport Nutrition | Jeukendrup & Gleeson
+- Clinical Sports Nutrition | Burke & Deakin
+- Sports Nutrition (IOC Encyclopaedia of Sports Medicine) | Ron Maughan (ed.)
+- NSCA's Guide to Sport and Exercise Nutrition | Campbell & Spano
+- Sports Nutrition: A Handbook for Professionals (Academy of Nutrition and Dietetics) | Karpinski & Rosenbloom
+- Advanced Sports Nutrition | Dan Benardot
+- Human Body Composition | Heymsfield et al.
+- Handbook of Obesity | Bray & Bouchard
+- The Muscle and Strength Pyramid: Nutrition | Helms, Morgan, Valdez (coaching book)
+
+9. INDIAN NUTRITION (FITR8'S USERS)
+- Dietary Guidelines for Indians (2024) | ICMR-NIN
+- Nutrient Requirements for Indians (RDA/EAR, 2020) | ICMR-NIN
+- Indian Food Composition Tables (IFCT 2017) | Longvah et al., NIN
+- Nutritive Value of Indian Foods | Gopalan et al., NIN
+- Advanced Textbook on Food and Nutrition | M. Swaminathan
+- Dietetics | B. Srilakshmi
+- Nutrition Science | B. Srilakshmi
+- Indian Nutrient Databank (INDB) | Vijayakumar et al., 2024 (already in the app: packages/db/prisma/data/indb.json)
+
+10. RECOVERY, SLEEP AND PSYCHOLOGY
+- Recovery for Performance in Sport | Hausswirth & Mujika
+- Sport, Recovery, and Performance | Kellmann & Beckmann
+- Principles and Practice of Sleep Medicine | Kryger et al. (use this, not "Why We Sleep", which has documented errors)
+- Foundations of Sport and Exercise Psychology | Weinberg & Gould
+
+11. BEHAVIOUR CHANGE AND COACHING (HOW THE COACH TALKS)
+- Motivational Interviewing | Miller & Rollnick
+- The Behaviour Change Wheel | Michie, Atkins, West
+- The Essentials of Nutrition Coaching | Precision Nutrition (certification text)
+- Tiny Habits | BJ Fogg (popular book)
+- Atomic Habits | James Clear (popular book)
+- How to Read a Paper | Trisha Greenhalgh (judging evidence)
+
+12. SOURCES THE COACH CAN ACTUALLY USE (FREE OR OPEN ACCESS)
+- WHO Guidelines on Physical Activity and Sedentary Behaviour (2020)
+- Physical Activity Guidelines for Americans, 2nd edition (US HHS)
+- ACSM position stands:
+    - progression models in resistance training
+    - quantity and quality of exercise
+    - nutrition and athletic performance (with the Academy of Nutrition and Dietetics and Dietitians of Canada)
+    - exercise and fluid replacement
+- ISSN position stands (Journal of the International Society of Sports Nutrition, open access):
+    - protein and exercise
+    - nutrient timing
+    - creatine
+    - caffeine
+    - diets and body composition
+    - energy drinks
+    - beta-alanine
+- IOC consensus statements:
+    - dietary supplements and the high-performance athlete (2018)
+    - REDs, relative energy deficiency in sport (2023)
+- ICMR-NIN Dietary Guidelines for Indians (2024) and RDA (2020)
+- Dietary Guidelines for Americans; EFSA dietary reference values
+- ADA Standards of Care in Diabetes (for safety rules)
+- ACOG guidance on physical activity and exercise in pregnancy and postpartum (for safety rules)
+- Cochrane systematic reviews (injury, rehab, nutrition)
+- BJSM consensus statements (injury and rehab)
