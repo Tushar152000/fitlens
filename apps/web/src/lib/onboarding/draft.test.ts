@@ -79,10 +79,34 @@ describe("onboarding draft", () => {
     ).toEqual({});
   });
 
-  it("checks waist is bigger than neck", () => {
-    expect(validateStep(2, { ...complete, waistCm: "45", neckCm: "50" }, today).waistCm).toBe(
+  it("checks waist is bigger than neck for a body-fat goal", () => {
+    const bf = { ...complete, targetMode: "BODY_FAT" as const, targetBodyFatPct: "15" };
+    expect(validateStep(2, { ...bf, waistCm: "45", neckCm: "50" }, today).waistCm).toBe(
       "Waist must be bigger than neck",
     );
+  });
+
+  it("ignores hidden measurements for a weight goal", () => {
+    // Typed under "Body fat %", then switched to "Weight": the fields are hidden, so no errors.
+    expect(
+      validateStep(2, { ...complete, waistCm: "45", neckCm: "500", hipCm: "x" }, today),
+    ).toEqual({});
+    const payload = toPayload(complete, "Asia/Kolkata");
+    expect(payload).toMatchObject({ waistCm: undefined, neckCm: undefined, hipCm: undefined });
+  });
+
+  it("needs hip too for a woman's body-fat goal, and sends all three", () => {
+    const bf = {
+      ...complete,
+      sex: "FEMALE" as const,
+      targetMode: "BODY_FAT" as const,
+      targetBodyFatPct: "25",
+      hipCm: "",
+    };
+    expect(validateStep(2, bf, today)).toHaveProperty("hipCm");
+    const payload = toPayload({ ...bf, hipCm: "99" }, "Asia/Kolkata");
+    expect(payload).toMatchObject({ waistCm: 90, neckCm: 38, hipCm: 99 });
+    expect(OnboardingSchema.safeParse(payload).success).toBe(true);
   });
 
   it("flags out-of-range numbers", () => {

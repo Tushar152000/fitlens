@@ -77,6 +77,8 @@ export async function currentUser(): Promise<MeDto | null> {
 export interface Viewer {
   userId: string;
   name: string | null;
+  lastName: string | null;
+  phone: string | null;
   email: string | null;
   image: string | null;
   profile: ProfileDto | null;
@@ -89,6 +91,8 @@ export const requireViewer = cache(async (): Promise<Viewer> => {
   return {
     userId: me.id,
     name: me.name ?? null,
+    lastName: me.lastName ?? null,
+    phone: me.phone ?? null,
     email: me.email ?? null,
     image: me.image ?? null,
     profile: me.profile,

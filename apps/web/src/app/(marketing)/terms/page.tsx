@@ -4,7 +4,7 @@ import { CONTACT_EMAIL } from "../_components/faq";
 import { LegalPage } from "../_components/legal-page";
 
 export const metadata: Metadata = {
-  title: "Terms of Use — FITR8",
+  title: "Terms of Use | FITR8",
   description: "The terms for using the FITR8 app and website.",
 };
 

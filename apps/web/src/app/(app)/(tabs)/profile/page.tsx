@@ -6,7 +6,7 @@ import type { DashboardDto, PlanDto, UsageDto } from "@fitr8/contracts";
 import { DangerZone, PlanCard, Reminders, SignOutButton } from "./profile-controls";
 import { apiUrl } from "@/lib/api-url";
 
-export const metadata = { title: "Profile — FITR8" };
+export const metadata = { title: "Profile | FITR8" };
 
 const GOAL_LABEL = {
   FAT_LOSS: "Lose fat",

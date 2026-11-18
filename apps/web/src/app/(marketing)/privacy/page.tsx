@@ -4,7 +4,7 @@ import { CONTACT_EMAIL } from "../_components/faq";
 import { LegalPage } from "../_components/legal-page";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — FITR8",
+  title: "Privacy Policy | FITR8",
   description:
     "What FITR8 collects, how it is used, which service providers process it, and how to access or delete your data.",
 };
@@ -38,6 +38,11 @@ export default function PrivacyPage() {
         <li>
           Name, email address and profile image provided by Google or Apple, or information you
           provide during account setup.
+        </li>
+        <li>
+          Your first and last name and, only if you choose to add it, your phone number, entered in
+          the first onboarding step. We use the phone number for your account only, and never for
+          marketing or advertising.
         </li>
         <li>Google or Apple account identifiers used to authenticate your FITR8 account.</li>
       </ul>

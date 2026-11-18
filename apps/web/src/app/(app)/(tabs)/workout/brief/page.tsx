@@ -3,7 +3,7 @@ import { requireOnboardedViewer, serverApi } from "@/lib/server/api";
 import type { TodayWorkoutDto } from "@fitr8/contracts";
 import { Briefing } from "./briefing";
 
-export const metadata = { title: "Coach briefing — FITR8" };
+export const metadata = { title: "Coach briefing | FITR8" };
 
 /** Design 10a: fuel, energy check, today's rules and prescriptions before the session. */
 export default async function BriefPage({ searchParams }: PageProps<"/workout/brief">) {

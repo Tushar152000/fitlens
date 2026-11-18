@@ -2,7 +2,7 @@ import { MEAL_TYPES, mealTypeForHour, type MealType } from "@fitr8/domain/format
 import { requireOnboardedViewer } from "@/lib/server/api";
 import { BarcodeScreen } from "./barcode-screen";
 
-export const metadata = { title: "Scan barcode — FITR8" };
+export const metadata = { title: "Scan barcode | FITR8" };
 
 /** Design 7c: scan a packaged food's barcode. Lookups never use a photo scan. */
 export default async function BarcodePage({ searchParams }: PageProps<"/log/barcode">) {

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronDown,
   Armchair,
   Bike,
   CalendarDays,
@@ -14,6 +15,13 @@ import {
   Trophy,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { cn } from "@/lib/cn";
+import {
+  flagEmoji,
+  PHONE_COUNTRIES,
+  type PersonDetails,
+  type PersonProblems,
+} from "@fitr8/domain/person";
 import {
   ChipGroup,
   ChoiceCardGroup,
@@ -24,6 +32,7 @@ import {
   TileGroup,
 } from "@/components/ui";
 import {
+  MEDICAL_NOTE_MAX,
   needsTarget,
   wantsBodyFat,
   ymd,
@@ -43,38 +52,177 @@ function FromHome() {
   );
 }
 
-/** Step 1 of the signed-out flow. */
+/** Step 1, "Your details": first and last name (required) and an optional phone number. */
 export function NameStep({
-  name,
-  setName,
-  error,
+  person,
+  setPerson,
+  errors,
 }: {
-  name: string;
-  setName: (v: string) => void;
-  error?: string;
+  person: PersonDetails;
+  setPerson: (key: keyof PersonDetails, value: string) => void;
+  errors: PersonProblems;
 }) {
   return (
-    <div className="flex flex-col gap-2.5">
-      <label htmlFor="ob-name" className="text-sm font-semibold text-ink-2">
-        Your first name
-      </label>
-      <input
-        id="ob-name"
-        suppressHydrationWarning
-        autoComplete="given-name"
-        autoFocus
-        maxLength={60}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="e.g. Aarav"
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? "ob-name-error" : undefined}
-        className="h-[54px] rounded-input border border-line-strong bg-surface px-4 text-lg font-semibold outline-none placeholder:font-medium placeholder:text-ink-3/60 focus:border-fitr8 focus:ring-3 focus:ring-fitr8-lilac-soft"
+    <div className="flex flex-col gap-[18px]">
+      <div className="grid gap-[18px] sm:grid-cols-2">
+        <TextField
+          id="ob-name"
+          label="First name"
+          autoComplete="given-name"
+          autoFocus
+          placeholder="e.g. Aarav"
+          value={person.name}
+          onChange={(v) => setPerson("name", v)}
+          error={errors.name}
+        />
+        <TextField
+          id="ob-last-name"
+          label="Last name"
+          autoComplete="family-name"
+          placeholder="e.g. Sharma"
+          value={person.lastName}
+          onChange={(v) => setPerson("lastName", v)}
+          error={errors.lastName}
+        />
+      </div>
+      <PhoneField
+        country={person.phoneCountry}
+        setCountry={(v) => setPerson("phoneCountry", v)}
+        phone={person.phone}
+        setPhone={(v) => setPerson("phone", v)}
+        error={errors.phone}
       />
-      {error && <FieldError id="ob-name-error">{error}</FieldError>}
     </div>
   );
 }
+
+const inputBox =
+  "h-[54px] rounded-input border border-line-strong bg-surface text-lg font-semibold outline-none";
+
+/** Country picker (flag + calling code) joined to the number box. */
+function PhoneField({
+  country,
+  setCountry,
+  phone,
+  setPhone,
+  error,
+}: {
+  country: string;
+  setCountry: (iso: string) => void;
+  phone: string;
+  setPhone: (v: string) => void;
+  error?: string;
+}) {
+  const picked = PHONE_COUNTRIES.find((c) => c.iso === country) ?? PHONE_COUNTRIES[0]!;
+  const described = error ? "ob-phone-error" : "ob-phone-hint";
+  return (
+    <div className="flex flex-col gap-2.5">
+      <label htmlFor="ob-phone" className="text-sm font-semibold text-ink-2">
+        Phone number (optional)
+      </label>
+      <div className="flex gap-2">
+        {/* A real <select> for keyboard and screen readers, drawn as "🇮🇳 +91 ⌄". */}
+        <div
+          className={cn(
+            inputBox,
+            "relative flex shrink-0 items-center gap-1.5 px-3.5 focus-within:border-fitr8 focus-within:ring-3 focus-within:ring-fitr8-lilac-soft",
+          )}
+        >
+          <span aria-hidden className="text-[22px] leading-none">
+            {flagEmoji(picked.iso)}
+          </span>
+          <span aria-hidden className="tabular-nums">
+            +{picked.dial}
+          </span>
+          <ChevronDown aria-hidden className="size-4 text-ink-3" />
+          <select
+            aria-label="Country code"
+            value={picked.iso}
+            onChange={(e) => setCountry(e.target.value)}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          >
+            {PHONE_COUNTRIES.map((c) => (
+              <option key={c.iso} value={c.iso}>
+                {flagEmoji(c.iso)} {c.name} (+{c.dial})
+              </option>
+            ))}
+          </select>
+        </div>
+        <input
+          id="ob-phone"
+          suppressHydrationWarning
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel-national"
+          maxLength={20}
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder={picked.iso === "IN" ? "98765 43210" : "Phone number"}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={described}
+          className={cn(
+            inputBox,
+            "w-full min-w-0 px-4 tabular-nums placeholder:font-medium placeholder:text-ink-3/60 focus:border-fitr8 focus:ring-3 focus:ring-fitr8-lilac-soft",
+          )}
+        />
+      </div>
+      {error ? (
+        <FieldError id="ob-phone-error">{error}</FieldError>
+      ) : (
+        <p id="ob-phone-hint" className="text-[13px] text-ink-3">
+          We only use it for your account, never for marketing.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function TextField({
+  id,
+  label,
+  value,
+  onChange,
+  error,
+  ...input
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  error?: string;
+} & Pick<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  "autoComplete" | "autoFocus" | "placeholder"
+>) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      <label htmlFor={id} className="text-sm font-semibold text-ink-2">
+        {label}
+      </label>
+      <input
+        {...input}
+        id={id}
+        suppressHydrationWarning
+        maxLength={60}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className={cn(
+          inputBox,
+          "min-w-0 px-4 placeholder:font-medium placeholder:text-ink-3/60 focus:border-fitr8 focus:ring-3 focus:ring-fitr8-lilac-soft",
+        )}
+      />
+      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
+    </div>
+  );
+}
+
+/**
+ * "About you" lays its fields out as a two-column grid from md (FoldSection); these span both
+ * columns. The rest pairs up (sex | date of birth).
+ */
+const FULL = "md:col-span-2";
 
 export type StepProps = {
   draft: OnboardingDraft;
@@ -88,15 +236,20 @@ function Field({
   label,
   error,
   fromHome,
+  className,
   children,
 }: {
   label: string;
   error?: string;
   fromHome?: boolean;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <fieldset className="flex min-w-0 flex-col gap-2.5" data-error={error ? "" : undefined}>
+    <fieldset
+      className={cn("flex min-w-0 flex-col gap-2.5", className)}
+      data-error={error ? "" : undefined}
+    >
       <legend className="mb-2.5 flex flex-wrap items-center gap-1.5 text-sm font-semibold text-ink-2">
         {label}
         {fromHome && <FromHome />}
@@ -186,7 +339,6 @@ export function AboutStep({
   ageHint,
 }: StepProps & { ageHint?: number | null }) {
   const bf = wantsBodyFat(draft);
-  const optional = bf ? "" : " (optional)";
   return (
     <>
       <Field label="Sex" error={errors.sex} fromHome={prefilled?.has("sex")}>
@@ -210,7 +362,7 @@ export function AboutStep({
         hint={ageHint ? `On the home page you said you’re ${ageHint}.` : undefined}
       />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <div className={cn("grid grid-cols-2 gap-3", FULL)}>
         <NumberField
           label={prefilled?.has("heightCm") ? "Height · from home page" : "Height"}
           unit="cm"
@@ -227,48 +379,57 @@ export function AboutStep({
           onValueChange={(v) => set("weightKg", v)}
           error={errors.weightKg}
         />
-        <NumberField
-          label={`Waist${optional}`}
-          unit="cm"
-          value={draft.waistCm}
-          onValueChange={(v) => set("waistCm", v)}
-          error={errors.waistCm}
-        />
-        <NumberField
-          label={`Neck${optional}`}
-          unit="cm"
-          value={draft.neckCm}
-          onValueChange={(v) => set("neckCm", v)}
-          error={errors.neckCm}
-        />
-        {draft.sex === "FEMALE" && (
-          <NumberField
-            label={`Hip${optional}`}
-            unit="cm"
-            value={draft.hipCm}
-            onValueChange={(v) => set("hipCm", v)}
-            error={errors.hipCm}
-          />
-        )}
       </div>
 
-      <div className="flex gap-3 rounded-card bg-sunken p-4">
-        <Info className="mt-0.5 size-5 shrink-0 text-ink-2" aria-hidden />
-        <p className="text-[13px] text-ink-2">
-          <span className="font-semibold text-ink">Measuring tip:</span> use a soft tape, standing
-          relaxed. Waist at the navel after breathing out; neck just below the Adam&apos;s apple
-          {draft.sex === "FEMALE" ? "; hips at the widest point" : ""}. We use these to estimate
-          body fat.
-        </p>
-      </div>
+      {/* Waist and neck (and hip) give body fat; they're asked only for a body-fat goal. */}
+      {bf && (
+        <Field label="Body measurements" className={FULL}>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <NumberField
+              label="Waist"
+              unit="cm"
+              value={draft.waistCm}
+              onValueChange={(v) => set("waistCm", v)}
+              error={errors.waistCm}
+            />
+            <NumberField
+              label="Neck"
+              unit="cm"
+              value={draft.neckCm}
+              onValueChange={(v) => set("neckCm", v)}
+              error={errors.neckCm}
+            />
+            {draft.sex === "FEMALE" && (
+              <NumberField
+                label="Hip"
+                unit="cm"
+                value={draft.hipCm}
+                onValueChange={(v) => set("hipCm", v)}
+                error={errors.hipCm}
+              />
+            )}
+          </div>
+          <div className="flex gap-3 rounded-card bg-sunken p-4">
+            <Info className="mt-0.5 size-5 shrink-0 text-ink-2" aria-hidden />
+            <p className="text-[13px] text-ink-2">
+              <span className="font-semibold text-ink">Measuring tip:</span> use a soft tape,
+              standing relaxed. Waist at the navel after breathing out; neck just below the
+              Adam&apos;s apple{draft.sex === "FEMALE" ? "; hips at the widest point" : ""}. We use
+              these to estimate your body fat for your goal.
+            </p>
+          </div>
+        </Field>
+      )}
 
       <Field
         label="How active are you outside workouts?"
         error={errors.activityLevel}
         fromHome={prefilled?.has("activityLevel")}
+        className={FULL}
       >
         <ChoiceCardGroup
           label="Activity level"
+          className="md:grid md:grid-cols-2"
           value={draft.activityLevel}
           onChange={(v) => set("activityLevel", v)}
           options={[
@@ -371,7 +532,7 @@ function ByWhen({
 export function TrainingStep({ draft, set, errors }: StepProps) {
   return (
     <>
-      <Field label="Diet" error={errors.dietType}>
+      <Field label="Diet" error={errors.dietType} className={FULL}>
         <ChipGroup
           label="Diet"
           value={draft.dietType}
@@ -385,7 +546,7 @@ export function TrainingStep({ draft, set, errors }: StepProps) {
         />
       </Field>
 
-      <Field label="Where I train" error={errors.equipment}>
+      <Field label="Where I train" error={errors.equipment} className={FULL}>
         <TileGroup
           label="Where I train"
           value={draft.equipment}
@@ -413,7 +574,7 @@ export function TrainingStep({ draft, set, errors }: StepProps) {
         />
       </Field>
 
-      <Field label="Days per week">
+      <Field label="Days per week" className={FULL}>
         <ChipGroup
           label="Days per week"
           value={draft.trainingDaysPerWeek}
@@ -422,7 +583,7 @@ export function TrainingStep({ draft, set, errors }: StepProps) {
         />
       </Field>
 
-      <Field label="Minutes per session">
+      <Field label="Minutes per session" className={FULL}>
         <Segmented
           label="Minutes per session"
           value={String(Math.min(60, Math.max(30, Math.round(draft.sessionMinutes / 15) * 15)))}
@@ -431,7 +592,7 @@ export function TrainingStep({ draft, set, errors }: StepProps) {
         />
       </Field>
 
-      <div className="flex flex-col gap-1.5">
+      <div className={cn("flex flex-col gap-1.5", FULL)}>
         <label htmlFor="injuries" className="text-[13px] font-semibold text-ink-2">
           Injuries or pain (optional)
         </label>
@@ -446,23 +607,63 @@ export function TrainingStep({ draft, set, errors }: StepProps) {
         <p className="text-[13px] text-ink-3">We&apos;ll avoid exercises that load these.</p>
       </div>
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-card bg-surface p-4">
-        <input
-          suppressHydrationWarning
-          type="checkbox"
-          checked={draft.medicalFlag}
-          onChange={(e) => set("medicalFlag", e.target.checked)}
-          className="mt-0.5 size-6 shrink-0 cursor-pointer accent-fitr8"
-        />
-        <span className="flex flex-col">
-          <span className="font-semibold">
-            I have a medical condition, am pregnant, or am under 18
+      <div
+        className={cn(
+          "flex flex-col gap-4 rounded-card bg-surface p-4 shadow-[0_0_0_1px_var(--color-line)]",
+          FULL,
+        )}
+      >
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            suppressHydrationWarning
+            type="checkbox"
+            checked={draft.medicalFlag}
+            onChange={(e) => set("medicalFlag", e.target.checked)}
+            aria-controls="medical-note"
+            aria-expanded={draft.medicalFlag}
+            className="mt-0.5 size-6 shrink-0 cursor-pointer accent-fitr8"
+          />
+          <span className="flex flex-col">
+            <span className="font-semibold">
+              I have a medical condition, am pregnant, or am under 18
+            </span>
+            <span className="text-[13px] text-ink-3">
+              We&apos;ll keep calories at maintenance instead of a deficit. Check with your doctor.
+            </span>
           </span>
-          <span className="text-[13px] text-ink-3">
-            We&apos;ll keep calories at maintenance instead of a deficit. Check with your doctor.
-          </span>
-        </span>
-      </label>
+        </label>
+        {draft.medicalFlag && (
+          <div className="flex animate-page-in flex-col gap-1.5 pl-9">
+            <label htmlFor="medical-note" className="text-[13px] font-semibold text-ink-2">
+              Tell us about it (optional)
+            </label>
+            <textarea
+              id="medical-note"
+              rows={3}
+              maxLength={MEDICAL_NOTE_MAX}
+              value={draft.medicalNote}
+              onChange={(e) => set("medicalNote", e.target.value)}
+              placeholder="e.g. type 2 diabetes, on metformin; 20 weeks pregnant"
+              aria-invalid={errors.medicalNote ? true : undefined}
+              aria-describedby="medical-note-hint"
+              className="resize-y rounded-input border border-line-strong bg-surface px-4 py-3 text-base outline-none placeholder:text-ink-3/60 focus:border-ink"
+            />
+            {errors.medicalNote ? (
+              <FieldError id="medical-note-hint">{errors.medicalNote}</FieldError>
+            ) : (
+              <p
+                id="medical-note-hint"
+                className="flex justify-between gap-3 text-[13px] text-ink-3"
+              >
+                <span>Private to your account. It helps keep your plan safe.</span>
+                <span className="tabular-nums">
+                  {draft.medicalNote.length}/{MEDICAL_NOTE_MAX}
+                </span>
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </>
   );
 }

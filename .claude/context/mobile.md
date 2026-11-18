@@ -29,7 +29,7 @@ SafeArea → QueryClientProvider → AuthProvider; splash until auth not "loadin
 | coach      | conversations/:id; POST coach/chat (SSE); 429 → limit card (no Pro link)                                                                                                                                     |
 | pro        | billing; POST billing/refresh                                                                                                                                                                                |
 | log/*      | saved-meals (+POST, PUT, DELETE, :id/log); upload-url → PUT → POST meals; meals/:id poll 1 s ≤60 s; PUT/recheck/DELETE; foods?q; parse-items; barcode/:code (not URL-encoded); quick-add; label (+:id, save) |
-| onboarding | plan; POST onboarding; goal/option                                                                                                                                                                           |
+| onboarding | plan; PATCH profile/name (first-time only); POST onboarding; goal/option                                                                                                                                     |
 
 ## Theme / dark mode (2026-11-17)
 
@@ -83,4 +83,8 @@ Firebase Analytics, lazily `require`d; no-op on web preview, in Expo Go, or when
 
 ## Tests
 
-None in apps/mobile. Copies of web/domain logic (`src/lib/onboarding-draft.ts`, `meal-rows.ts`, `barcode.ts`, `label.ts`, `format.ts`) are tested only via originals; mobile does not depend on `@fitr8/domain`.
+None in apps/mobile. Copies of web/domain logic (`src/lib/onboarding-draft.ts`, `meal-rows.ts`, `barcode.ts`, `label.ts`, `format.ts`, `person.ts`) are tested only via originals; mobile does not depend on `@fitr8/domain`.
+
+## Onboarding (2026-11-18)
+
+`app/onboarding/index.tsx`: steps 0 "What can we call you?" (first-time only; `DetailsStep`: names + optional phone with a flag button opening `components/sheet.tsx` country list), 1 goal, 2 "About you" (body + food/training, `LAST_STEP` `:68`); returning ("edit goal") users start at 1. Step 2 = two `FoldSection`s (`:481`, icon badge → tick, summary from `lib/onboarding-summary.ts`, `LayoutAnimation` on fold `:181`). Continue dimmed (not disabled) until the step is valid; tapping shows the errors; the hint names the first problem (`hintFor`, same labels as web). Step 0 Continue calls `/api/profile/phone-check`; submit PATCHes `/api/profile/name` before POST onboarding (409 → back to step 0). Rules in `lib/person.ts` (copy of domain `person.ts`). Waist/neck/hip only for a body-fat goal; medical checkbox reveals an optional note (`MEDICAL_NOTE_MAX`). Profile header shows first + last name.

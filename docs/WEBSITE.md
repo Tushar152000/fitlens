@@ -123,25 +123,31 @@ every entry point. Code: `src/components/onboarding/` (shell, steps, flow, build
 
 ### Entry points
 
-| Mode      | Starts at     | Who                                        | Steps (rail)                                                                                             |
-| --------- | ------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| `welcome` | `/welcome`    | Signed out, from "Start for free"          | Your name · Your goal · About you · Food and training · Save your plan · Your daily target · Get the app |
-| `new`     | `/onboarding` | Signed in, not onboarded (e.g. via /login) | Your goal · About you · Food and training · Your daily target · Get the app                              |
-| `edit`    | `/onboarding` | Onboarded, changing the goal from Profile  | Your goal · About you · Food and training · Your daily target (then Today)                               |
+| Mode      | Starts at     | Who                                        | Steps (rail)                                                                                                |
+| --------- | ------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `welcome` | `/welcome`    | Signed out, from "Start for free"          | Your details · Your goal · About you · Food and training · Save your plan · Your daily target · Get the app |
+| `new`     | `/onboarding` | Signed in, not onboarded (e.g. via /login) | Your details · Your goal · About you · Food and training · Your daily target · Get the app                  |
+| `edit`    | `/onboarding` | Onboarded, changing the goal from Profile  | Your goal · About you · Food and training · Your daily target (then Today)                                  |
 
 Signed-in visitors to `/welcome` are sent to `/onboarding` (or `/today` if onboarded).
 `/welcome/name` redirects to `/welcome`.
 
 ### Flow
 
-1. **Your name** (welcome only). "Already have an account? Log in" → `/login`.
+1. **Your details** (welcome and new; the app shows the same step to first-time users): first name
+   and last name (required), phone number (optional; a bare 10-digit number is taken as +91, others
+   need the country code; stored as E.164). Rules in `@fitr8/domain/person`; saved with
+   `PATCH /api/profile/name`. Signed in, it's prefilled from the account (Google's full name split
+   into first + last). Welcome only: "Already have an account? Log in" → `/login`.
 2. **Your goal**, **About you**, **Food and training**: the same fields, options and validation
    messages as the mobile app (`apps/mobile/src/app/onboarding/`) via `lib/onboarding/draft.ts`.
+   Waist, neck (and hip for women) appear under "Body measurements" only when the goal aims for
+   **Body fat %**, and are required then; for other goals they're neither checked nor sent.
 3. **Save your plan** (welcome only): "Continue with Google" → `/api/auth/google?returnTo=/welcome/done`
    (dev email login locally). Answers are stashed in sessionStorage when this step opens.
 4. **Building your plan**: full-screen ring + three ticks, at least 2.6 s. Signed out it runs on
-   `/welcome/done` after sign-in (saves the name, then `POST /api/onboarding`); signed in it runs
-   in place. If saving fails, the answers go back into storage and `/onboarding` reopens with them.
+   `/welcome/done` after sign-in (saves step 1, then `POST /api/onboarding`); signed in it saves
+   step 1, then runs in place. If saving fails, the answers go back into storage and `/onboarding` reopens with them.
 5. **Your daily target** (`/onboarding/plan?flow=…`): Realistic goal, dark target card
    (maintenance ± deficit, macro split), now → goal line, BMI / BMR / workouts, warnings. "Too fast
    to be safe" variant with Keep the goal / Keep the date (`POST /api/goal/option`).
@@ -155,14 +161,18 @@ Signed-in visitors to `/welcome` are sent to `/onboarding` (or `/today` if onboa
 
 - **Desktop (lg):** 340 px purple rail (logo, steps with ticks, reached form steps clickable, live
   estimate card with the hard shadow, "Log in" link) + one question column (640 px; 860 px on the
-  plan and app screens). The footer button sits under the content and sticks to the bottom only when
+  plan and app screens). **Wide (xl, 1280 px+):** form steps go landscape: kicker, title and a
+  one-line description on the left (stays in view), the fields on the right, the footer under the
+  fields (max 1160 px). The footer button sits under the content and sticks to the bottom only when
   a step is taller than the screen.
 - **Phones:** logo + estimate chip (tap for the breakdown), 5-segment progress bar and "Step n of
   5", one column, Continue pinned to the bottom.
 
 ### Live estimate
 
-`estimateFromDraft()` (unit-tested) runs `planGoal` from `@fitr8/domain` on the answers so far:
+The card shows the calorie number only ("Full breakdown on your plan"); macros and the goal line
+wait for the plan screen. `estimateFromDraft()` (unit-tested) runs `planGoal` from `@fitr8/domain`
+on the answers so far:
 the landing-page preview pace until the goal step is complete, then the real goal. Display only;
 the API computes the saved plan. Until there's a date of birth it uses the calculator's age.
 

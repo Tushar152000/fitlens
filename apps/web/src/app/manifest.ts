@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "FITR8 — AI fitness coach",
+    name: "FITR8 | AI fitness coach",
     short_name: "FITR8",
     description:
       "Snap your meals, hit your goal. Calorie tracking and adaptive workouts for Indian food.",

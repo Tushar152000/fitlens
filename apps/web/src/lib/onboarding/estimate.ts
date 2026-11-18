@@ -5,7 +5,7 @@ import {
   PREVIEW_WEEKS,
   type GoalType,
 } from "@fitr8/domain/nutrition";
-import { needsTarget, type OnboardingDraft } from "./draft";
+import { needsTarget, wantsBodyFat, type OnboardingDraft } from "./draft";
 
 export interface DraftEstimate {
   kcal: number;
@@ -21,7 +21,7 @@ export interface DraftEstimate {
 const MS_PER_WEEK = 7 * 86_400_000;
 const num = (s: string) => (s.trim() === "" ? NaN : Number(s));
 
-function ageOn(birthDate: string, today: Date): number | null {
+export function ageOn(birthDate: string, today: Date): number | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return null;
   const b = new Date(`${birthDate}T00:00:00Z`);
   let age = today.getUTCFullYear() - b.getUTCFullYear();
@@ -47,14 +47,16 @@ export function estimateFromDraft(
     return null;
   if (!(heightCm >= 120 && heightCm <= 230 && weightKg >= 30 && weightKg <= 250)) return null;
 
-  const bodyFatPct =
-    bodyFatNavy({
-      sex: d.sex,
-      heightCm,
-      waistCm: num(d.waistCm),
-      neckCm: num(d.neckCm),
-      hipCm: d.sex === "FEMALE" ? num(d.hipCm) : undefined,
-    }) ?? undefined;
+  // Same as the saved plan: measurements count only for a body-fat goal (the only time they're asked).
+  const bodyFatPct = !wantsBodyFat(d)
+    ? undefined
+    : (bodyFatNavy({
+        sex: d.sex,
+        heightCm,
+        waistCm: num(d.waistCm),
+        neckCm: num(d.neckCm),
+        hipCm: d.sex === "FEMALE" ? num(d.hipCm) : undefined,
+      }) ?? undefined);
   const stats = {
     sex: d.sex,
     ageYears,
