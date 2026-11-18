@@ -329,8 +329,8 @@
   }
  },
  "mobile": {
-  "syncedAt": "2026-11-18T10:12:08.959Z",
-  "head": "fa1438c",
+  "syncedAt": "2026-11-18T10:22:27.010Z",
+  "head": "a82fc22",
   "files": {
    "apps/mobile/.claude/settings.json": "14b797af98bf",
    "apps/mobile/.gitignore": "1b3d2a4eff0b",
@@ -348,7 +348,7 @@
    "apps/mobile/package.json": "f1b285285f77",
    "apps/mobile/src/app/(tabs)/_layout.tsx": "1f9e2a457880",
    "apps/mobile/src/app/(tabs)/profile.tsx": "d4dffc104aef",
-   "apps/mobile/src/app/(tabs)/today.tsx": "b405e71f3bc3",
+   "apps/mobile/src/app/(tabs)/today.tsx": "3cec0f9a06fe",
    "apps/mobile/src/app/(tabs)/workout.tsx": "61390775277f",
    "apps/mobile/src/app/+native-intent.tsx": "665bdee69042",
    "apps/mobile/src/app/_layout.tsx": "5c79b3a54675",
