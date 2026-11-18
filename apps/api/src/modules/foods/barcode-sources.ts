@@ -123,7 +123,7 @@ export function mapOff(p: Record<string, unknown>): SourceAnswer {
 }
 
 function openFoodFacts(env: Env): BarcodeSource {
-  const ua = `FITR8/0.1 (${env.OFF_CONTACT || "https://github.com/Tushar152000/fitlens"})`;
+  const ua = `FITR8/0.1 (${env.OFF_CONTACT || "https://github.com/Tushar152000/fitr8"})`;
   return {
     name: "OPEN_FOOD_FACTS",
     async lookup(codes) {
