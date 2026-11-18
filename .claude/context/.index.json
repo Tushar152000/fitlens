@@ -329,8 +329,8 @@
   }
  },
  "mobile": {
-  "syncedAt": "2026-11-18T10:27:30.752Z",
-  "head": "17141c4",
+  "syncedAt": "2026-11-18T10:27:46.090Z",
+  "head": "9b29ba1",
   "files": {
    "apps/mobile/.claude/settings.json": "14b797af98bf",
    "apps/mobile/.gitignore": "1b3d2a4eff0b",
