@@ -93,14 +93,14 @@ Health: startup and liveness probes hit `GET /api/health/live`; `GET /api/health
 
 ### Barcode sources
 
-A scanned barcode is looked up in FITR8's own foods first, then in every configured product database **at once** (`apps/api/src/modules/foods/barcode-sources.ts`); the most trusted full answer is saved, so each database sees each product once. Open Food Facts is always on. The others switch on when their variables are set (Cloud Run console, they survive deploys):
+A scanned barcode is looked up in FITR8's own foods first, then in every configured product database **at once** (`apps/api/src/modules/foods/barcode-sources.ts`); the most trusted full answer is saved, so each database sees each product once. Open Food Facts and UPCitemdb are on with no setup. The others switch on when their variables are set (Cloud Run console, they survive deploys):
 
 | Source                | Variables                                        | Gives                   | Notes                                                                                                                                                                                         |
 | --------------------- | ------------------------------------------------ | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | FatSecret             | `FATSECRET_CLIENT_ID`, `FATSECRET_CLIENT_SECRET` | nutrition               | Barcode lookup is a Premier feature (Premier Free for start-ups: US data, attribution). Other markets, India included, are paid. Allow the server's IPs in the FatSecret console if required. |
 | USDA FoodData Central | `USDA_FDC_API_KEY`                               | nutrition               | Free key. US branded foods: helps with imported products.                                                                                                                                     |
 | Edamam Food Database  | `EDAMAM_APP_ID`, `EDAMAM_APP_KEY`                | nutrition               | Paid plans.                                                                                                                                                                                   |
-| UPCitemdb             | `UPCITEMDB_ENABLED=true`                         | name, brand, photo only | Free trial, about 100 lookups a day. Prefills the label scan.                                                                                                                                 |
+| UPCitemdb             | on by default; `UPCITEMDB_ENABLED=false` = off   | name, brand, photo only | Free trial, about 100 lookups a day. Prefills the label scan.                                                                                                                                 |
 
 When no source has the nutrition, the app goes to "photograph the label" (prefilled with any name a source knew). A label scan whose numbers add up (energy within 15 % of 4P + 4C + 9F) is shared with everyone at once, so each product only ever needs one scan. A miss is remembered for 24 h, but only when every source answered.
 
