@@ -71,6 +71,13 @@ function pickTool(
     candidates.push({ name: "log_water", input: { ml: Number(ml[1]) } });
   if (kg && /weigh/.test(t))
     candidates.push({ name: "log_weigh_in", input: { weightKg: Number(kg[1]) } });
+  if (/^remember /.test(t))
+    candidates.push({ name: "remember", input: { fact: text.replace(/^remember /i, "") } });
+  if (/protein|creatine|science|study|research|how much|how many/.test(t))
+    candidates.push({ name: "search_knowledge", input: { query: text } });
+  if (/last time|earlier|you said|we discussed/.test(t))
+    candidates.push({ name: "search_past_chats", input: { query: text } });
+  if (/profile|about me/.test(t)) candidates.push({ name: "get_profile", input: {} });
   if (/workout|train|gym|session/.test(t))
     candidates.push({ name: "get_workout_today", input: {} });
   if (/week|history|last \d+ days/.test(t))

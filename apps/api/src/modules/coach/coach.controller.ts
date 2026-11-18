@@ -5,18 +5,23 @@ import {
   type CoachChatInput,
   type CoachConversationSummary,
   type CoachConversationView,
+  type CoachMemoryView,
   type CoachStreamEvent,
 } from "@fitr8/contracts";
 import type { Response } from "express";
 import { UserId } from "../../common/auth/decorators.js";
 import { ZodBody } from "../../common/http/zod.js";
 import { CoachService } from "./coach.service.js";
+import { CoachMemoryService } from "./memory/memory.service.js";
 
 const HEARTBEAT_MS = 15_000;
 
 @Controller("coach")
 export class CoachController {
-  constructor(private readonly coach: CoachService) {}
+  constructor(
+    private readonly coach: CoachService,
+    private readonly memory: CoachMemoryService,
+  ) {}
 
   /**
    * One user turn, streamed as server-sent events (see CoachStreamEvent in @fitr8/contracts).
@@ -70,5 +75,17 @@ export class CoachController {
   @HttpCode(204)
   async remove(@UserId() userId: string, @Param("id") id: string) {
     await this.coach.remove(userId, id);
+  }
+
+  /** What the coach remembers about the user, oldest first. */
+  @Get("memories")
+  memories(@UserId() userId: string): Promise<CoachMemoryView[]> {
+    return this.memory.list(userId);
+  }
+
+  @Delete("memories/:id")
+  @HttpCode(204)
+  async forget(@UserId() userId: string, @Param("id") id: string) {
+    await this.memory.remove(userId, id);
   }
 }

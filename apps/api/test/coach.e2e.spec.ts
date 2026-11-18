@@ -108,6 +108,141 @@ describe("coach (agent loop, mock model)", () => {
     await owner.agent.get(`/api/coach/conversations/${conversationId}`).expect(404);
   });
 
+  it("answers clearly off-topic requests without calling the model", async () => {
+    const { agent } = await onboardedUser();
+    const stream = events(
+      (
+        await chat(agent, { message: "Write a python program to reverse a linked list" }).expect(
+          200,
+        )
+      ).body as string,
+    );
+    const conversationId = (stream[0] as { conversationId: string }).conversationId;
+    expect(stream.some((e) => e.type === "tool")).toBe(false);
+    const text = stream
+      .filter((e): e is { type: "text"; delta: string } => e.type === "text")
+      .map((e) => e.delta)
+      .join("");
+    expect(text).toMatch(/fitness, food, training/);
+    expect(stream.at(-1)!.type).toBe("done");
+    const calls = await t.prisma.aiCall.count({
+      where: { type: "COACH_CHAT", user: { coachChats: { some: { id: conversationId } } } },
+    });
+    expect(calls).toBe(0);
+    const view = await agent.get(`/api/coach/conversations/${conversationId}`).expect(200);
+    expect(view.body.messages.map((m: { role: string }) => m.role)).toEqual(["user", "assistant"]);
+  });
+
+  it("opens a chat with the user's profile, today and memory; later turns carry only today", async () => {
+    const { agent } = await onboardedUser();
+    const first = events((await chat(agent, { message: "hello" }).expect(200)).body as string);
+    const conversationId = (first[0] as { conversationId: string }).conversationId;
+    await chat(agent, { conversationId, message: "and now?" }).expect(200);
+
+    const typed = await t.prisma.coachMessage.findMany({
+      where: { conversationId, role: "user", text: { not: "" } },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    });
+    const contextOf = (row: (typeof typed)[number]) => (row.content as { text: string }[])[0]!.text;
+    expect(contextOf(typed[0]!)).toMatch(/User: Coach Tester, \d+ y, /);
+    expect(contextOf(typed[0]!)).toMatch(/Goal: /);
+    expect(contextOf(typed[0]!)).toMatch(/Today: target \d+ kcal/);
+    expect(contextOf(typed[0]!)).toMatch(/<memory>nothing saved yet<\/memory>/);
+    expect(contextOf(typed[1]!)).toMatch(/^<context>\nNow: .*\nToday: /);
+    expect(contextOf(typed[1]!)).not.toMatch(/User: /);
+  });
+
+  it("remembers facts across chats, and the user can see and delete them", async () => {
+    const { agent } = await onboardedUser();
+    const stream = events(
+      (await chat(agent, { message: "remember I have a left knee injury" }).expect(200))
+        .body as string,
+    );
+    expect(stream.find((e) => e.type === "tool")).toMatchObject({ name: "remember" });
+
+    const list = await agent.get("/api/coach/memories").expect(200);
+    expect(list.body).toEqual([
+      expect.objectContaining({ id: expect.any(String), text: "I have a left knee injury" }),
+    ]);
+    const memoryId = list.body[0].id as string;
+
+    // A new chat starts with the memory in its context, with the id the coach needs to forget it.
+    const next = events((await chat(agent, { message: "hello" }).expect(200)).body as string);
+    const nextId = (next[0] as { conversationId: string }).conversationId;
+    const opening = await t.prisma.coachMessage.findFirstOrThrow({
+      where: { conversationId: nextId, role: "user" },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    });
+    const context = (opening.content as { text: string }[])[0]!.text;
+    expect(context).toContain(`- [${memoryId}] I have a left knee injury`);
+    expect(context).toMatch(/Recent chats: "remember I have a left knee injury"/);
+
+    const other = await onboardedUser();
+    await other.agent.delete(`/api/coach/memories/${memoryId}`).expect(404);
+    expect((await other.agent.get("/api/coach/memories").expect(200)).body).toEqual([]);
+
+    await agent.delete(`/api/coach/memories/${memoryId}`).expect(204);
+    expect((await agent.get("/api/coach/memories").expect(200)).body).toEqual([]);
+  });
+
+  it("looks up the science notes with their sources", async () => {
+    const { agent } = await onboardedUser();
+    const stream = events(
+      (await chat(agent, { message: "How much protein do I need to build muscle?" }).expect(200))
+        .body as string,
+    );
+    const conversationId = (stream[0] as { conversationId: string }).conversationId;
+    expect(stream.find((e) => e.type === "tool")).toMatchObject({ name: "search_knowledge" });
+    const results = await t.prisma.coachMessage.findMany({
+      where: { conversationId, role: "user", text: "" },
+    });
+    const output = JSON.stringify(results.map((r) => r.content));
+    expect(output).toContain("How much protein to eat");
+    expect(output).toContain("ISSN Position Stand: protein and exercise");
+  });
+
+  it("finds what was said in earlier chats, and reads the full profile", async () => {
+    const { agent } = await onboardedUser();
+    await chat(agent, { message: "I drank 500 ml of water" }).expect(200);
+    const recall = events(
+      (await chat(agent, { message: "what did you say earlier about water?" }).expect(200))
+        .body as string,
+    );
+    const recallId = (recall[0] as { conversationId: string }).conversationId;
+    expect(recall.find((e) => e.type === "tool")).toMatchObject({ name: "search_past_chats" });
+    const [result] = await t.prisma.coachMessage.findMany({
+      where: { conversationId: recallId, role: "user", text: "" },
+    });
+    expect(JSON.stringify(result!.content)).toContain("I drank 500 ml of water");
+
+    const profile = events(
+      (await chat(agent, { message: "tell me about my profile" }).expect(200)).body as string,
+    );
+    const profileId = (profile[0] as { conversationId: string }).conversationId;
+    expect(profile.find((e) => e.type === "tool")).toMatchObject({ name: "get_profile" });
+    const [out] = await t.prisma.coachMessage.findMany({
+      where: { conversationId: profileId, role: "user", text: "" },
+    });
+    const json = JSON.stringify(out!.content);
+    expect(json).toContain("dietType");
+    expect(json).not.toContain("email");
+  });
+
+  it("counts only typed messages toward the daily limit", async () => {
+    const { userId, agent } = await onboardedUser();
+    const conversation = await t.prisma.coachConversation.create({ data: { userId } });
+    // 40 tool-result rows (stored as "user" with no display text) are not messages the user sent.
+    await t.prisma.coachMessage.createMany({
+      data: Array.from({ length: 40 }, () => ({
+        conversationId: conversation.id,
+        role: "user",
+        content: [],
+        text: "",
+      })),
+    });
+    await chat(agent, { message: "hello" }).expect(200);
+  });
+
   it("enforces the daily message limit", async () => {
     const { userId, agent } = await onboardedUser();
     const conversation = await t.prisma.coachConversation.create({ data: { userId } });

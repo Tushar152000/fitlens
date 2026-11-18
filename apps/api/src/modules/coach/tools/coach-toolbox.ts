@@ -10,6 +10,10 @@ import { WorkoutsService } from "../../workouts/workouts.service.js";
 import { WaterService } from "../../water/water.service.js";
 import { MealsService } from "../../meals/meals.service.js";
 import { FoodsService } from "../../foods/foods.service.js";
+import { PlanService } from "../../plan/plan.service.js";
+import { PastChatsService } from "../history/past-chats.service.js";
+import { KnowledgeService } from "../knowledge/knowledge.service.js";
+import { CoachMemoryService } from "../memory/memory.service.js";
 import { defineTool, type AgentTool } from "../agent/tool.js";
 
 /** Keys the model never needs: internal ids, storage keys, raw model output, signed URLs. */
@@ -57,9 +61,14 @@ export class CoachToolbox {
     private readonly water: WaterService,
     private readonly meals: MealsService,
     private readonly foods: FoodsService,
+    private readonly plan: PlanService,
+    private readonly memory: CoachMemoryService,
+    private readonly knowledge: KnowledgeService,
+    private readonly pastChats: PastChatsService,
   ) {}
 
-  forUser(userId: string): AgentTool<unknown>[] {
+  /** `conversationId` is the chat in progress (null before it exists); past-chat search skips it. */
+  forUser(userId: string, conversationId: string | null = null): AgentTool<unknown>[] {
     const today = () => this.users.today(userId);
     const tools = [
       defineTool({
@@ -152,6 +161,59 @@ export class CoachToolbox {
           });
           return forModel({ meal: body, reviewInApp: true });
         },
+      }),
+      defineTool({
+        name: "get_profile",
+        label: "Checking your profile",
+        description:
+          "The user's profile and plan: age, sex, height, diet type (veg/eggetarian/vegan/non-veg), activity level, training experience, equipment, training days and session length, injuries, medical flag, goal (type, target weight, date), latest body measurements and the plan summary. Use whenever advice depends on who the user is.",
+        input: z.object({}),
+        run: async () => {
+          const [profile, plan] = await Promise.all([
+            this.users.coachProfile(userId),
+            this.plan.getPlan(userId).catch(() => null),
+          ]);
+          return forModel({ profile, plan });
+        },
+      }),
+      defineTool({
+        name: "remember",
+        label: "Remembering that",
+        description:
+          "Save one lasting fact about the user for future chats, in a short third-person sentence: injuries and pain, allergies and intolerances, foods they avoid or love, schedule, equipment, sports, preferences about coaching, and decisions you agreed on. Not for numbers the app already tracks (meals, weight, water) or passing moods. Returns `full` when 50 facts are stored: then ask which one to forget.",
+        input: z.object({ fact: z.string().trim().min(3).max(300) }),
+        run: async ({ fact }) => forModel(await this.memory.add(userId, fact)),
+      }),
+      defineTool({
+        name: "forget",
+        label: "Forgetting that",
+        description:
+          "Delete one saved fact by its id (from the <memory> list in the context or a remember result), when the user says it's wrong, out of date, or asks you to forget it.",
+        input: z.object({ id: z.string().trim().min(1).max(40) }),
+        run: async ({ id }) => {
+          await this.memory.remove(userId, id);
+          return { forgotten: id };
+        },
+      }),
+      defineTool({
+        name: "search_knowledge",
+        label: "Checking the science",
+        description:
+          "Search FITR8's science notes (training, hypertrophy, running, nutrition, protein, supplements, sleep, recovery, injuries, safety). Each note has its sources. Use before answering any factual health, nutrition or training question, and base the answer on the notes. Query in plain words, e.g. 'protein needs for muscle gain'.",
+        input: z.object({ query: z.string().trim().min(2).max(200) }),
+        run: async ({ query }) => {
+          const notes = await this.knowledge.search(query);
+          return notes.length ? forModel({ notes }) : { notes: [], note: "No matching notes." };
+        },
+      }),
+      defineTool({
+        name: "search_past_chats",
+        label: "Looking through our past chats",
+        description:
+          "Search what the user and you said in earlier coach conversations (not this one). Use when they refer to something from before ('like you said last week', 'the plan we made').",
+        input: z.object({ query: z.string().trim().min(2).max(200) }),
+        run: async ({ query }) =>
+          forModel({ results: await this.pastChats.search(userId, query, conversationId) }),
       }),
     ];
     return tools as AgentTool<unknown>[];

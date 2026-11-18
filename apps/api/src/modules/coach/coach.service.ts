@@ -18,6 +18,8 @@ import {
   type ModelGateway,
 } from "./agent/model-gateway.js";
 import { COACH_SYSTEM_PROMPT } from "./coach.prompt.js";
+import { CoachContext } from "./context.js";
+import { isOffTopic, OFF_TOPIC_REPLY } from "./scope.js";
 import { BillingService } from "../billing/billing.service.js";
 import { CoachToolbox } from "./tools/coach-toolbox.js";
 import { TurnLock } from "./turn-lock.js";
@@ -34,6 +36,8 @@ export interface PreparedTurn {
   userId: string;
   conversationId: string;
   history: BetaMessageParam[];
+  /** Clearly not about fitness or health: answered with OFF_TOPIC_REPLY, no model call. */
+  offTopic: boolean;
   release: () => Promise<void>;
 }
 
@@ -51,6 +55,7 @@ export class CoachService {
     private readonly toolbox: CoachToolbox,
     private readonly lock: TurnLock,
     private readonly billing: BillingService,
+    private readonly context: CoachContext,
     @Inject(MODEL_GATEWAY) private readonly gateway: ModelGateway,
   ) {}
 
@@ -63,9 +68,11 @@ export class CoachService {
     input: { conversationId?: string; message: string },
   ): Promise<PreparedTurn> {
     const timezone = await this.users.timezone(userId);
+    // Messages the user typed: tool results are stored as "user" rows too, with no display text.
     const sentToday = await this.prisma.coachMessage.count({
       where: {
         role: "user",
+        text: { not: "" },
         createdAt: { gte: startOfLocalDay(timezone) },
         conversation: { userId },
       },
@@ -100,10 +107,15 @@ export class CoachService {
         select: { role: true, content: true },
       });
       // Volatile context goes in the new user turn (append-only), never in the cached system prompt.
+      const context = await this.context.build(userId, {
+        timezone,
+        conversationId: conversation.id,
+        full: previous.length === 0,
+      });
       const userMessage: BetaMessageParam = {
         role: "user",
         content: [
-          { type: "text", text: `<context>${localNow(timezone)}</context>` },
+          { type: "text", text: `<context>\n${context}\n</context>` },
           { type: "text", text: input.message },
         ],
       };
@@ -121,7 +133,13 @@ export class CoachService {
         ),
         userMessage,
       ];
-      return { userId, conversationId: conversation.id, history, release };
+      return {
+        userId,
+        conversationId: conversation.id,
+        history,
+        offTopic: isOffTopic(input.message),
+        release,
+      };
     } catch (err) {
       await release();
       throw err;
@@ -133,10 +151,24 @@ export class CoachService {
     send({ type: "conversation", conversationId: turn.conversationId });
     let lastMessageId: string | null = null;
     try {
+      if (turn.offTopic) {
+        const reply = await this.prisma.coachMessage.create({
+          data: {
+            conversationId: turn.conversationId,
+            role: "assistant",
+            content: [{ type: "text", text: OFF_TOPIC_REPLY }],
+            text: OFF_TOPIC_REPLY,
+          },
+          select: { id: true },
+        });
+        send({ type: "text", delta: OFF_TOPIC_REPLY });
+        send({ type: "done", messageId: reply.id });
+        return;
+      }
       const outcome = await runAgent({
         gateway: this.gateway,
         system: SYSTEM,
-        tools: this.toolbox.forUser(turn.userId),
+        tools: this.toolbox.forUser(turn.userId, turn.conversationId),
         history: turn.history,
         signal,
         onEvent: (e) => send(e),
@@ -261,19 +293,6 @@ export class CoachService {
 function titleFrom(message: string): string {
   const oneLine = message.replace(/\s+/g, " ").trim();
   return oneLine.length > 60 ? `${oneLine.slice(0, 57)}…` : oneLine;
-}
-
-function localNow(timezone: string): string {
-  const now = new Intl.DateTimeFormat("en-IN", {
-    timeZone: timezone,
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date());
-  return `Now: ${now} (${timezone})`;
 }
 
 /** Collapse the raw transcript into chat bubbles: user text, and one bubble per assistant reply. */

@@ -1,8 +1,9 @@
 import type { CoachChatInput, CoachConversationView, CoachMessageView, CoachStreamEvent } from "@fitr8/contracts";
-import { ArrowUp, Check, CircleAlert, LoaderCircle, RotateCw, Square, SquarePen } from "lucide-react-native";
+import { ArrowUp, Brain, Check, CircleAlert, LoaderCircle, RotateCw, Square, SquarePen } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import { BackHeader } from "@/components/back-header";
 import { Line } from "@/components/skeletons";
 import { Button, Card, Chip, FieldError, Text } from "@/components/ui";
@@ -29,7 +30,8 @@ const MAX_LENGTH = 2000; // CoachChatSchema
 const SUGGESTIONS = [
   "How am I doing on protein today?",
   "What should I eat for dinner?",
-  "How much water should I drink today?",
+  "How many sets per week to build muscle?",
+  "Help me start running",
   "Why is my calorie target what it is?",
 ];
 
@@ -211,9 +213,18 @@ export default function CoachScreen() {
         <BackHeader>
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
-              <Text variant="meta">Ask about food, training or today</Text>
+              <Text variant="meta">Food, training, running and recovery</Text>
               <Text variant="h2">Your coach</Text>
             </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="What your coach remembers"
+              onPress={() => router.push("/coach-memory")}
+              hitSlop={8}
+              style={styles.newChat}
+            >
+              <Brain size={18} color={c.brandText} />
+            </Pressable>
             {(messages.length > 0 || conversationId) && (
               <Pressable
                 accessibilityRole="button"
@@ -319,10 +330,10 @@ function Intro({ onPick }: { onPick: (text: string) => void }) {
   return (
     <View style={{ gap: 16 }}>
       <Card>
-        <Text variant="h2">Ask me anything about your plan</Text>
+        <Text variant="h2">Your fitness and nutrition coach</Text>
         <Text color={c.ink2}>
-          I can see your meals, targets, water and workouts, and I can log water or a weigh-in for you. Every number
-          comes from your logs.
+          I know your goal, targets, meals, workouts and weight, and I remember what you tell me, like injuries or foods
+          you avoid. My advice is based on sports science, and I can log water or a weigh-in for you.
         </Text>
       </Card>
       <View style={styles.suggestions}>
@@ -332,7 +343,10 @@ function Intro({ onPick }: { onPick: (text: string) => void }) {
           </Chip>
         ))}
       </View>
-      <Text variant="meta">General guidance, not medical advice.</Text>
+      <Text variant="meta">
+        General guidance, not medical advice. If you&apos;re injured, pregnant, have a medical condition or take
+        medication, check with your doctor or physio.
+      </Text>
     </View>
   );
 }

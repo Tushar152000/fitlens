@@ -135,6 +135,7 @@ function Routes() {
         <Stack.Screen name="history" />
         <Stack.Screen name="progress" />
         <Stack.Screen name="coach" />
+        <Stack.Screen name="coach-memory" />
         <Stack.Screen name="reminders" />
         <Stack.Screen name="pro" options={{ presentation: "modal" }} />
       </Stack.Protected>

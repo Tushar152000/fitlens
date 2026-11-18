@@ -57,21 +57,21 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 
 ### 3.2 Bounded contexts (modules)
 
-| Module      | Owns tables                                                    | Routes                                                                            |
-| ----------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `auth`      | auth_identities, sessions, auth_codes, auth_events             | `/auth/*`                                                                         |
-| `users`     | users                                                          | `/me`, `/me/active`, `/account`, `/export`, `/profile/reminders`, `/profile/name` |
-| `plan`      | profiles, goals, daily_targets                                 | `/onboarding`, `/welcome-back`, `/targets`, `/plan`, `/goal/option`               |
-| `meals`     | meal_logs, meal_items, saved_meals, saved_meal_items, ai_calls | `/meals/*`, `/usage`, `/saved-meals/*`                                            |
-| `foods`     | foods, food_units, barcode_misses, label_scans                 | `/foods/*`                                                                        |
-| `water`     | water_logs                                                     | `/water/*`                                                                        |
-| `workouts`  | exercises, workout_plans, workout_logs                         | `/workouts/*`                                                                     |
-| `progress`  | body_metrics, checkins                                         | `/checkins`, `/progress`, `/history`, `/dashboard`                                |
-| `coach`     | coach_conversations, coach_messages                            | `/coach/*`                                                                        |
-| `reminders` | reminders (config only; the app schedules local notifications) | `/reminders/*`                                                                    |
-| `billing`   | entitlements, billing_events                                   | `/billing`, `/billing/refresh`, `/billing/revenuecat` (webhook)                   |
-| `ai`        | — (model access)                                               | —                                                                                 |
-| `health`    | —                                                              | `/health`, `/health/live`                                                         |
+| Module      | Owns tables                                                          | Routes                                                                            |
+| ----------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `auth`      | auth_identities, sessions, auth_codes, auth_events                   | `/auth/*`                                                                         |
+| `users`     | users                                                                | `/me`, `/me/active`, `/account`, `/export`, `/profile/reminders`, `/profile/name` |
+| `plan`      | profiles, goals, daily_targets                                       | `/onboarding`, `/welcome-back`, `/targets`, `/plan`, `/goal/option`               |
+| `meals`     | meal_logs, meal_items, saved_meals, saved_meal_items, ai_calls       | `/meals/*`, `/usage`, `/saved-meals/*`                                            |
+| `foods`     | foods, food_units, barcode_misses, label_scans                       | `/foods/*`                                                                        |
+| `water`     | water_logs                                                           | `/water/*`                                                                        |
+| `workouts`  | exercises, workout_plans, workout_logs                               | `/workouts/*`                                                                     |
+| `progress`  | body_metrics, checkins                                               | `/checkins`, `/progress`, `/history`, `/dashboard`                                |
+| `coach`     | coach_conversations, coach_messages, coach_memories, knowledge_notes | `/coach/*`                                                                        |
+| `reminders` | reminders (config only; the app schedules local notifications)       | `/reminders/*`                                                                    |
+| `billing`   | entitlements, billing_events                                         | `/billing`, `/billing/refresh`, `/billing/revenuecat` (webhook)                   |
+| `ai`        | — (model access)                                                     | —                                                                                 |
+| `health`    | —                                                                    | `/health`, `/health/live`                                                         |
 
 **Rule:** a module writes only its own tables. Reading another context's data goes through that module's exported service. This is what makes extraction into a separate service a mechanical change (see §6).
 
@@ -87,6 +87,10 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 - **Numbers come from tools, not the model.** The system prompt forbids inventing calories or macros.
 - **Append-only transcript.** Assistant turns are stored verbatim (`CoachMessage.content`, including thinking and compaction blocks) and replayed unchanged — required for prompt caching and preserved thinking. Never edit or delete past turns; dynamic context (local time) goes in the new user turn.
 - **Context management.** Frozen system prompt + tools with a cache breakpoint, automatic caching of the conversation tail, server-side compaction for long threads, and a per-step persistence rule: an assistant turn with `tool_use` is saved only together with its `tool_result`s, so a crash or disconnect can never leave an invalid transcript.
+- **Scope.** The prompt limits the coach to fitness, food, training, running, recovery and the app. `scope.ts` answers clear off-topic requests (code, DSA, homework…) with a fixed line and no model call; anything unclear goes to the model.
+- **Knows the user.** The first message of a chat carries a `<context>` block (`context.ts`): profile, goal, latest measurement, today's target and intake, saved memories (with ids) and recent chat titles. Later messages carry only the time and today's numbers. The system prompt stays byte-stable.
+- **Memory.** `remember` / `forget` tools write `coach_memories` (max 50 a user); the user sees and deletes them at `GET/DELETE /coach/memories`. `search_past_chats` searches the user's earlier conversations (Postgres full-text search).
+- **Grounded answers.** `search_knowledge` searches `knowledge_notes`: FITR8's own science notes with sources (`packages/db/prisma/data/knowledge/*.md`, loaded by the seed; see `docs/knowledge/README.md`). The prompt requires a lookup before factual health, training or nutrition answers.
 - **Limits.** Max iterations per turn, per-user daily message cap, one active turn per conversation (Redis lock), client disconnect aborts the model stream.
 - **Observability.** Every model request writes an `AiCall` row (type, model, tokens incl. cache reads, latency, success).
 

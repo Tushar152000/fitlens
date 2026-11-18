@@ -3,6 +3,7 @@ import { Prisma } from "@fitr8/db";
 import type { DeleteAccountInput, PreferredNameInput, RemindersInput } from "@fitr8/contracts";
 import { isWelcomeBack, shouldTouchActivity } from "@fitr8/domain/activity";
 import { localDate, mealDateProblem, parseDateOnly } from "@fitr8/domain/dates";
+import { ageFromBirthDate } from "@fitr8/domain/nutrition";
 import { PHONE_TAKEN } from "@fitr8/domain/person";
 import { AppError, notFound } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
@@ -127,6 +128,35 @@ export class UsersService {
       welcomeBack: isWelcomeBack(activity, now),
       profile,
       plan,
+    };
+  }
+
+  /**
+   * The profile facts the coach personalises with: who the user is and how they train. Null before
+   * onboarding. No contact details (email, phone) — the coach never needs them.
+   */
+  async coachProfile(userId: string, now = new Date()) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, profile: true },
+    });
+    const p = user?.profile;
+    if (!p) return null;
+    return {
+      name: user.name,
+      sex: p.sex,
+      age: ageFromBirthDate(p.birthDate, now),
+      heightCm: p.heightCm,
+      activityLevel: p.activityLevel,
+      dietType: p.dietType,
+      experience: p.experience,
+      equipment: p.equipment,
+      trainingDaysPerWeek: p.trainingDaysPerWeek,
+      sessionMinutes: p.sessionMinutes,
+      injuries: p.injuries,
+      medicalFlag: p.medicalFlag,
+      medicalNote: p.medicalFlag ? p.medicalNote : null,
+      timezone: p.timezone,
     };
   }
 

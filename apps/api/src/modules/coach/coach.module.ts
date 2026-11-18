@@ -6,6 +6,7 @@ import { AI_MODELS } from "../ai/models.js";
 import { OPENAI } from "../ai/openai.client.js";
 import { FoodsModule } from "../foods/foods.module.js";
 import { MealsModule } from "../meals/meals.module.js";
+import { PlanModule } from "../plan/plan.module.js";
 import { ProgressModule } from "../progress/progress.module.js";
 import { WaterModule } from "../water/water.module.js";
 import { WorkoutsModule } from "../workouts/workouts.module.js";
@@ -15,16 +16,24 @@ import { MODEL_GATEWAY } from "./agent/model-gateway.js";
 import { OpenAiGateway } from "./agent/openai.gateway.js";
 import { CoachController } from "./coach.controller.js";
 import { CoachService } from "./coach.service.js";
+import { CoachContext } from "./context.js";
+import { PastChatsService } from "./history/past-chats.service.js";
+import { KnowledgeService } from "./knowledge/knowledge.service.js";
+import { CoachMemoryService } from "./memory/memory.service.js";
 import { CoachToolbox } from "./tools/coach-toolbox.js";
 import { TurnLock } from "./turn-lock.js";
 
 /** The AI coach: an agent loop (Claude or OpenAI) whose tools are the other modules' application services. */
 @Module({
-  imports: [ProgressModule, WorkoutsModule, WaterModule, MealsModule, FoodsModule],
+  imports: [ProgressModule, WorkoutsModule, WaterModule, MealsModule, FoodsModule, PlanModule],
   controllers: [CoachController],
   providers: [
     CoachService,
     CoachToolbox,
+    CoachContext,
+    CoachMemoryService,
+    KnowledgeService,
+    PastChatsService,
     TurnLock,
     {
       provide: MODEL_GATEWAY,
