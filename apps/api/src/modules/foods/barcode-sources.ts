@@ -376,7 +376,8 @@ function upcItemDb(): BarcodeSource {
         headers: { Accept: "application/json" },
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
-      if (res.status === 404) return NONE;
+      // Unknown codes come back 200 with no items; 400 INVALID_UPC is "not a code it accepts".
+      if (res.status === 404 || res.status === 400) return NONE;
       if (!res.ok) throw new Error(`UPCitemdb ${res.status}`); // 429 = daily trial quota used
       const body = (await res.json()) as { items?: Record<string, unknown>[] };
       return body.items?.[0] ? mapUpcItemDb(body.items[0]) : NONE;
