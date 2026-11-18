@@ -1,10 +1,8 @@
 {
  "api": {
-  "syncedAt": "2026-11-18T06:10:02.716Z",
-  "head": "f762578",
+  "syncedAt": "2026-11-18T06:26:41.265Z",
+  "head": "cb32f36",
   "files": {
-   "apps/api/src/modules/foods/barcode-sources.spec.ts": "1fbbbcc27421",
-   "apps/api/src/modules/foods/barcode-sources.ts": "5e90265a70ba",
    "apps/api/.oxlintrc.json": "c46d7bfdcb62",
    "apps/api/Dockerfile": "5008ec25a6d3",
    "apps/api/nest-cli.json": "3da0df168136",
@@ -21,8 +19,8 @@
    "apps/api/src/common/http/zod.ts": "5916ad1165c9",
    "apps/api/src/config/config.module.ts": "9469c7457cc3",
    "apps/api/src/config/dotenv.ts": "9b22547b8571",
-   "apps/api/src/config/env.spec.ts": "441d4003589a",
-   "apps/api/src/config/env.ts": "478e10da0f1c",
+   "apps/api/src/config/env.spec.ts": "5df54cf52be7",
+   "apps/api/src/config/env.ts": "407b84251610",
    "apps/api/src/infra/infra.module.ts": "a293f4927e52",
    "apps/api/src/infra/prisma/prisma.module.ts": "4f88b10002f5",
    "apps/api/src/infra/prisma/prisma.service.ts": "622b8474806b",
@@ -85,6 +83,8 @@
    "apps/api/src/modules/coach/coach.service.ts": "68c25bc06f6d",
    "apps/api/src/modules/coach/tools/coach-toolbox.ts": "9fc93ff80493",
    "apps/api/src/modules/coach/turn-lock.ts": "9fb9d3d629d8",
+   "apps/api/src/modules/foods/barcode-sources.spec.ts": "1fbbbcc27421",
+   "apps/api/src/modules/foods/barcode-sources.ts": "f76c69cea331",
    "apps/api/src/modules/foods/barcode.service.spec.ts": "1da97cc79f1e",
    "apps/api/src/modules/foods/barcode.service.ts": "53d630e68223",
    "apps/api/src/modules/foods/foods.controller.ts": "581205cf21cc",
@@ -140,7 +140,7 @@
    "apps/api/test/reminders.e2e.spec.ts": "5d07b89df842",
    "apps/api/test/saved-meals.e2e.spec.ts": "a7110b5b2279",
    "apps/api/test/support/app.ts": "c7f76786e3c4",
-   "apps/api/test/support/env.ts": "6146f83fdbbf",
+   "apps/api/test/support/env.ts": "21c1b9e5da45",
    "apps/api/test/support/fake-apple.ts": "e068af719168",
    "apps/api/test/support/fake-google.ts": "8603229b3391",
    "apps/api/test/support/fake-revenuecat.ts": "2a2f98cfdfbe",
@@ -535,11 +535,11 @@
   }
  },
  "infra": {
-  "syncedAt": "2026-11-18T06:10:02.744Z",
-  "head": "f762578",
+  "syncedAt": "2026-11-18T06:26:41.270Z",
+  "head": "cb32f36",
   "files": {
-   ".env.example": "f18ed2ad3864",
-   ".env.production.example": "130aed740f2e",
+   ".env.example": "6b7480936da4",
+   ".env.production.example": "87c334d10a18",
    ".github/dependabot.yml": "1c8fd42f4644",
    ".github/workflows/ci.yml": "04026a5c3ce9",
    ".github/workflows/deploy.yml": "a59b2453f1d8",

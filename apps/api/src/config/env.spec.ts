@@ -65,6 +65,12 @@ describe("parseEnv", () => {
     expect(() => parseEnv({ ...base, AI_PROVIDER: "openai" })).toThrow(/OPENAI_API_KEY/);
   });
 
+  it("turns UPCitemdb on by default, off only when asked", () => {
+    expect(parseEnv(base).UPCITEMDB_ENABLED).toBe(true);
+    expect(parseEnv({ ...base, UPCITEMDB_ENABLED: "" }).UPCITEMDB_ENABLED).toBe(true);
+    expect(parseEnv({ ...base, UPCITEMDB_ENABLED: "false" }).UPCITEMDB_ENABLED).toBe(false);
+  });
+
   it("lets a developer turn dev sign-in off locally", () => {
     expect(parseEnv({ ...base, AUTH_DEV_LOGIN: "false" }).AUTH_DEV_LOGIN).toBe(false);
   });
