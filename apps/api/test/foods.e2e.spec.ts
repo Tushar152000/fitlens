@@ -15,7 +15,10 @@ describe("foods", () => {
   afterEach(() => vi.restoreAllMocks());
   afterAll(() => t.close());
 
-  const labelFood = (submittedById: string, extra: { barcode?: string } = {}) =>
+  const labelFood = (
+    submittedById: string,
+    extra: { barcode?: string; kcalPer100g?: number } = {},
+  ) =>
     t.prisma.food.create({
       data: {
         name: `label food ${Math.random().toString(36).slice(2)}`,
@@ -100,14 +103,45 @@ describe("foods", () => {
       expect(fetch).not.toHaveBeenCalled();
     });
 
-    it("hides someone else's unreviewed product", async () => {
+    it("hides someone else's label scan whose numbers don't add up", async () => {
       const stranger = await t.signIn();
       const { agent } = await t.signIn();
       const code = randomEan13();
-      await labelFood(stranger.userId, { barcode: code });
+      await labelFood(stranger.userId, { barcode: code, kcalPer100g: 900 });
       const res = await agent.get(`/api/foods/barcode/${code}`).expect(404);
       expect(res.body).toEqual({ error: "We don't know this product yet", details: { code } });
       await stranger.agent.get(`/api/foods/barcode/${code}`).expect(200);
+    });
+
+    it("shares someone else's older label scan once its numbers add up", async () => {
+      const stranger = await t.signIn();
+      const { agent } = await t.signIn();
+      const code = randomEan13();
+      const food = await labelFood(stranger.userId, { barcode: code }); // 480 kcal ≈ 4·7 + 4·70 + 9·19
+      const fetch = vi.spyOn(globalThis, "fetch");
+      const res = await agent.get(`/api/foods/barcode/${code}`).expect(200);
+      expect(res.body.food).toMatchObject({ id: food.id, verified: true });
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it("keeps what Open Food Facts knows when it has no nutrition", async () => {
+      const { agent } = await t.signIn();
+      const code = randomEan13();
+      vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        json(200, {
+          product: { product_name: "Aloo Bhujia", brands: "Haldiram's", nutriments: {} },
+        }),
+      );
+      const res = await agent.get(`/api/foods/barcode/${code}`).expect(404);
+      expect(res.body.details).toEqual({
+        code,
+        name: "Aloo Bhujia",
+        brand: "Haldiram's",
+        imageUrl: null,
+      });
+      // Cached miss still carries the name.
+      const again = await agent.get(`/api/foods/barcode/${code}`).expect(404);
+      expect(again.body.details).toMatchObject({ name: "Aloo Bhujia" });
     });
 
     it("imports a product from Open Food Facts once", async () => {
@@ -266,12 +300,165 @@ describe("foods", () => {
         totalKcal: 120,
       });
       const food = await t.prisma.food.findUniqueOrThrow({ where: { id: meal.items[0].foodId! } });
+      // 480 kcal ≈ 4·7 + 4·70 + 9·19: shared with everyone at once.
       expect(food).toMatchObject({
         source: "LABEL_SCAN",
-        verified: false,
+        verified: true,
         submittedById: owner.userId,
         barcode: code,
       });
+      const found = await stranger.agent.get(`/api/foods/barcode/${code}`).expect(200);
+      expect(found.body.food.id).toBe(food.id);
+    });
+
+    it("keeps a scan whose numbers don't add up private, and lets a checked scan take its barcode", async () => {
+      const first = await t.signIn();
+      const second = await t.signIn();
+      vi.spyOn(t.app.get(StorageService), "getImage").mockResolvedValue(PNG);
+      const code = randomEan13();
+      const saveScan = async (user: typeof first, kcal: number) => {
+        const scan = await user.agent
+          .post("/api/foods/label")
+          .send({ photoKey: `meals/${user.userId}/l.jpg`, barcode: code })
+          .expect(201);
+        const saved = await user.agent
+          .post(`/api/foods/label/${scan.body.id}/save`)
+          .send({
+            name: `Scan ${kcal} ${code}`,
+            per100g: { kcal, protein: 7, carbs: 70, fat: 19 },
+            quantity: 100,
+            unit: "g",
+            grams: 100,
+            mealType: "SNACK",
+          })
+          .expect(201);
+        const meal = await t.prisma.mealLog.findUniqueOrThrow({
+          where: { id: saved.body.id },
+          include: { items: true },
+        });
+        return t.prisma.food.findUniqueOrThrow({ where: { id: meal.items[0].foodId! } });
+      };
+
+      const wrong = await saveScan(first, 900);
+      expect(wrong).toMatchObject({ verified: false, barcode: code });
+      await second.agent.get(`/api/foods/barcode/${code}`).expect(404);
+
+      const right = await saveScan(second, 480);
+      expect(right).toMatchObject({ verified: true, barcode: code });
+      expect(await t.prisma.food.findUniqueOrThrow({ where: { id: wrong.id } })).toMatchObject({
+        barcode: null,
+      });
+      const found = await first.agent.get(`/api/foods/barcode/${code}`).expect(200);
+      expect(found.body.food.id).toBe(right.id);
+    });
+  });
+
+  describe("barcode with every source configured", () => {
+    let all: TestApp;
+    beforeAll(async () => {
+      all = await createTestApp({
+        env: {
+          USDA_FDC_API_KEY: "usda-key",
+          EDAMAM_APP_ID: "ed-id",
+          EDAMAM_APP_KEY: "ed-key",
+          UPCITEMDB_ENABLED: "true",
+        },
+      });
+    });
+    afterAll(() => all.close());
+
+    /** Answers per host; otherwise each source's real "unknown product" reply. */
+    const route = (answers: Partial<Record<"off" | "usda" | "edamam" | "upc", () => Response>>) =>
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+        const url = String(input instanceof Request ? input.url : input);
+        const key = url.includes("openfoodfacts")
+          ? "off"
+          : url.includes("nal.usda.gov")
+            ? "usda"
+            : url.includes("edamam")
+              ? "edamam"
+              : url.includes("upcitemdb")
+                ? "upc"
+                : null;
+        const answer = key ? answers[key] : undefined;
+        if (answer) return answer();
+        // Like the real APIs: USDA search answers 200 with no foods, the others 404.
+        return key === "usda" ? json(200, { foods: [] }) : json(404, {});
+      });
+
+    it("asks every source at once and saves the first full answer", async () => {
+      const { agent } = await all.signIn();
+      const code = randomEan13();
+      const fetch = route({
+        usda: () =>
+          json(200, {
+            foods: [
+              { gtinUpc: "999", description: "WRONG" },
+              {
+                gtinUpc: code,
+                description: `IMPORTED OATS ${code}`,
+                brandOwner: "Quaker",
+                foodNutrients: [
+                  { nutrientId: 1008, value: 379 },
+                  { nutrientId: 1003, value: 13 },
+                  { nutrientId: 1005, value: 68 },
+                  { nutrientId: 1004, value: 6.5 },
+                ],
+              },
+            ],
+          }),
+        upc: () => json(200, { items: [{ title: "Quaker Oats" }] }),
+      });
+      const res = await agent.get(`/api/foods/barcode/${code}`).expect(200);
+      expect(res.body.food).toMatchObject({
+        source: "USDA",
+        verified: true,
+        barcode: code,
+        kcalPer100g: 379,
+      });
+      const hosts = fetch.mock.calls.map(([u]) => new URL(String(u)).hostname);
+      expect(new Set(hosts)).toEqual(
+        new Set([
+          "world.openfoodfacts.org",
+          "api.nal.usda.gov",
+          "api.edamam.com",
+          "api.upcitemdb.com",
+        ]),
+      );
+    });
+
+    it("returns a name-only answer to prefill the label scan", async () => {
+      const { agent } = await all.signIn();
+      const code = randomEan13();
+      route({
+        upc: () =>
+          json(200, {
+            items: [{ title: "Parle Monaco", brand: "Parle", images: ["https://u/m.jpg"] }],
+          }),
+      });
+      const res = await agent.get(`/api/foods/barcode/${code}`).expect(404);
+      expect(res.body.details).toEqual({
+        code,
+        name: "Parle Monaco",
+        brand: "Parle",
+        imageUrl: "https://u/m.jpg",
+      });
+      expect(await all.prisma.barcodeMiss.findUnique({ where: { code } })).toMatchObject({
+        name: "Parle Monaco",
+      });
+    });
+
+    it("doesn't remember a miss while a source is down, and 502s only when all are", async () => {
+      const { agent } = await all.signIn();
+      const code = randomEan13();
+      route({ usda: () => json(500, {}) });
+      await agent.get(`/api/foods/barcode/${code}`).expect(404);
+      expect(await all.prisma.barcodeMiss.findUnique({ where: { code } })).toBeNull();
+
+      vi.spyOn(globalThis, "fetch").mockImplementation(async () => json(503, {}));
+      await agent
+        .get(`/api/foods/barcode/${randomEan13()}`)
+        .expect(502, { error: "The product database is busy. Try again in a minute." });
     });
   });
 });

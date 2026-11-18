@@ -85,6 +85,8 @@ enum FoodSource {
   AI_ESTIMATE
   OPEN_FOOD_FACTS
   LABEL_SCAN
+  FATSECRET
+  EDAMAM
 }
 
 enum AiCallType {
@@ -369,6 +371,11 @@ model Food {
 model BarcodeMiss {
   code      String   @id
   checkedAt DateTime @default(now())
+
+  /// What a source knew without nutrition (e.g. UPCitemdb): prefills the label scan.
+  name      String?   @db.VarChar(200)
+  brand     String?   @db.VarChar(120)
+  imageUrl  String?   @db.VarChar(500)
 
   @@map("barcode_misses")
 }

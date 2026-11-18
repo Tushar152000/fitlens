@@ -4,6 +4,7 @@ Record decisions as `YYYY-MM-DD — decision — why`. Move a question to Decide
 
 ## Decided
 
+- 2026-11-18 — Barcodes: all sources in parallel (OFF + optional FatSecret/USDA/Edamam/UPCitemdb by env); label scans whose numbers add up are shared at once (crowd coverage for Indian products); camera auto-opens a barcode, no barcode mode.
 - 2026-11-17 — App tab bar is Today · Workout · [camera] · Coach · Profile; Progress moved to a card on Today (+ `/progress` stack screen); Today's workout card and "Ask your coach" row removed; "History" link renamed "Past logs".
 - 2026-11-17 — Returning users: re-login never repeats onboarding; after 90+ days without app use (`users.lastActiveAt`, touched by GET /me hourly) the app asks only weight, height, waist/neck if body-fat goal, activity, equipment, training days/minutes, injuries, medical flag (`POST /api/welcome-back`, goal kept, targets recomputed; "Not now" = `POST /api/me/active`). Web does not show it (read-only).
 - 2026-11-17 — Dark mode (app only): System/Light/Dark in Profile, palette in `apps/mobile/src/lib/palette.ts` designed (not inverted), `userInterfaceStyle: automatic` → app version 0.4.0 (store build). Web stays light.

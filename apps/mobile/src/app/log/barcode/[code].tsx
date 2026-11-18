@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { BarcodeProductDto, FoodDto } from "@fitr8/contracts";
+import type { BarcodeNotFoundDetails, BarcodeProductDto, FoodDto } from "@fitr8/contracts";
 import { ProductSkeleton } from "@/components/skeletons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
@@ -40,8 +40,12 @@ export default function ProductRoute() {
     const err = product.error;
     const status = err instanceof ApiError ? err.status : 0;
     const reason: Reason = status === 400 ? "invalid" : status === 404 || !err ? "unknown" : "unreachable";
+    // A product database may know the product without its nutrition: use that to prefill.
+    const known =
+      err instanceof ApiError && status === 404 ? (err.details as BarcodeNotFoundDetails | undefined) : undefined;
     return (
       <NotFound
+        known={known?.name ? { name: known.name, brand: known.brand ?? null, imageUrl: known.imageUrl ?? null } : null}
         code={params.code}
         choice={choiceParams(mealFromParam(params.meal), dayFromParam(params.date))}
         reason={reason}
@@ -273,10 +277,13 @@ const TIPS = [
 
 /** Design 7e: unknown (or invalid) barcode → photograph the label, or type the meal. */
 function NotFound({
+  known,
   code,
   choice,
   reason,
 }: {
+  /** What a product database knew without the nutrition. */
+  known: { name: string; brand: string | null; imageUrl: string | null } | null;
   code: string;
   /** Meal and day picked so far, carried to the label or typing screen. */
   choice: { meal?: string; date?: string };
@@ -284,13 +291,17 @@ function NotFound({
 }) {
   const c = useColors();
   const styles = useStyles();
-  const [name, setName] = useState("");
+  const [name, setName] = useState(
+    known ? (known.brand && !known.name.includes(known.brand) ? `${known.name} (${known.brand})` : known.name) : "",
+  );
   const title =
     reason === "invalid"
       ? "That barcode didn't read right"
       : reason === "unreachable"
         ? "We couldn't check this product"
-        : "We don't know this product yet";
+        : known
+          ? "We know it, but not its nutrition"
+          : "We don't know this product yet";
 
   return (
     <Screen
@@ -326,7 +337,9 @@ function NotFound({
             ? "Scan it again, or photograph the nutrition label instead."
             : reason === "unreachable"
               ? "The product database didn't answer. Photograph the label, or try again in a minute."
-              : "Photograph its nutrition label once and it's saved for next time."}
+              : known
+                ? `${known.name}${known.brand ? ` · ${known.brand}` : ""}. Photograph its nutrition label once and it's saved for everyone.`
+                : "Photograph its nutrition label once and it's saved for everyone."}
         </Text>
         {reason !== "invalid" && (
           <Text size={13} color={c.ink3} tabular>

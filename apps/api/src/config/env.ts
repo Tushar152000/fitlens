@@ -135,6 +135,20 @@ export const EnvSchema = z
     REVENUECAT_ENTITLEMENT: z.string().default("pro"),
 
     OFF_CONTACT: optional,
+    /**
+     * Extra barcode sources, tried alongside Open Food Facts when a product isn't in our database.
+     * Each is off until its key is set (docs/DEPLOY.md "Barcode sources").
+     */
+    /** USDA FoodData Central (free key, api.data.gov): US branded foods by GTIN/UPC. */
+    USDA_FDC_API_KEY: optional,
+    /** FatSecret Platform OAuth2 client (Premier, or Premier Free with attribution): barcode scope. */
+    FATSECRET_CLIENT_ID: optional,
+    FATSECRET_CLIENT_SECRET: optional,
+    /** Edamam Food Database API: UPC/EAN lookup. */
+    EDAMAM_APP_ID: optional,
+    EDAMAM_APP_KEY: optional,
+    /** UPCitemdb free trial (no key, ~100 lookups/day): product name and photo only, no nutrition. */
+    UPCITEMDB_ENABLED: flag,
   })
   // Resolve environment-dependent defaults, then validate the result.
   .transform((env) => {
