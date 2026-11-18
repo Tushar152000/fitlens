@@ -204,6 +204,30 @@ export const WaterAddSchema = z.object({
   ml: z.number().int().min(50).max(2000),
 });
 
+/** Longest message the website's contact form accepts. */
+export const CONTACT_MESSAGE_MAX = 2000;
+
+/**
+ * The website's "Contact us" form (POST /api/contact, no sign-in). `website` is a honeypot field
+ * hidden from people; bots that fill it get a quiet success and nothing is sent.
+ */
+export const ContactMessageSchema = z.object({
+  // No line breaks in the name: it goes into the email subject and Reply-To.
+  name: z
+    .string()
+    .trim()
+    .min(1, "Tell us your name.")
+    .max(100)
+    .regex(/^[^\r\n]*$/, "Use one line for your name."),
+  email: z.string().trim().email("Enter an email we can reply to.").max(254),
+  message: z
+    .string()
+    .trim()
+    .min(10, "Write a little more so we can help.")
+    .max(CONTACT_MESSAGE_MAX),
+  website: z.string().max(200).optional(),
+});
+
 export const QuickAddSchema = z.object({
   foodId: z.string().min(1),
   mealType: MealTypeSchema,
@@ -333,6 +357,7 @@ export type RemindersInput = z.infer<typeof RemindersSchema>;
 export type PreferredNameInput = z.infer<typeof PreferredNameSchema>;
 export type PhoneCheckQuery = z.infer<typeof PhoneCheckQuerySchema>;
 export type WaterAddInput = z.infer<typeof WaterAddSchema>;
+export type ContactMessageInput = z.infer<typeof ContactMessageSchema>;
 export type QuickAddInput = z.infer<typeof QuickAddSchema>;
 export type LabelScanInput = z.infer<typeof LabelScanSchema>;
 export type LabelSaveInput = z.infer<typeof LabelSaveSchema>;

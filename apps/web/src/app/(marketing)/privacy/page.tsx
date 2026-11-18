@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { AnalyticsChoice } from "@/components/analytics";
-import { CONTACT_EMAIL } from "../_components/faq";
+import { CONTACT_EMAIL } from "../_components/contact";
 import { LegalPage } from "../_components/legal-page";
 
 export const metadata: Metadata = {

@@ -112,13 +112,14 @@ gcloud run jobs execute fitlens-migrate --project=fitlens-prod --region=asia-sou
 
 ## Knobs (GitHub variables, no code change)
 
-| Variable                                  | Default  | Effect                                                      |
-| ----------------------------------------- | -------- | ----------------------------------------------------------- |
-| `API_MIN_INSTANCES` / `API_MAX_INSTANCES` | 1 / 3    | Warm instances (no cold starts) / ceiling                   |
-| `AI_PROVIDER`                             | `openai` | `anthropic` switches extraction + coach (needs its key)     |
-| `PAYWALL_ENABLED`                         | `false`  | Free-plan limits and Pro gating                             |
-| `APPLE_CLIENT_ID`                         | unset    | Sign in with Apple (set by setup.sh when its secrets exist) |
-| `REVENUECAT_ENABLED`                      | unset    | Mounts the RevenueCat secrets                               |
+| Variable                                  | Default  | Effect                                                                                                                                                                                                                    |
+| ----------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `API_MIN_INSTANCES` / `API_MAX_INSTANCES` | 1 / 3    | Warm instances (no cold starts) / ceiling                                                                                                                                                                                 |
+| `AI_PROVIDER`                             | `openai` | `anthropic` switches extraction + coach (needs its key)                                                                                                                                                                   |
+| `PAYWALL_ENABLED`                         | `false`  | Free-plan limits and Pro gating                                                                                                                                                                                           |
+| `APPLE_CLIENT_ID`                         | unset    | Sign in with Apple (set by setup.sh when its secrets exist)                                                                                                                                                               |
+| `REVENUECAT_ENABLED`                      | unset    | Mounts the RevenueCat secrets                                                                                                                                                                                             |
+| `SMTP_USER` (+ `SMTP_HOST`)               | unset    | Website contact form email: the Gmail address that sends it (host defaults to `smtp.gmail.com`); needs the `SMTP_PASS` secret (a Gmail app password, `setup.sh` asks). Unset: the form answers 503 with the email address |
 
 Scaling up later is configuration only: raise the Cloud SQL tier (`gcloud sql instances patch`), turn on
 its high availability, raise `API_MAX_INSTANCES`, add Redis + a worker service (never `REDIS_URL` alone:

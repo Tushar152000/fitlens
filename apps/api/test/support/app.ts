@@ -6,6 +6,7 @@ import request from "supertest";
 import { applyTestEnv } from "./env.js";
 import { FakeApple } from "./fake-apple.js";
 import { FakeGoogle } from "./fake-google.js";
+import { FakeMailer } from "./fake-mailer.js";
 import { FakeRevenueCat } from "./fake-revenuecat.js";
 
 applyTestEnv();
@@ -14,6 +15,7 @@ const { PrismaService } = await import("../../src/infra/prisma/prisma.service.js
 const { GOOGLE_OIDC } = await import("../../src/modules/auth/google/oidc.js");
 const { APPLE_ID } = await import("../../src/modules/auth/apple/apple-id.js");
 const { REVENUECAT } = await import("../../src/modules/billing/revenuecat.js");
+const { MAILER } = await import("../../src/infra/mail/mailer.js");
 
 export interface TestApp {
   app: INestApplication;
@@ -27,6 +29,8 @@ export interface TestApp {
   apple: FakeApple;
   /** RevenueCat's REST API, as far as the API can tell. */
   revenueCat: FakeRevenueCat;
+  /** Outgoing email (the contact form), as far as the API can tell. */
+  mail: FakeMailer;
   /** A fresh signed-in user. Requests made through the returned agent carry the session cookie. */
   signIn: (
     name?: string,
@@ -44,6 +48,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
   const google = new FakeGoogle();
   const apple = new FakeApple();
   const revenueCat = new FakeRevenueCat();
+  const mail = new FakeMailer();
   const saved = { ...process.env };
   Object.assign(process.env, options.env);
   let moduleRef;
@@ -55,6 +60,8 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
       .useValue(apple)
       .overrideProvider(REVENUECAT)
       .useValue(revenueCat)
+      .overrideProvider(MAILER)
+      .useValue(mail)
       .compile();
   } finally {
     process.env = saved;
@@ -74,6 +81,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
     google,
     apple,
     revenueCat,
+    mail,
     async signIn(name = "Test User") {
       const agent = request.agent(server);
       const res = await agent

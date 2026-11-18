@@ -9,6 +9,7 @@ import { ConfigModule, ENV, type Env } from "./config/config.module.js";
 import { InfraModule } from "./infra/infra.module.js";
 import { AiModule } from "./modules/ai/ai.module.js";
 import { CoachModule } from "./modules/coach/coach.module.js";
+import { ContactModule } from "./modules/contact/contact.module.js";
 import { AuthGuard } from "./modules/auth/auth.guard.js";
 import { AuthModule } from "./modules/auth/auth.module.js";
 import { BillingModule } from "./modules/billing/billing.module.js";
@@ -84,6 +85,7 @@ import { WorkoutsModule } from "./modules/workouts/workouts.module.js";
     ProgressModule,
     RemindersModule,
     CoachModule,
+    ContactModule,
   ],
   // Guards run in this order: rate limit → CSRF origin check → session.
   providers: [

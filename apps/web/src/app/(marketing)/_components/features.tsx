@@ -112,7 +112,7 @@ export function Features() {
       onMouseLeave={() => (paused.current = false)}
       onFocus={() => (paused.current = true)}
       onBlur={() => (paused.current = false)}
-      className="scroll-mt-16 bg-white py-16 sm:py-28"
+      className="scroll-mt-20 bg-white py-16 sm:py-28"
     >
       <div className="mx-auto max-w-[1300px] px-4 sm:px-6 lg:px-10">
         <SectionHead

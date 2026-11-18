@@ -79,6 +79,7 @@ PUBLIC_URL="${PUBLIC_URL:-$(var PUBLIC_URL)}"
 API_PUBLIC_URL="${API_PUBLIC_URL:-$(var API_PUBLIC_URL)}"
 APPLE_CLIENT_ID="$(var APPLE_CLIENT_ID)"
 REVENUECAT_ENABLED="$(var REVENUECAT_ENABLED)"
+SMTP_USER="$(var SMTP_USER)"
 PAYWALL_ENABLED="$(var PAYWALL_ENABLED)"
 AI_PROVIDER="$(var AI_PROVIDER)"
 AI_PROVIDER="${AI_PROVIDER:-openai}"
@@ -90,6 +91,7 @@ required=(DATABASE_URL AUTH_SECRET AUTH_GOOGLE_ID AUTH_GOOGLE_SECRET S3_ENDPOINT
 if [ "$AI_PROVIDER" = anthropic ]; then required+=(ANTHROPIC_API_KEY); else required+=(OPENAI_API_KEY); fi
 [ -n "$APPLE_CLIENT_ID" ] && required+=(APPLE_TEAM_ID APPLE_KEY_ID APPLE_PRIVATE_KEY)
 [ "$REVENUECAT_ENABLED" = true ] && required+=(REVENUECAT_SECRET_KEY REVENUECAT_WEBHOOK_AUTH)
+[ -n "$SMTP_USER" ] && required+=(SMTP_PASS)
 for s in "${required[@]}"; do
   if [ -z "$(g secrets versions list "$s" --filter=state=ENABLED --limit=1 --format='value(name)')" ]; then
     bad "$s: no enabled version"

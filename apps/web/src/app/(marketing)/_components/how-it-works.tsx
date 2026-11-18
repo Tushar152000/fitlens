@@ -4,7 +4,7 @@ import { SectionHead } from "./section-head";
 /** Three real steps, so numbered. Each card previews the matching piece of the app. */
 export function HowItWorks() {
   return (
-    <section id="how" className="scroll-mt-16 py-16 sm:py-28">
+    <section id="how" className="scroll-mt-20 py-16 sm:py-28">
       <div className="mx-auto max-w-[1300px] px-4 sm:px-6 lg:px-10">
         <SectionHead
           kicker="How it works"

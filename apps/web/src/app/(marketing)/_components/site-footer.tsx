@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { CONTACT_EMAIL } from "./faq";
+import { CONTACT_ADDRESS, CONTACT_EMAIL } from "./contact";
 
 const COMPANY_LINKS = [
-  { label: "Reviews", href: "/#stories" },
+  { label: "About us", href: "/about" },
+  { label: "Contact us", href: "/contact" },
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Terms of Use", href: "/terms" },
 ];
-/** Dark footer (extra bottom padding clears the section dock): wordmark, live links and contact. */
+/** Dark footer: wordmark, live links and contact. */
 export function SiteFooter() {
   return (
-    <footer className="bg-fitr8-footer pt-14 pb-28 text-[15px] text-fitr8-footer-text">
+    <footer className="bg-fitr8-footer pt-14 pb-10 text-[15px] text-fitr8-footer-text">
       <div className="mx-auto max-w-[1300px] px-4 sm:px-6 lg:px-10">
         <div className="grid gap-8 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <div>
@@ -45,9 +46,7 @@ export function SiteFooter() {
                 </a>
               </li>
               <li>
-                <address className="leading-relaxed not-italic">
-                  House No-61, Gali No-2, Near Narayan Farm House, Akash Nagar, Ghaziabad
-                </address>
+                <address className="leading-relaxed not-italic">{CONTACT_ADDRESS}</address>
               </li>
             </ul>
           </div>

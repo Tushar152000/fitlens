@@ -157,6 +157,8 @@ jobs:
           AI_PROVIDER: ${{ vars.AI_PROVIDER || 'openai' }}
           APPLE_CLIENT_ID: ${{ vars.APPLE_CLIENT_ID }}
           REVENUECAT: ${{ vars.REVENUECAT_ENABLED }}
+          SMTP_USER: ${{ vars.SMTP_USER }}
+          SMTP_HOST: ${{ vars.SMTP_HOST || 'smtp.gmail.com' }}
           PAYWALL: ${{ vars.PAYWALL_ENABLED || 'false' }}
         run: |
           envs="APP_ENV=production,APP_ROLE=api,DATABASE_POOL_MAX=5,AI_PROVIDER=$AI_PROVIDER"
@@ -181,6 +183,11 @@ jobs:
           if [ "$REVENUECAT" = true ]; then
             secrets+=",REVENUECAT_WEBHOOK_AUTH=REVENUECAT_WEBHOOK_AUTH:latest"
             secrets+=",REVENUECAT_SECRET_KEY=REVENUECAT_SECRET_KEY:latest"
+          fi
+          # Website contact form email (Gmail SMTP with an app password).
+          if [ -n "$SMTP_USER" ]; then
+            envs+=",SMTP_HOST=$SMTP_HOST,SMTP_USER=$SMTP_USER"
+            secrets+=",SMTP_PASS=SMTP_PASS:latest"
           fi
           {
             echo "envs=$envs"

@@ -135,6 +135,24 @@ export const EnvSchema = z
     REVENUECAT_ENTITLEMENT: z.string().default("pro"),
 
     OFF_CONTACT: optional,
+
+    /**
+     * SMTP for the website's contact form (POST /api/contact). Gmail: host smtp.gmail.com, port
+     * 465, the Gmail address as user and an app password (Google account → Security → App
+     * passwords). All three of host/user/pass, or none: unset turns the form off (it answers 503 with
+     * the CONTACT_TO address; never a false "sent").
+     */
+    SMTP_HOST: optional,
+    /** 465 = TLS from the start (Gmail); 587 = STARTTLS. */
+    SMTP_PORT: z.coerce.number().int().positive().default(465),
+    SMTP_USER: optional,
+    SMTP_PASS: optional,
+    /** Sender address; defaults to SMTP_USER (Gmail rewrites any other From to the account anyway). */
+    SMTP_FROM: optional,
+    /** Where contact-form messages go. */
+    CONTACT_TO: z.string().email().default("askfitr8@gmail.com"),
+    /** Contact-form messages per IP per hour, on top of the per-minute sign-in rate limit. */
+    CONTACT_HOURLY_LIMIT: z.coerce.number().int().positive().default(5),
   })
   // Resolve environment-dependent defaults, then validate the result.
   .transform((env) => {
@@ -159,6 +177,14 @@ export const EnvSchema = z
         code: "custom",
         path: ["OPENAI_API_KEY"],
         message: "required when AI_PROVIDER=openai",
+      });
+    }
+    const smtp = [env.SMTP_HOST, env.SMTP_USER, env.SMTP_PASS];
+    if (smtp.some(Boolean) && !smtp.every(Boolean)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["SMTP_HOST"],
+        message: "set SMTP_HOST, SMTP_USER and SMTP_PASS together (or none)",
       });
     }
     if (isDeployed(env)) {

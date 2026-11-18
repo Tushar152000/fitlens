@@ -32,24 +32,24 @@ export function Stats() {
   return (
     <section
       aria-labelledby="stats-heading"
-      className="overflow-hidden bg-fitr8 px-4 pt-16 text-center text-white sm:pt-24"
+      className="overflow-hidden bg-fitr8 px-4 py-16 text-center text-white sm:py-24"
     >
       <h2
         id="stats-heading"
-        className="mx-auto max-w-[17em] text-[32px] leading-[1.15] font-semibold tracking-[-0.025em] text-balance sm:text-[48px]"
+        className="mx-auto max-w-[17em] text-[32px] leading-[1.3] font-semibold tracking-[-0.025em] text-balance sm:text-[48px]"
       >
         From your first meal to your last rep, and{" "}
         <span className="rounded-[10px] bg-white [box-decoration-break:clone] px-[0.28em] pt-[0.04em] pb-[0.1em] text-fitr8">
           everything in between.
         </span>
       </h2>
-      <p className="mx-auto mt-[18px] max-w-[40em] text-[17px] text-white/80">
+      <p className="mx-auto mt-5 max-w-[36em] text-[17px] text-white/80">
         Whether you’re cooking at home, eating out, working out at home, or hitting the gym, FITR8
         helps you track it all without breaking your routine.
       </p>
       <div
         ref={ref}
-        className="mt-9 inline-flex flex-wrap justify-center gap-x-12 gap-y-3 rounded-[28px] px-6 py-[18px] shadow-[inset_0_0_0_1.5px_rgb(255_255_255/0.8)] sm:rounded-full sm:px-10"
+        className="mx-auto mt-12 grid max-w-[880px] divide-y divide-white/15 rounded-[24px] bg-white/10 ring-1 ring-white/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0"
       >
         {STATS.map((s) => (
           <Stat key={s.label} {...s} seen={seen} />
@@ -75,12 +75,12 @@ function Stat({ value, suffix, label, seen }: (typeof STATS)[number] & { seen: b
     return () => cancelAnimationFrame(raf);
   }, [seen, value]);
   return (
-    <div className="flex flex-col items-center">
-      <span className="text-[36px] leading-tight font-semibold tracking-[-0.03em] tabular-nums sm:text-[44px]">
+    <div className="flex flex-col items-center gap-1 px-6 py-6 sm:py-8">
+      <span className="text-[40px] leading-none font-semibold tracking-[-0.03em] tabular-nums sm:text-[48px]">
         {shown}
         {suffix}
       </span>
-      <span className="text-[13px] font-semibold tracking-[0.06em] text-white/80 uppercase">
+      <span className="mt-2 text-[13px] font-semibold tracking-[0.06em] text-white/75 uppercase">
         {label}
       </span>
     </div>

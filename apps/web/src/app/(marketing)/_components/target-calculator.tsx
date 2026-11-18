@@ -107,7 +107,7 @@ export function TargetCalculator() {
   }
 
   return (
-    <section id="numbers" aria-labelledby="numbers-heading" className="scroll-mt-16 py-16 sm:py-28">
+    <section id="numbers" aria-labelledby="numbers-heading" className="scroll-mt-20 py-16 sm:py-28">
       <div className="mx-auto max-w-[1300px] px-4 sm:px-6 lg:px-10">
         <SectionHead
           id="numbers-heading"

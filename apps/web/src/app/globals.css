@@ -213,14 +213,6 @@
   }
 }
 
-/* Landing section dock rises into place. */
-@keyframes dock-in {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-}
-
 @keyframes shimmer {
   50% {
     opacity: 0.55;

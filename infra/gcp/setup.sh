@@ -19,7 +19,8 @@
 #
 # Optional (Enter skips at the prompt; re-run later to add): APPLE_TEAM_ID, APPLE_KEY_ID,
 # APPLE_PRIVATE_KEY_FILE (path to the AuthKey_<id>.p8), REVENUECAT_SECRET_KEY (enables RevenueCat; the
-# webhook password is generated). Read it back with: gcloud secrets versions access latest --secret=<name>
+# webhook password is generated), SMTP_PASS (Gmail app password for the website contact form; also set
+# the repo variable SMTP_USER). Read it back with: gcloud secrets versions access latest --secret=<name>
 #
 # Optional overrides: REGION (asia-south1), GITHUB_REPO, SQL_TIER (db-custom-1-3840: 1 dedicated vCPU,
 # 3.75 GB; an existing instance on another tier is moved to it, which restarts it for a few minutes),
@@ -205,6 +206,9 @@ if secret_exists REVENUECAT_SECRET_KEY && ! secret_exists REVENUECAT_WEBHOOK_AUT
   echo "  gcloud secrets versions access latest --secret=REVENUECAT_WEBHOOK_AUTH --project=$PROJECT_ID"
 fi
 
+step "Website contact form email (optional)"
+ask_optional_secret SMTP_PASS "Gmail app password for the contact form (set repo variable SMTP_USER too)"
+
 APPLE_ON=false
 secret_exists APPLE_TEAM_ID && secret_exists APPLE_KEY_ID && secret_exists APPLE_PRIVATE_KEY && APPLE_ON=true
 REVENUECAT_ON=false
@@ -212,7 +216,7 @@ secret_exists REVENUECAT_SECRET_KEY && secret_exists REVENUECAT_WEBHOOK_AUTH && 
 
 step "IAM"
 SECRETS=(DATABASE_URL AUTH_SECRET AUTH_GOOGLE_ID AUTH_GOOGLE_SECRET "$AI_KEY" S3_ENDPOINT S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY)
-OPTIONAL_SECRETS=(APPLE_TEAM_ID APPLE_KEY_ID APPLE_PRIVATE_KEY REVENUECAT_SECRET_KEY REVENUECAT_WEBHOOK_AUTH)
+OPTIONAL_SECRETS=(APPLE_TEAM_ID APPLE_KEY_ID APPLE_PRIVATE_KEY REVENUECAT_SECRET_KEY REVENUECAT_WEBHOOK_AUTH SMTP_PASS)
 for s in "${SECRETS[@]}" "${OPTIONAL_SECRETS[@]}"; do
   secret_exists "$s" || continue
   gcloud secrets add-iam-policy-binding "$s" --member="serviceAccount:$RUNTIME_SA" \

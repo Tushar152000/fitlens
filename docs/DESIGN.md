@@ -33,12 +33,12 @@ launch checklist): Plus Jakarta Sans, FITR8 purple, hard deep-purple shadows on 
 (WEBSITE.md §3). Everything behind sign-in
 uses the app tokens below, which share the same purple.
 
-| Route           | Source        | What it is                                                                                                     |
-| --------------- | ------------- | -------------------------------------------------------------------------------------------------------------- |
-| `/`             | WEBSITE.md §1 | Landing page: scan-demo hero, feature tabs, how it works, daily-target calculator, stats, stories, FAQ, footer |
-| `/welcome`      | WEBSITE.md §3 | Onboarding: name, goal, body, training, then Google; answers wait in sessionStorage                            |
-| `/welcome/done` | WEBSITE.md §3 | After sign-in: saves name + answers behind "Building your plan", then `/onboarding/plan`                       |
-| `/login`        | WEBSITE.md §3 | Returning users: purple panel (desktop), "Welcome back", Google                                                |
+| Route           | Source        | What it is                                                                                                             |
+| --------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `/`             | WEBSITE.md §1 | Landing page: scan-demo hero, feature tabs, how it works, daily-target calculator, stats, about + FAQ, contact, footer |
+| `/welcome`      | WEBSITE.md §3 | Onboarding: name, goal, body, training, then Google; answers wait in sessionStorage                                    |
+| `/welcome/done` | WEBSITE.md §3 | After sign-in: saves name + answers behind "Building your plan", then `/onboarding/plan`                               |
+| `/login`        | WEBSITE.md §3 | Returning users: purple panel (desktop), "Welcome back", Google                                                        |
 
 - **Tokens:** `--color-fitr8*` and `--shadow-hard*` in `apps/web/src/app/globals.css` (brand purple
   `#8116E0`). Fonts: Plus Jakarta Sans on the landing page, onboarding and
