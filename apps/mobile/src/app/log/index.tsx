@@ -11,7 +11,7 @@ import { ModeTabs } from "@/components/log/mode-tabs";
 import { MealWhen } from "@/components/log/meal-when";
 import { Button, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
-import { normalizeBarcode } from "@/lib/barcode";
+import { decideRead, leadingRead, normalizeBarcode, READ_WINDOW_MS, type Read } from "@/lib/barcode";
 import { useMealChoice } from "@/lib/meal-param";
 import { compressPhoto, uploadPhoto } from "@/lib/photo";
 import { palettes, radius } from "@/lib/theme";
@@ -26,9 +26,6 @@ type Photo = { uri: string; width: number; height: number };
 const BARCODE_TYPES = ["ean13", "ean8", "upc_a", "upc_e"] as const;
 /** A barcode counts as "in frame" until the camera hasn't seen it for this long. */
 const SEEN_FOR_MS = 1200;
-/** Auto-open once the same code is read this many times in a row (one stray read is often wrong). */
-const READS_TO_OPEN = 2;
-const READ_GAP_MS = 800;
 
 /** A valid barcode in a still photo, or null. Never throws: no barcode just means "read the plate". */
 async function barcodeInPhoto(uri: string): Promise<string | null> {
@@ -75,7 +72,7 @@ export default function CameraScreen() {
   const [held, setHeld] = useState<Photo | null>(null);
   const busy = phase !== "idle";
   // Auto-open bookkeeping (refs: they change on every camera frame, nothing renders from them).
-  const reads = useRef<{ code: string; at: number; count: number } | null>(null);
+  const reads = useRef<Read[]>([]);
   const opened = useRef<string | null>(null);
   // The camera keeps running under the product screen: only read barcodes while this screen shows.
   const focused = useIsFocused();
@@ -90,26 +87,27 @@ export default function CameraScreen() {
   function onBarcode(result: BarcodeScanningResult) {
     const code = normalizeBarcode(result.data);
     if (!code) return;
-    setSeen(code);
     if (seenTimer.current) clearTimeout(seenTimer.current);
     seenTimer.current = setTimeout(() => {
       setSeen(null);
       // Gone from the frame: the same product can open again next time it's pointed at.
       opened.current = null;
-      reads.current = null;
+      reads.current = [];
     }, SEEN_FOR_MS);
 
-    // Auto-open: the same code twice in a row, once per time it's in frame (coming back from the
-    // product screen with the pack still in view doesn't reopen it).
-    if (opened.current === code) return;
+    // Auto-open on a clear vote, once per time it's in frame (coming back from the product screen
+    // with the pack still in view doesn't reopen it).
+    if (opened.current) return;
     const now = Date.now();
-    const last = reads.current;
-    const count = last && last.code === code && now - last.at < READ_GAP_MS ? last.count + 1 : 1;
-    reads.current = { code, at: now, count };
-    if (count >= READS_TO_OPEN) {
-      opened.current = code;
+    reads.current = [...reads.current.filter((r) => now - r.at < READ_WINDOW_MS), { code, at: now }];
+    // Show (and let the shutter open) the most-read code, not whatever the last frame said.
+    setSeen(leadingRead(reads.current));
+    const winner = decideRead(reads.current);
+    if (winner) {
+      opened.current = winner;
+      reads.current = [];
       Vibration.vibrate(40);
-      openProduct(code);
+      openProduct(winner);
     }
   }
 

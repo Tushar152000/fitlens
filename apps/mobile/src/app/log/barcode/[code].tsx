@@ -17,6 +17,9 @@ import { refreshDay } from "@/lib/query";
 import { showDay } from "@/lib/view-day";
 import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
 
+/** Most grams/ml one item can log (QuickAddSchema). */
+const MAX_GRAMS = 5000;
+
 type Reason = "unknown" | "invalid" | "unreachable";
 
 /** Screens 7d (found) and 7e (not found) for one barcode. Barcode lookups never use a photo scan. */
@@ -70,6 +73,8 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
   const [error, setError] = useState<string | null>(null);
 
   const amountG = mode === "SERVINGS" && food.servingSizeG ? servings * food.servingSizeG : grams;
+  // The API takes at most 100 servings and 5000 g per item: the steppers stop there.
+  const maxServings = food.servingSizeG ? Math.min(100, Math.floor((MAX_GRAMS / food.servingSizeG) * 2) / 2) : 100;
   const k = amountG / 100;
   const fromOff = food.source === "OPEN_FOOD_FACTS";
   // Stored names carry the brand / barcode to stay unique; the brand is shown separately.
@@ -176,7 +181,13 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
             <Segmented
               label="Amount in"
               value={mode}
-              onChange={setMode}
+              onChange={(next) => {
+                // Keep the amount when switching: 1.5 servings of 30 g ↔ 45 g.
+                if (next === "GRAMS" && mode === "SERVINGS") setGrams(Math.min(MAX_GRAMS, Math.max(5, amountG)));
+                if (next === "SERVINGS" && mode === "GRAMS" && food.servingSizeG)
+                  setServings(Math.min(maxServings, Math.max(0.5, Math.round((grams / food.servingSizeG) * 2) / 2)));
+                setMode(next);
+              }}
               options={[
                 { value: "SERVINGS", label: "Servings" },
                 { value: "GRAMS", label: food.isLiquid ? "Millilitres" : "Grams" },
@@ -185,13 +196,21 @@ function ProductScreen({ food, code }: { food: FoodDto; code: string }) {
           )}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             {mode === "SERVINGS" ? (
-              <Stepper label="Servings" value={servings} step={0.5} min={0.5} onChange={setServings} />
+              <Stepper
+                label="Servings"
+                value={servings}
+                step={0.5}
+                min={0.5}
+                max={maxServings}
+                onChange={setServings}
+              />
             ) : (
               <Stepper
                 label={food.isLiquid ? "Millilitres" : "Grams"}
                 value={grams}
                 step={5}
                 min={5}
+                max={MAX_GRAMS}
                 onChange={setGrams}
               />
             )}
