@@ -23,7 +23,7 @@ export type Usual = UsualDto;
 export default function TypeMealScreen() {
   const c = useColors();
   const styles = useStyles();
-  const { mealType, mealChosen, setMealType, date, setDate, dateBody, params } = useMealChoice();
+  const { mealType, mealChosen, setMealType, date, dateBody, params } = useMealChoice();
   const insets = useSafeAreaInsets();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState<string | null>(null); // "text", a usual's mealId or a saved meal's id
@@ -105,7 +105,7 @@ export default function TypeMealScreen() {
 
         <Text variant="h1">What did you eat?</Text>
 
-        <MealWhen mealType={mealType} onMealType={setMealType} date={date} onDate={setDate} />
+        <MealWhen mealType={mealType} onMealType={setMealType} date={date} />
 
         <View style={{ gap: 8 }}>
           <TextInput

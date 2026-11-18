@@ -52,7 +52,7 @@ export default function CheckLabelScreen() {
 function CheckLabel({ scan }: { scan: ScanDto }) {
   const c = useColors();
   const styles = useStyles();
-  const { mealType, setMealType, date, setDate, dateBody, params } = useMealChoice();
+  const { mealType, setMealType, date, dateBody, params } = useMealChoice();
   const [name, setName] = useState(scan.name);
   const [kcal, setKcal] = useState(str(scan.per100g.kcal));
   const [protein, setProtein] = useState(str(scan.per100g.protein));
@@ -202,7 +202,7 @@ function CheckLabel({ scan }: { scan: ScanDto }) {
           </View>
         </Card>
 
-        <MealWhen mealType={mealType} onMealType={setMealType} date={date} onDate={setDate} />
+        <MealWhen mealType={mealType} onMealType={setMealType} date={date} />
       </View>
     </Screen>
   );

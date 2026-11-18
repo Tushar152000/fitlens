@@ -268,12 +268,7 @@ function Editor({
                   {meal.aiNotes}
                 </Text>
               )}
-              <MealWhen
-                mealType={slot}
-                onMealType={setSlot}
-                showDay={false}
-                prefix={saved ? "Logged as" : "Adding to"}
-              />
+              <MealWhen mealType={slot} onMealType={setSlot} />
               {pastDay && (
                 <Text weight={600} size={13} color={c.brandText}>
                   {dayLabel(pastDay) === "Yesterday" ? "Logging for yesterday" : `Logging for ${dayLabel(pastDay)}`}

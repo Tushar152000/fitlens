@@ -46,7 +46,7 @@ async function barcodeInPhoto(uri: string): Promise<string | null> {
  * a photo works too. Anything else is a meal: shutter → compress → signed upload → AI → confirm.
  */
 export default function CameraScreen() {
-  const { mealType, setMealType, date, setDate, dateBody, params } = useMealChoice();
+  const { mealType, setMealType, date, dateBody, params } = useMealChoice();
   const insets = useSafeAreaInsets();
   const camera = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
@@ -177,15 +177,7 @@ export default function CameraScreen() {
       </View>
 
       <View style={{ paddingTop: 8, paddingBottom: 12 }}>
-        <MealWhen
-          tone="dark"
-          gutter={20}
-          mealType={mealType}
-          onMealType={setMealType}
-          date={date}
-          onDate={setDate}
-          showDay={false}
-        />
+        <MealWhen tone="dark" gutter={20} mealType={mealType} onMealType={setMealType} date={date} />
       </View>
 
       <View style={styles.viewfinder}>
