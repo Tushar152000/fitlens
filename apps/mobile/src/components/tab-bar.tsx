@@ -24,10 +24,11 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const c = useColors();
   const styles = useStyles();
-  // On Today, the camera logs to the day being shown (swiped back to yesterday → yesterday).
+  // On Today, the button logs to the day being shown (swiped back to yesterday → yesterday); for a
+  // past day it opens typing, the default there (the meal is long eaten).
   const viewDay = useViewDay();
   const onToday = state.routes[state.index]?.name === "today";
-  const logDay = onToday && viewDay ? { date: viewDay } : {};
+  const pastDay = onToday ? viewDay : null;
   const tabs: Cell[] = state.routes.filter((r) => TABS[r.name]).map((route) => ({ kind: "tab", route }));
   const cells: Cell[] = [...tabs.slice(0, 2), { kind: "camera" }, { kind: "coach" }, ...tabs.slice(2)];
 
@@ -57,7 +58,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Log a meal"
-                onPress={() => router.push({ pathname: "/log", params: logDay })}
+                onPress={() => router.push(pastDay ? { pathname: "/log/type", params: { date: pastDay } } : "/log")}
                 style={({ pressed }) => [styles.fab, { backgroundColor: pressed ? c.brandHover : c.brand }]}
               >
                 <Camera size={24} color={c.white} strokeWidth={2} />

@@ -173,6 +173,8 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
   // One way in: the log screens pick the meal from the time of day (changeable there and later);
   // a past day carries its date.
   const logParams = () => (pastDay ? { date: pastDay } : {});
+  // A past meal is long eaten: typing it is the default there, the camera is for today.
+  const logPath = pastDay ? "/log/type" : "/log";
   const dayName = pastDay ? dayLabel(pastDay).toLowerCase() : "today";
 
   return (
@@ -228,19 +230,24 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
               </Text>
               <Text size={13} color="rgba(255,255,255,0.75)">
                 {pastDay
-                  ? "Forgot to log? Add what you ate below and it counts for that day."
+                  ? "Forgot to log? Type what you ate and it counts for that day."
                   : "Snap your plate and we'll find the foods, or type it in a line."}
               </Text>
             </View>
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            {/* Today: Snap first. A past day: Type first (the meal is long eaten). */}
+            <View style={{ flexDirection: pastDay ? "row-reverse" : "row", gap: 8 }}>
               <View style={{ flex: 1 }}>
-                <Button icon={Camera} onPress={() => router.push({ pathname: "/log", params: logParams() })}>
+                <Button
+                  variant={pastDay ? "ghostDark" : "primary"}
+                  icon={Camera}
+                  onPress={() => router.push({ pathname: "/log", params: logParams() })}
+                >
                   Snap
                 </Button>
               </View>
               <View style={{ flex: 1 }}>
                 <Button
-                  variant="ghostDark"
+                  variant={pastDay ? "primary" : "ghostDark"}
                   icon={Keyboard}
                   onPress={() => router.push({ pathname: "/log/type", params: logParams() })}
                 >
@@ -283,7 +290,7 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
         })}
 
         {day.meals.length > 0 && (
-          <Button variant="dashed" icon={Plus} onPress={() => router.push({ pathname: "/log", params: logParams() })}>
+          <Button variant="dashed" icon={Plus} onPress={() => router.push({ pathname: logPath, params: logParams() })}>
             Log food
           </Button>
         )}

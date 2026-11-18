@@ -329,8 +329,8 @@
   }
  },
  "mobile": {
-  "syncedAt": "2026-11-18T10:27:46.090Z",
-  "head": "9b29ba1",
+  "syncedAt": "2026-11-18T10:29:23.881Z",
+  "head": "299e95a",
   "files": {
    "apps/mobile/.claude/settings.json": "14b797af98bf",
    "apps/mobile/.gitignore": "1b3d2a4eff0b",
@@ -348,7 +348,7 @@
    "apps/mobile/package.json": "f1b285285f77",
    "apps/mobile/src/app/(tabs)/_layout.tsx": "1f9e2a457880",
    "apps/mobile/src/app/(tabs)/profile.tsx": "d4dffc104aef",
-   "apps/mobile/src/app/(tabs)/today.tsx": "3cec0f9a06fe",
+   "apps/mobile/src/app/(tabs)/today.tsx": "ac6bb6dc2c40",
    "apps/mobile/src/app/(tabs)/workout.tsx": "61390775277f",
    "apps/mobile/src/app/+native-intent.tsx": "665bdee69042",
    "apps/mobile/src/app/_layout.tsx": "5c79b3a54675",
@@ -389,7 +389,7 @@
    "apps/mobile/src/components/reminder-prompt.tsx": "80b9adbb925c",
    "apps/mobile/src/components/sheet.tsx": "369f1a51fcd3",
    "apps/mobile/src/components/skeletons.tsx": "9a590ca3fd52",
-   "apps/mobile/src/components/tab-bar.tsx": "8dce25386740",
+   "apps/mobile/src/components/tab-bar.tsx": "3c5049db6687",
    "apps/mobile/src/components/trend-chart.tsx": "7d2b430d6b5b",
    "apps/mobile/src/components/ui/button.tsx": "1a7ec963f60c",
    "apps/mobile/src/components/ui/calorie-ring.tsx": "686ef1309072",
