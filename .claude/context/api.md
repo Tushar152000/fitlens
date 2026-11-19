@@ -49,7 +49,7 @@ Paths relative to `apps/api/`. Facts from the code, not docs. Known bugs live in
 
 - `entitlements` row per user; Pro = `lifetime` or `proUntil > now`.
 - Webhook: auth → zod → dedupe by event id (`billing_events`) → candidate ids (cuid-shaped only) → with `REVENUECAT_SECRET_KEY`: re-read subscriber via REST (failure 502 → RevenueCat retries); without: `accessFromEvent` applied if newer than `syncedAt` (TRANSFER skipped).
-- Limits `dailyLimits(plan, paywall)`: PRO 30 scans / 40 coach / labels; FREE+paywall off 3 / 40 / labels; FREE+paywall on 3 / 5 / no labels. `PAYWALL_ENABLED` default false; deployed + paywall requires both RevenueCat secrets.
+- Limits `dailyLimits(plan, paywall)` → {scans, coach, labelScans, barcode, reminders}: PRO 10 / 40 / ✓ / ✓ / 50; FREE+paywall off 3 / 40 / ✓ / ✓ / 20; FREE+paywall on 0 / 0 / ✗ / ✗ / 3. Premium features a free user can't use return **402** `{reason:"pro_required", feature}` via `billing/pro-required.ts` `proRequired()`: photo meal (`scan-quota` when limit 0), label scan, `GET /foods/barcode/:code` (`BarcodeService.product`), coach chat (limit 0), 4th reminder (free + paywall; 409 at other caps). `GET /reminders` `max` = plan's reminder cap. `PAYWALL_ENABLED` default false; deployed + paywall requires both RevenueCat secrets.
 - Scans = count of `AiCall.countsAsScan` since local midnight (`meals/scan-quota.service.ts`); checked before the AI call (race with queued jobs). Text cap 60/day hidden (not in docs).
 - Coach cap counts `coach_messages` with `role:"user"` and non-empty `text` (typed messages only; tool_result rows have `text` "").
 
@@ -67,7 +67,7 @@ S3/R2/MinIO client. Presigned PUT 300 s, binds ContentType only (no size limit).
 
 ## Env (all in `src/config/env.ts`)
 
-Runtime `NODE_ENV APP_ENV APP_ROLE(all) PORT(4000) LOG_LEVEL PUBLIC_URL(web origin) API_PUBLIC_URL(default PUBLIC_URL) AUTH_COOKIE_DOMAIN CORS_ORIGINS` ("" = unset for the new two) · Data `DATABASE_URL(req) DATABASE_POOL_MAX(10) REDIS_URL` · Auth `AUTH_SECRET(req ≥32) AUTH_GOOGLE_ID/SECRET APPLE_CLIENT_ID/TEAM_ID/KEY_ID/PRIVATE_KEY AUTH_DEV_LOGIN SESSION_DAYS MOBILE_SESSION_DAYS SESSION_MAX_DAYS AUTH_RATE_LIMIT` · Storage `S3_*` · AI `AI_PROVIDER ANTHROPIC_API_KEY OPENAI_API_KEY AI_DAILY_LIMIT(3) COACH_DAILY_LIMIT(40) AI_PRO_DAILY_LIMIT(30) COACH_FREE_DAILY_LIMIT(5)` · Billing `PAYWALL_ENABLED REVENUECAT_WEBHOOK_AUTH REVENUECAT_SECRET_KEY REVENUECAT_ENTITLEMENT(pro)` · `OFF_CONTACT`.
+Runtime `NODE_ENV APP_ENV APP_ROLE(all) PORT(4000) LOG_LEVEL PUBLIC_URL(web origin) API_PUBLIC_URL(default PUBLIC_URL) AUTH_COOKIE_DOMAIN CORS_ORIGINS` ("" = unset for the new two) · Data `DATABASE_URL(req) DATABASE_POOL_MAX(10) REDIS_URL` · Auth `AUTH_SECRET(req ≥32) AUTH_GOOGLE_ID/SECRET APPLE_CLIENT_ID/TEAM_ID/KEY_ID/PRIVATE_KEY AUTH_DEV_LOGIN SESSION_DAYS MOBILE_SESSION_DAYS SESSION_MAX_DAYS AUTH_RATE_LIMIT` · Storage `S3_*` · AI `AI_PROVIDER ANTHROPIC_API_KEY OPENAI_API_KEY AI_DAILY_LIMIT(3) COACH_DAILY_LIMIT(40) AI_PRO_DAILY_LIMIT(10)` · Billing `PAYWALL_ENABLED REVENUECAT_WEBHOOK_AUTH REVENUECAT_SECRET_KEY REVENUECAT_ENTITLEMENT(pro)` · `OFF_CONTACT`.
 Deployed refuses: dev login on, missing Google creds, partial Apple config, non-https `PUBLIC_URL`/`API_PUBLIC_URL`, paywall without RevenueCat secrets. Always refuses: web and API on different hosts without `AUTH_COOKIE_DOMAIN`, or a domain not covering both.
 
 ## Layering reality

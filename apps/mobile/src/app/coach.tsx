@@ -1,5 +1,15 @@
 import type { CoachChatInput, CoachConversationView, CoachMessageView, CoachStreamEvent } from "@fitr8/contracts";
-import { ArrowUp, Brain, Check, CircleAlert, LoaderCircle, RotateCw, Square, SquarePen } from "lucide-react-native";
+import {
+  ArrowUp,
+  Brain,
+  Check,
+  Crown,
+  CircleAlert,
+  LoaderCircle,
+  RotateCw,
+  Square,
+  SquarePen,
+} from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,6 +20,7 @@ import { Button, Card, Chip, FieldError, Text } from "@/components/ui";
 import { api, ApiError, apiStream } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import { readConversationId, writeConversationId } from "@/lib/coach-store";
+import { openPremium, premiumFeatureOf, usePremium } from "@/lib/premium";
 import { queryClient } from "@/lib/query";
 import { fonts, gutter, makeStyles, radius, useColors } from "@/lib/theme";
 
@@ -52,6 +63,7 @@ export default function CoachScreen() {
   const c = useColors();
   const styles = useStyles();
   const insets = useSafeAreaInsets();
+  const coachLocked = usePremium().locked("coach");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -104,6 +116,11 @@ export default function CoachScreen() {
   async function send(raw: string) {
     const message = raw.trim().slice(0, MAX_LENGTH);
     if (!message || sending) return;
+    // Free plan with the paywall on: the coach is Premium. Keep what they typed for after buying.
+    if (coachLocked) {
+      setDraft(message);
+      return openPremium("coach");
+    }
     const stamp = Date.now();
     const replyId = `reply-${stamp}`;
     const userId = `me-${stamp}`;
@@ -156,7 +173,12 @@ export default function CoachScreen() {
       });
       if (serverError) setProblem({ kind: "error", message: serverError });
     } catch (error) {
-      if (!ctrl.signal.aborted) {
+      const premiumFeature = premiumFeatureOf(error);
+      if (premiumFeature) {
+        setMessages((all) => all.filter((m) => m.id !== replyId && m.id !== userId));
+        setDraft(message);
+        openPremium(premiumFeature);
+      } else if (!ctrl.signal.aborted) {
         dropped = true;
         const limit = error instanceof ApiError && error.status === 429;
         setProblem({
@@ -260,7 +282,7 @@ export default function CoachScreen() {
             </Button>
           </Card>
         ) : messages.length === 0 ? (
-          <Intro onPick={send} />
+          <Intro onPick={send} locked={coachLocked} />
         ) : (
           messages.map((m) => <Bubble key={m.id} message={m} />)
         )}
@@ -324,11 +346,30 @@ export default function CoachScreen() {
   );
 }
 
-function Intro({ onPick }: { onPick: (text: string) => void }) {
+function Intro({ onPick, locked }: { onPick: (text: string) => void; locked: boolean }) {
   const c = useColors();
   const styles = useStyles();
   return (
     <View style={{ gap: 16 }}>
+      {locked && (
+        <Card dark style={{ gap: 10 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Crown size={18} color={c.brandGlow} />
+            <Text size={12} weight={700} color={c.brandGlow}>
+              PREMIUM
+            </Text>
+          </View>
+          <Text variant="h2" color={c.white}>
+            Your coach is part of Premium
+          </Text>
+          <Text color="rgba(255,255,255,0.78)">
+            Try it free for 7 days: answers made for your goal, meals and training, backed by sports science.
+          </Text>
+          <Button icon={Crown} onPress={() => openPremium("coach")}>
+            Unlock the AI Coach
+          </Button>
+        </Card>
+      )}
       <Card>
         <Text variant="h2">Your fitness and nutrition coach</Text>
         <Text color={c.ink2}>

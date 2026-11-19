@@ -87,19 +87,25 @@ API: /api/me.plan, /api/billing, /api/usage, coach + label checks read BillingSe
 
 ## App
 
-- `apps/mobile/src/lib/purchases.ts`: configure/identify, plans from the current offering (store
-  price strings and free-trial length), buy, restore, "Manage subscription" links.
-- Paywall: `apps/mobile/src/app/pro.tsx` (modal). Yearly first with "Save N%", trial CTA, renewal
-  terms, Terms / Privacy links, Restore purchases (App Store 3.1.1 / 3.1.2).
-- Entry points: "scans used up" sheet (See FITR8 Pro) and Profile (Go Pro; Pro shows renewal and
-  Manage subscription). Without an SDK key the app says Pro is coming soon.
+- `apps/mobile/src/lib/premium.ts`: the one gate. `usePremium().locked(feature)` reads
+  `GET /api/billing` limits; `openPremium(feature)` opens the Premium screen led by that feature;
+  `handlePremiumError(err)` does the same for any 402 `pro_required` the API returns.
+- Gated entry points: camera (barcode read, shutter, gallery; a "Photo and barcode scanning are
+  Premium" pill), barcode product screen (402 → Premium), "Photograph the label", label upload,
+  coach (Premium card on the empty chat; Send opens Premium and keeps the text), reminders (at the
+  free 3: "Get unlimited reminders"), Profile plan card ("Try Premium free for 7 days").
+- First login: the plan screen's Start calls `premiumIntroAfterOnboarding()`; Today
+  (`usePremiumIntro`) opens Premium once per user (flag in secure storage), only with the paywall on.
+- Premium screen: `apps/mobile/src/app/pro.tsx` (modal), design in docs/DESIGN.md "Premium screen".
+  Prices and trial from the store (RevenueCat); without an SDK key it shows the launch prices and
+  "coming soon". Restore purchases, Terms / Privacy and renewal terms (App Store 3.1.1 / 3.1.2).
 - `react-native-purchases` is native: it needs a new EAS build (Expo Go runs it in preview mode,
-  no real purchases).
+  no real purchases). Analytics: `paywall_view` (feature, source) and `pro_purchase`.
 
 ## Setup (once, by you)
 
 1. **Stores** (after the app exists in each store):
-   - App Store Connect → Subscriptions → group "FITR8 Pro" → `fitr8_pro_monthly` (₹149) and
+   - App Store Connect → Subscriptions → group "FITR8 Premium" → `fitr8_pro_monthly` (₹149) and
      `fitr8_pro_yearly` (₹1,499), each with a 7-day free-trial introductory offer. Paid Apps
      agreement, tax and banking must be complete.
    - Play Console → Monetize → Subscriptions → same two ids, base plans monthly / yearly, a 7-day

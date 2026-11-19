@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ReminderDraftDto, ReminderDto, ReminderRuleDto } from "@fitr8/contracts";
-import { BellOff, BellRing, Minus, Plus, Sparkles, Trash2 } from "lucide-react-native";
+import { BellOff, BellRing, Crown, Minus, Plus, Sparkles, Trash2 } from "lucide-react-native";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AppState, Linking, Pressable, TextInput, View } from "react-native";
 import { BackHeader } from "@/components/back-header";
@@ -11,6 +11,7 @@ import { Button, Card, Chip, FieldError, Screen, Switch, Text } from "@/componen
 import { api, ApiError } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import { confirmAction } from "@/lib/confirm";
+import { handlePremiumError, openPremium, usePremium } from "@/lib/premium";
 import { queryClient } from "@/lib/query";
 import { remindersQuery } from "@/lib/queries";
 import { ensureNotificationPermission, localDate, notificationStatus } from "@/lib/reminders";
@@ -65,6 +66,8 @@ export default function RemindersScreen() {
   const reminders = list.data?.reminders ?? [];
   const max = list.data?.max ?? 20;
   const full = reminders.length >= max;
+  // Free plan at its 3 reminders: more is a Premium feature, not a hard wall.
+  const upgradeForMore = usePremium().locked("reminders", reminders.length);
 
   async function create() {
     const value = text.trim();
@@ -148,7 +151,17 @@ export default function RemindersScreen() {
           </View>
         )}
         {parseError && <FieldError>{parseError}</FieldError>}
-        {full ? (
+        {upgradeForMore ? (
+          <View style={{ gap: 10 }}>
+            <Text size={13} color={c.ink2}>
+              Free includes {max} reminders of your own. Get unlimited reminders with FITR8 Premium, or delete one to
+              add another.
+            </Text>
+            <Button icon={Crown} onPress={() => openPremium("reminders")}>
+              Get unlimited reminders
+            </Button>
+          </View>
+        ) : full ? (
           <Text size={13} color={c.ink3}>
             You have {max} reminders, the most you can keep. Delete one to add another.
           </Text>
@@ -330,6 +343,7 @@ function ReminderForm({ draft, onSaved }: { draft: Draft; onSaved: () => void })
       await queryClient.invalidateQueries({ queryKey: remindersQuery.queryKey });
       onSaved();
     } catch (e) {
+      if (handlePremiumError(e)) return onSaved();
       setError(e instanceof ApiError ? e.message : "Couldn't save. Try again.");
     } finally {
       setBusy(false);

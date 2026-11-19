@@ -1,0 +1,118 @@
+import type { BillingDto, PremiumFeature, ProRequiredDetails } from "@fitr8/contracts";
+import { useQuery } from "@tanstack/react-query";
+import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useEffect } from "react";
+import { Platform } from "react-native";
+import { ApiError } from "./api";
+import { billingQuery } from "./queries";
+
+export type { PremiumFeature };
+
+/**
+ * FITR8 Premium gating in the app (docs/PREMIUM.md). The server decides (GET /api/billing limits);
+ * the app only uses them to open the Premium screen *before* a call that would fail, so a free user
+ * taps a Premium feature and sees what it unlocks instead of an error.
+ */
+
+/** Is this feature outside the user's plan? `count` = how many they already have (reminders). */
+export function isLocked(billing: BillingDto | undefined, feature: PremiumFeature, count = 0): boolean {
+  if (!billing || !billing.paywall || billing.plan === "PRO") return false;
+  const l = billing.limits;
+  switch (feature) {
+    case "photo_scan":
+      return l.scans === 0;
+    case "label_scan":
+      return !l.labelScans;
+    case "barcode":
+      return !l.barcode;
+    case "coach":
+      return l.coach === 0;
+    case "reminders":
+      return count >= l.reminders;
+  }
+}
+
+/** The plan and a `locked(feature)` check for the signed-in user. */
+export function usePremium() {
+  const billing = useQuery(billingQuery);
+  return {
+    billing: billing.data,
+    isPremium: billing.data?.plan === "PRO",
+    /** Premium can be bought (the server's paywall switch). Off: never show upgrade prompts. */
+    paywall: billing.data?.paywall ?? false,
+    locked: (feature: PremiumFeature, count?: number) => isLocked(billing.data, feature, count),
+  };
+}
+
+/** Opens the Premium screen, led by the feature the user just tried. */
+export function openPremium(feature?: PremiumFeature, source?: "onboarding") {
+  router.push({ pathname: "/pro", params: { ...(feature ? { feature } : {}), ...(source ? { source } : {}) } });
+}
+
+/** The feature of a 402 "pro_required" from the API, or null for any other error. */
+export function premiumFeatureOf(err: unknown): PremiumFeature | null {
+  if (!(err instanceof ApiError) || err.status !== 402) return null;
+  const details = err.details as Partial<ProRequiredDetails> | undefined;
+  return details?.reason === "pro_required" && details.feature ? details.feature : null;
+}
+
+/**
+ * For catch blocks: a 402 from the API opens the Premium screen and returns true (show no error);
+ * anything else returns false.
+ */
+export function handlePremiumError(err: unknown): boolean {
+  const feature = premiumFeatureOf(err);
+  if (!feature) return false;
+  openPremium(feature);
+  return true;
+}
+
+// ── First login ───────────────────────────────────────────────────────────
+
+/** Set when onboarding finishes in this app session; Today then shows Premium once. */
+let introPending = false;
+
+/** Call when the user finishes onboarding ("Start" on the plan screen). */
+export function premiumIntroAfterOnboarding() {
+  introPending = true;
+}
+
+const introKey = (userId: string) => `fitr8.premium.intro.${userId}`;
+
+async function introShown(userId: string): Promise<boolean> {
+  try {
+    if (Platform.OS === "web") return globalThis.localStorage?.getItem(introKey(userId)) === "1";
+    return (await SecureStore.getItemAsync(introKey(userId))) === "1";
+  } catch {
+    return false;
+  }
+}
+
+async function markIntroShown(userId: string) {
+  try {
+    if (Platform.OS === "web") globalThis.localStorage?.setItem(introKey(userId), "1");
+    else await SecureStore.setItemAsync(introKey(userId), "1");
+  } catch {
+    // Worst case the intro shows once more on this phone.
+  }
+}
+
+/**
+ * On Today: right after onboarding, open the Premium screen once per user ("Your plan is ready"),
+ * only when Premium can be bought and the user doesn't have it. "Continue with Free" closes it.
+ */
+export function usePremiumIntro(userId: string) {
+  const billing = useQuery(billingQuery);
+  const data = billing.data;
+  useEffect(() => {
+    if (!introPending || !data) return;
+    introPending = false;
+    if (!data.paywall || data.plan === "PRO") return;
+    void (async () => {
+      if (await introShown(userId)) return;
+      await markIntroShown(userId);
+      openPremium(undefined, "onboarding");
+    })();
+  }, [data, userId]);
+}

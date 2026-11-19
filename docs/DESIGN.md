@@ -288,6 +288,33 @@ Drawn: 5b, 6b, 6c, 8, 9b, 9c. Build these from the description:
 - **Logging:** `POST /api/meals` with `source: SUGGESTION` and the item list → status `CONFIRMED` directly; never counts toward the photo-scan limit.
 - **Safety:** no ideas when over target (show light options only); never suggest pushing the day below the calorie floor.
 
+## Premium screen (`/pro`, app modal)
+
+One screen sells Premium everywhere (docs/PREMIUM.md). It opens on the feature the user just tried
+(`?feature=barcode|photo_scan|label_scan|coach|reminders`), once after onboarding
+(`?source=onboarding`), or from Profile.
+
+- **Top row:** 28 px brand crown tile + "FITR8 Premium"; close (X) on the right.
+- **Hero:** `panel` card (dark in both themes), eyebrow in `brandGlow` caps ("PREMIUM FEATURE",
+  "YOUR PLAN IS READY", "YOU'VE USED YOUR 3 FREE REMINDERS"), h1 in white, one line at 78% white.
+  The headline names the outcome of the feature tried ("Scan a barcode, done").
+- **Plans:** two radio cards, **Yearly preselected**: "₹1,499/year", "Just ₹125/month", green
+  `proteinSoft` pill "Save ₹289" (saving in rupees from store prices); Monthly "₹149/month". Selected =
+  2 px brand border on `brandSoft`, filled brand radio with a white check.
+- **Trial timeline** (when the store offers a trial): "Today: every Premium feature unlocks. You pay
+  ₹0." → "Day 7: your plan starts at …. Cancel before then and you pay nothing."
+- **Everything in Free, plus:** list card, the tried feature first on `brandSoft` with a filled brand
+  icon tile; "Reports and insights" carries a grey SOON pill.
+- **Free and Premium:** compare table, Premium column header in brand. Included = check (green in
+  Free, brand in Premium); not included = a grey dash, never a red cross.
+- **Footer (pinned):** one purple button "Start 7-day free trial"; "₹0 today · ₹1,499/year after 7 days
+  · Cancel anytime"; renewal terms with Terms · Privacy; "Restore purchases" and **"Continue with
+  Free"** side by side (always visible). Bought: "You're on Premium", button Continue/Done.
+
+Why: relevance first (the tried feature leads), anchoring (yearly shown per month beside monthly),
+default effect (yearly preselected), risk reversal (the timeline says when money moves), one accent
+colour for the one action, and free is respected, never shamed.
+
 ## Workout coach engine (calorie-aware)
 
 The plan is built by deterministic rules in `src/lib/training/` (unit-tested like `src/lib/nutrition`). An LLM may only vary exercise choice inside a slot and write the one-line coach notes; it never sets sets, reps or loads.

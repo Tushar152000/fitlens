@@ -1,7 +1,7 @@
 import { CameraView, scanFromURLAsync, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { router, useIsFocused } from "expo-router";
-import { Barcode, Camera, Images, Keyboard, X } from "lucide-react-native";
+import { Barcode, Camera, Crown, Images, Keyboard, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Vibration, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,6 +11,7 @@ import { Button, Text } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { decideRead, leadingRead, normalizeBarcode, READ_WINDOW_MS, type Read } from "@/lib/barcode";
 import { useMealChoice } from "@/lib/meal-param";
+import { handlePremiumError, openPremium, usePremium } from "@/lib/premium";
 import { compressPhoto, uploadPhoto } from "@/lib/photo";
 import { palettes, radius } from "@/lib/theme";
 
@@ -71,6 +72,10 @@ export default function CameraScreen() {
   const opened = useRef<string | null>(null);
   // The camera keeps running under the product screen: only read barcodes while this screen shows.
   const focused = useIsFocused();
+  // Free plan with the paywall on: barcode and photo scanning open the Premium screen instead.
+  const premium = usePremium();
+  const barcodeLocked = premium.locked("barcode");
+  const photoLocked = premium.locked("photo_scan");
 
   useEffect(
     () => () => {
@@ -109,11 +114,13 @@ export default function CameraScreen() {
   /** The barcode path: the product screen asks for the meal and the portion. */
   function openProduct(code: string) {
     setPhase("idle");
+    if (barcodeLocked) return openPremium("barcode");
     router.push({ pathname: "/log/barcode/[code]", params: { code, ...params } });
   }
 
   function fail(e: unknown) {
     setPhase("idle");
+    if (handlePremiumError(e)) return;
     if (e instanceof ApiError && e.status === 429) {
       setLimit((e.details as ScanUsage | undefined) ?? null);
       setLimitOpen(true);
@@ -128,6 +135,10 @@ export default function CameraScreen() {
     setPhase("checking");
     const code = await barcodeInPhoto(photo.uri);
     if (code) return openProduct(code);
+    if (photoLocked) {
+      setPhase("idle");
+      return openPremium("photo_scan");
+    }
     setPhase("uploading");
     try {
       const key = await uploadPhoto(await compressPhoto(photo));
@@ -144,6 +155,7 @@ export default function CameraScreen() {
   async function shoot() {
     // A barcode in view wins: no photo, no upload, no scan used.
     if (seen) return openProduct(seen);
+    if (photoLocked) return openPremium("photo_scan");
     if (!camera.current || !ready) return;
     try {
       const photo = await camera.current.takePictureAsync({ quality: 0.9 });
@@ -154,6 +166,7 @@ export default function CameraScreen() {
   }
 
   async function pickFromGallery() {
+    if (photoLocked && barcodeLocked) return openPremium("photo_scan");
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
     const asset = result.canceled ? null : result.assets[0];
     if (asset) await route(asset);
@@ -209,15 +222,29 @@ export default function CameraScreen() {
           </View>
         )}
         <Corners color={seen ? cam.proteinSoft : undefined} />
-        <View
-          style={[styles.hint, { pointerEvents: "none" }, seen && { backgroundColor: cam.protein }]}
-          accessibilityLiveRegion="polite"
-        >
-          {seen && <Barcode size={16} color={cam.white} />}
-          <Text weight={600} size={13} color={cam.white} tabular>
-            {seen ? `Barcode found · opening ${seen}` : "Point at a barcode, or snap your plate"}
-          </Text>
-        </View>
+        {photoLocked && barcodeLocked ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Scanning is part of FITR8 Premium. See Premium"
+            onPress={() => openPremium("photo_scan")}
+            style={[styles.hint, { backgroundColor: cam.brand }]}
+          >
+            <Crown size={16} color={cam.white} />
+            <Text weight={600} size={13} color={cam.white}>
+              Photo and barcode scanning are Premium · Try free
+            </Text>
+          </Pressable>
+        ) : (
+          <View
+            style={[styles.hint, { pointerEvents: "none" }, seen && { backgroundColor: cam.protein }]}
+            accessibilityLiveRegion="polite"
+          >
+            {seen && <Barcode size={16} color={cam.white} />}
+            <Text weight={600} size={13} color={cam.white} tabular>
+              {seen ? `Barcode found · opening ${seen}` : "Point at a barcode, or snap your plate"}
+            </Text>
+          </View>
+        )}
         {busy && (
           <View style={[StyleSheet.absoluteFill, styles.center, { backgroundColor: "rgba(23,24,28,0.75)" }]}>
             <ActivityIndicator color={cam.white} size="large" />

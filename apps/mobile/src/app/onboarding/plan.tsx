@@ -10,6 +10,7 @@ import { Button, Card, ChoiceCardGroup, FieldError, ProgressSteps, Screen, Text 
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { formatInt } from "@/lib/format";
+import { premiumIntroAfterOnboarding } from "@/lib/premium";
 import { makeStyles, radius, useColors, type Colors } from "@/lib/theme";
 import type { PlanResponse, PlanSummary } from "@/lib/types-plan";
 
@@ -30,6 +31,7 @@ export default function PlanScreen() {
   async function start() {
     setStarting(true);
     await refresh().catch(() => setStarting(false));
+    premiumIntroAfterOnboarding();
     router.replace("/today");
   }
 

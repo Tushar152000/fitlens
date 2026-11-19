@@ -46,5 +46,23 @@ export interface BillingDto {
   willRenew: boolean;
   /** Store the subscription was bought in (APP_STORE, PLAY_STORE…), for "manage subscription". */
   store: string | null;
-  limits: { scans: number; coach: number; labelScans: boolean };
+  limits: {
+    /** Photo scans a day (meals and labels); 0 = Premium only for this user. */
+    scans: number;
+    /** Coach messages a day; 0 = Premium only for this user. */
+    coach: number;
+    labelScans: boolean;
+    barcode: boolean;
+    /** Custom reminders the user can keep. */
+    reminders: number;
+  };
+}
+
+/** Premium features (docs/PREMIUM.md); the app opens the Premium screen for each. */
+export type PremiumFeature = "photo_scan" | "label_scan" | "barcode" | "coach" | "reminders";
+
+/** `details` of a 402 from any route a free user can't use: open the Premium screen for `feature`. */
+export interface ProRequiredDetails {
+  reason: "pro_required";
+  feature: PremiumFeature;
 }

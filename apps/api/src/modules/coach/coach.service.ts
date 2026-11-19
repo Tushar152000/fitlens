@@ -23,6 +23,7 @@ import { isOffTopic, OFF_TOPIC_REPLY } from "./scope.js";
 import { BillingService } from "../billing/billing.service.js";
 import { CoachToolbox } from "./tools/coach-toolbox.js";
 import { TurnLock } from "./turn-lock.js";
+import { proRequired } from "../billing/pro-required.js";
 
 const SYSTEM = [
   {
@@ -78,6 +79,7 @@ export class CoachService {
       },
     });
     const { coach: limit, plan, paywall } = await this.billing.limits(userId);
+    if (limit === 0) throw proRequired("coach", "The AI coach is part of FITR8 Premium.");
     if (sentToday >= limit) {
       throw new AppError(
         429,

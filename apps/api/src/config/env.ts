@@ -116,16 +116,14 @@ export const EnvSchema = z
     ANTHROPIC_API_KEY: optional,
     OPENAI_API_KEY: optional,
     // Models are chosen in code (modules/ai/models.ts), never from env.
-    /** Free photo scans per user per local day (typed meals and not-food photos never count). */
+    /** Free photo scans per user per local day while the paywall is off (typed meals and not-food photos never count). */
     AI_DAILY_LIMIT: z.coerce.number().int().positive().default(3),
     /** Coach messages per user per local day. */
     COACH_DAILY_LIMIT: z.coerce.number().int().positive().default(40),
 
-    /** Pro photo scans per user per local day: fair use (docs/PREMIUM.md). */
-    AI_PRO_DAILY_LIMIT: z.coerce.number().int().positive().default(30),
-    /** Free coach messages per user per local day once the paywall is on (COACH_DAILY_LIMIT is Pro's). */
-    COACH_FREE_DAILY_LIMIT: z.coerce.number().int().positive().default(5),
-    /** Turn on Pro gating (free limits, label scans for Pro). Off: everyone keeps today's limits. */
+    /** Premium photo scans (meals and labels) per user per local day: fair use (docs/PREMIUM.md). */
+    AI_PRO_DAILY_LIMIT: z.coerce.number().int().positive().default(10),
+    /** Turn on Premium gating (docs/PREMIUM.md "Rules"). Off: everyone keeps today's limits. */
     PAYWALL_ENABLED: flag,
     /** Exact Authorization header value set on the RevenueCat webhook. */
     REVENUECAT_WEBHOOK_AUTH: optional,

@@ -21,33 +21,66 @@ export const planOf = (access: ProAccess | null | undefined, now = new Date()): 
 
 // ── Limits ─────────────────────────────────────────────────────────────────
 
+/** Premium features a free user can hit; the app opens the Premium screen for each (docs/PREMIUM.md). */
+export const PREMIUM_FEATURES = [
+  "photo_scan",
+  "label_scan",
+  "barcode",
+  "coach",
+  "reminders",
+] as const;
+export type PremiumFeature = (typeof PREMIUM_FEATURES)[number];
+
+/** Custom reminders: free plan, Premium fair-use cap, and everyone's cap while the paywall is off. */
+export const FREE_REMINDERS = 3;
+export const PREMIUM_REMINDERS = 50;
+export const OPEN_REMINDERS = 20;
+
 export interface LimitConfig {
-  /** Free photo scans a day (AI_DAILY_LIMIT). */
+  /** Photo scans a day for free users while the paywall is off (AI_DAILY_LIMIT). */
   freeScans: number;
-  /** Pro photo scans a day: fair use (AI_PRO_DAILY_LIMIT). */
+  /** Premium photo scans a day: fair use (AI_PRO_DAILY_LIMIT). */
   proScans: number;
-  /** Free coach messages a day once the paywall is on (COACH_FREE_DAILY_LIMIT). */
-  freeCoach: number;
-  /** Pro coach messages a day; also everyone's limit while the paywall is off (COACH_DAILY_LIMIT). */
+  /** Premium coach messages a day; also everyone's limit while the paywall is off (COACH_DAILY_LIMIT). */
   proCoach: number;
 }
 
 export interface DailyLimits {
+  /** Photo scans a day (meals and nutrition labels). 0 = a Premium feature for this user. */
   scans: number;
+  /** Coach messages a day. 0 = a Premium feature for this user. */
   coach: number;
   /** Photographing nutrition labels. */
   labelScans: boolean;
+  /** Looking up packaged food by barcode. */
+  barcode: boolean;
+  /** Custom reminders the user can keep. */
+  reminders: number;
 }
 
 /**
- * Daily limits for a plan. With the paywall off (before Pro can be bought) free users keep
- * today's limits: the free scan limit, the full coach limit and label scans.
+ * Limits for a plan (docs/PREMIUM.md "Rules"). Paywall on: free users get no AI photo scans, coach
+ * or barcode, and 3 custom reminders. Paywall off (before Premium can be bought): everyone keeps
+ * today's limits, so nobody loses a feature they can't yet pay for.
  */
 export function dailyLimits(plan: Plan, paywall: boolean, cfg: LimitConfig): DailyLimits {
-  if (plan === "PRO") return { scans: cfg.proScans, coach: cfg.proCoach, labelScans: true };
+  if (plan === "PRO")
+    return {
+      scans: cfg.proScans,
+      coach: cfg.proCoach,
+      labelScans: true,
+      barcode: true,
+      reminders: PREMIUM_REMINDERS,
+    };
   return paywall
-    ? { scans: cfg.freeScans, coach: cfg.freeCoach, labelScans: false }
-    : { scans: cfg.freeScans, coach: cfg.proCoach, labelScans: true };
+    ? { scans: 0, coach: 0, labelScans: false, barcode: false, reminders: FREE_REMINDERS }
+    : {
+        scans: cfg.freeScans,
+        coach: cfg.proCoach,
+        labelScans: true,
+        barcode: true,
+        reminders: OPEN_REMINDERS,
+      };
 }
 
 // ── RevenueCat events ──────────────────────────────────────────────────────

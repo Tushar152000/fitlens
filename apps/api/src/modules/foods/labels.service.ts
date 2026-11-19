@@ -12,6 +12,7 @@ import { MealsService } from "../meals/meals.service.js";
 import { BillingService } from "../billing/billing.service.js";
 import { ScanQuotaService } from "../meals/scan-quota.service.js";
 import { UsersService } from "../users/users.service.js";
+import { proRequired } from "../billing/pro-required.js";
 
 /** Nutrition-label photos → a LabelScan the user checks (7g) → their own unreviewed Food, logged to a meal. */
 @Injectable()
@@ -36,7 +37,7 @@ export class LabelsService {
       throw new AppError(403, "Photo does not belong to you");
     }
     if (!(await this.billing.limits(userId)).labelScans) {
-      throw new AppError(402, "Label scans are part of FITR8 Pro.", { reason: "pro_required" });
+      throw proRequired("label_scan", "Reading nutrition labels is part of FITR8 Premium.");
     }
     await this.quota.assertCanScanPhoto(userId);
 

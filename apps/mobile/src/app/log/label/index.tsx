@@ -11,6 +11,7 @@ import { api, ApiError } from "@/lib/api";
 import { choiceParams, dayFromParam, mealFromParam } from "@/lib/meal-param";
 import { compressPhoto, uploadPhoto } from "@/lib/photo";
 import { palettes, radius } from "@/lib/theme";
+import { handlePremiumError } from "@/lib/premium";
 
 /** The camera stays dark in both schemes, so its colours are fixed (the light palette's). */
 const cam = palettes.light;
@@ -52,6 +53,7 @@ export default function LabelCamera() {
       router.replace({ pathname: "/log/label/[id]", params: { id: scan.id, ...choice } });
     } catch (e) {
       setPhase("idle");
+      if (handlePremiumError(e)) return;
       if (e instanceof ApiError && e.status === 429) {
         setLimit((e.details as ScanUsage | undefined) ?? null);
         setLimitOpen(true);

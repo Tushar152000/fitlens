@@ -57,7 +57,6 @@ export class BillingService {
       ...dailyLimits(plan, this.paywall, {
         freeScans: this.env.AI_DAILY_LIMIT,
         proScans: this.env.AI_PRO_DAILY_LIMIT,
-        freeCoach: this.env.COACH_FREE_DAILY_LIMIT,
         proCoach: this.env.COACH_DAILY_LIMIT,
       }),
     };
@@ -65,7 +64,8 @@ export class BillingService {
 
   async billing(userId: string): Promise<BillingDto> {
     const row = await this.entitlement(userId);
-    const { plan, paywall, scans, coach, labelScans } = await this.limits(userId);
+    const { plan, paywall, scans, coach, labelScans, barcode, reminders } =
+      await this.limits(userId);
     return {
       plan,
       paywall,
@@ -73,7 +73,7 @@ export class BillingService {
       lifetime: row?.lifetime ?? false,
       willRenew: plan === "PRO" && (row?.willRenew ?? false),
       store: row?.store ?? null,
-      limits: { scans, coach, labelScans },
+      limits: { scans, coach, labelScans, barcode, reminders },
     };
   }
 
