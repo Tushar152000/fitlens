@@ -4,16 +4,11 @@ import { createTestApp, onboardingPayload, type TestApp } from "./support/app.js
 
 const AUTH = "Bearer test-webhook-secret";
 let t: TestApp;
-let paywalled: TestApp;
 beforeAll(async () => {
   t = await createTestApp({ env: { REVENUECAT_WEBHOOK_AUTH: AUTH } });
-  paywalled = await createTestApp({
-    env: { REVENUECAT_WEBHOOK_AUTH: AUTH, PAYWALL_ENABLED: "true", COACH_FREE_DAILY_LIMIT: "2" },
-  });
 });
 afterAll(async () => {
   await t.close();
-  await paywalled.close();
 });
 
 const DAY = 86_400_000;
@@ -57,12 +52,11 @@ describe("RevenueCat webhook", () => {
       plan: "PRO",
       willRenew: true,
       store: "APP_STORE",
-      limits: { scans: 30, coach: 40, labelScans: true },
+      limits: { scans: 10, coach: 40, labelScans: true, barcode: true, reminders: 50 },
     });
     expect((await agent.get("/api/usage").expect(200)).body).toMatchObject({
       plan: "PRO",
-      limit: 30,
-      paywall: false,
+      limit: 10,
     });
   });
 
@@ -141,52 +135,105 @@ describe("RevenueCat webhook", () => {
   });
 });
 
-describe("paywall", () => {
-  it("keeps today's limits while the paywall is off", async () => {
-    const { agent } = await t.signIn();
+describe("Premium features", () => {
+  it("answer 402 for their feature on the free plan, and buying Premium lifts them", async () => {
+    const { userId, agent } = await t.signIn();
+    await agent.post("/api/onboarding").send(onboardingPayload()).expect(201);
     expect((await agent.get("/api/billing").expect(200)).body).toMatchObject({
       plan: "FREE",
-      paywall: false,
-      limits: { scans: 3, coach: 40, labelScans: true },
+      limits: { scans: 0, coach: 0, labelScans: false, barcode: false, reminders: 3 },
     });
-  });
+    const proRequired = (feature: string) => ({ reason: "pro_required", feature });
 
-  it("with the paywall on: free limits, label scans for Pro only, fewer coach messages", async () => {
-    const { userId, agent } = await paywalled.signIn();
-    await agent.post("/api/onboarding").send(onboardingPayload()).expect(201);
-    expect((await agent.get("/api/usage").expect(200)).body).toMatchObject({
-      plan: "FREE",
-      limit: 3,
-      paywall: true,
-    });
+    const photo = await agent
+      .post("/api/meals")
+      .send({ source: "PHOTO", mealType: "LUNCH", photoKey: `meals/${userId}/a.jpg` })
+      .expect(402);
+    expect(photo.body.details).toEqual(proRequired("photo_scan"));
 
     const label = await agent
       .post("/api/foods/label")
       .send({ photoKey: `meals/${userId}/x.jpg` })
       .expect(402);
-    expect(label.body.details).toEqual({ reason: "pro_required" });
+    expect(label.body.details).toEqual(proRequired("label_scan"));
 
-    const conversation = await paywalled.prisma.coachConversation.create({ data: { userId } });
-    await paywalled.prisma.coachMessage.createMany({
-      data: [1, 2].map(() => ({
-        conversationId: conversation.id,
-        role: "user",
-        content: [],
-        text: "x",
-      })),
-    });
-    const coach = await agent.post("/api/coach/chat").send({ message: "one more" }).expect(429);
-    expect(coach.body.error).toMatch(/2 free coach messages/);
+    const barcode = await agent.get("/api/foods/barcode/8901058000290").expect(402);
+    expect(barcode.body.details).toEqual(proRequired("barcode"));
 
-    // Buying Pro lifts all three.
-    await hook(paywalled, event(userId, "INITIAL_PURCHASE")).expect(200);
+    const coach = await agent.post("/api/coach/chat").send({ message: "hi" }).expect(402);
+    expect(coach.body.details).toEqual(proRequired("coach"));
+
+    for (const n of [1, 2, 3]) {
+      await agent
+        .post("/api/reminders")
+        .send({ title: `Reminder ${n}`, crons: ["0 9 * * *"] })
+        .expect(201);
+    }
+    const fourth = await agent
+      .post("/api/reminders")
+      .send({ title: "Reminder 4", crons: ["0 9 * * *"] })
+      .expect(402);
+    expect(fourth.body.details).toEqual(proRequired("reminders"));
+    expect((await agent.get("/api/reminders").expect(200)).body.max).toBe(3);
+
+    // Buying Premium lifts every one of them.
+    await hook(t, event(userId, "INITIAL_PURCHASE")).expect(200);
     expect((await agent.get("/api/usage").expect(200)).body).toMatchObject({
       plan: "PRO",
-      limit: 30,
+      limit: 10,
     });
-    const proLabel = await agent
-      .post("/api/foods/label")
-      .send({ photoKey: `meals/${userId}/x.jpg` });
-    expect(proLabel.status).not.toBe(402);
+    expect((await agent.get("/api/foods/barcode/8901058000290")).status).not.toBe(402);
+    expect(
+      (await agent.post("/api/foods/label").send({ photoKey: `meals/${userId}/x.jpg` })).status,
+    ).not.toBe(402);
+    expect((await agent.post("/api/coach/chat").send({ message: "hi" })).status).toBe(200);
+    await agent
+      .post("/api/reminders")
+      .send({ title: "Reminder 4", crons: ["0 9 * * *"] })
+      .expect(201);
+    expect((await agent.get("/api/reminders").expect(200)).body.max).toBe(50);
+  });
+});
+
+describe("test purchases (store billing not connected)", () => {
+  it("give Premium in one tap for 30 or 365 days, and can be ended", async () => {
+    const { agent } = await t.signIn();
+    await t.http().post("/api/billing/test-purchase").send({ period: "month" }).expect(401);
+    await agent.post("/api/billing/test-purchase").send({ period: "week" }).expect(400);
+
+    const month = await agent
+      .post("/api/billing/test-purchase")
+      .send({ period: "month" })
+      .expect(200);
+    expect(month.body).toMatchObject({
+      plan: "PRO",
+      store: "TEST",
+      willRenew: false,
+      testPurchases: true,
+      limits: { scans: 10, coach: 40, barcode: true, reminders: 50 },
+    });
+    const days = (iso: string) => Math.round((new Date(iso).getTime() - Date.now()) / DAY);
+    expect(days(month.body.proUntil)).toBe(30);
+
+    const year = await agent
+      .post("/api/billing/test-purchase")
+      .send({ period: "year" })
+      .expect(200);
+    expect(days(year.body.proUntil)).toBe(365);
+
+    const ended = await agent.delete("/api/billing/test-purchase").expect(200);
+    expect(ended.body).toMatchObject({ plan: "FREE", proUntil: null, store: null });
+  });
+
+  it("are refused once store billing is connected", async () => {
+    const { agent } = await t.signIn();
+    t.revenueCat.enabled = true;
+    try {
+      expect((await agent.get("/api/billing").expect(200)).body.testPurchases).toBe(false);
+      await agent.post("/api/billing/test-purchase").send({ period: "month" }).expect(404);
+      await agent.delete("/api/billing/test-purchase").expect(404);
+    } finally {
+      t.revenueCat.enabled = false;
+    }
   });
 });

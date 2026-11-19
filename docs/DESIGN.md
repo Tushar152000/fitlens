@@ -262,7 +262,7 @@ Drawn: 5b, 6b, 6c, 8, 9b, 9c. Build these from the description:
 ## Backend follow-ups implied by the design
 
 - A not-food result (9b) must not count toward the daily scan limit.
-- Free tier = 3 photo scans a day (`AI_DAILY_LIMIT` defaults to 30 today). Typed meals and "usuals" never count.
+- Photo scans are Premium (10 a day, docs/PREMIUM.md). Typed meals and "usuals" never count.
 - Unrealistic goals (5b): `suggestedTargetDate` must use the pace after the 25% deficit cap (≈0.6 kg/week for the 82 kg example), not the 1%/week rate, and return both options (later date, or closer target by the original date).
 - "Your usuals" (7b) needs a favourites/frequent-meals endpoint (PRD FR-13, P1).
 - History (12) needs `GET /api/history?days=7|30` returning daily totals and meals.
@@ -287,6 +287,46 @@ Drawn: 5b, 6b, 6c, 8, 9b, 9c. Build these from the description:
 - **Numbers never come from the LLM.** An LLM may only rephrase the `reason` line.
 - **Logging:** `POST /api/meals` with `source: SUGGESTION` and the item list → status `CONFIRMED` directly; never counts toward the photo-scan limit.
 - **Safety:** no ideas when over target (show light options only); never suggest pushing the day below the calorie floor.
+
+## Premium screen (`/pro`, app modal)
+
+One screen sells Premium everywhere (docs/PREMIUM.md). It opens on the feature the user just tried
+(`?feature=barcode|photo_scan|label_scan|coach|reminders`), once after onboarding
+(`?source=onboarding`), or from Profile.
+
+- **Top row:** 28 px brand crown tile + "FITR8 Premium"; close (X) on the right.
+- **Hero:** `panel` card (dark in both themes), eyebrow in `brandGlow` caps ("PREMIUM FEATURE",
+  "YOUR PLAN IS READY", "YOU'VE USED YOUR 3 FREE REMINDERS"), h1 in white, one line at 78% white.
+  The headline names the outcome of the feature tried ("Scan a barcode, done").
+- **Plans:** two radio cards, **Yearly preselected**: "₹1,499/year", "Just ₹125/month", green
+  `proteinSoft` pill "Save ₹289" (saving in rupees from store prices); Monthly "₹149/month". Selected =
+  2 px brand border on `brandSoft`, filled brand radio with a white check.
+- **Trial timeline** (when the store offers a trial): "Today: every Premium feature unlocks. You pay
+  ₹0." → "Day 7: your plan starts at …. Cancel before then and you pay nothing."
+- **Everything in Free, plus:** list card, the tried feature first on `brandSoft` with a filled brand
+  icon tile; "Reports and insights" carries a grey SOON pill.
+- **Free and Premium:** compare table, Premium column header in brand. Included = check (green in
+  Free, brand in Premium); not included = a grey dash, never a red cross.
+- **Footer (pinned):** one purple button "Start 7-day free trial"; "₹0 today · ₹1,499/year after 7 days
+  · Cancel anytime"; renewal terms with Terms · Privacy; "Restore purchases" and **"Continue with
+  Free"** side by side (always visible). Bought: "You're on Premium", button Continue/Done.
+
+Why: relevance first (the tried feature leads), anchoring (yearly shown per month beside monthly),
+default effect (yearly preselected), risk reversal (the timeline says when money moves), one accent
+colour for the one action, and free is respected, never shamed.
+
+## Premium touches (Premium users)
+
+Quiet confirmation of the plan, never a different look, and never a worse free app.
+
+- **`PremiumBadge`** (`src/components/premium-badge.tsx`): brand crown + label on `brandSoft`, pill.
+  On Today next to the date, in the Profile header ("FITR8 Premium", md), beside "Your coach", and
+  "Unlimited" in the reminders header.
+- **Camera:** under "Snap your meal", a `brandGlow` crown and "7 of 10 photo scans left today".
+- **Profile plan card:** what's included (coach 40 a day, barcode and labels, unlimited reminders),
+  the scan meter, renewal, Manage subscription (or "End test Premium" for a test purchase).
+- **Right after buying:** the Premium screen lists "What you just unlocked"; scanning, coach and
+  reminders rows end in "Try it ›" and open that feature.
 
 ## Workout coach engine (calorie-aware)
 

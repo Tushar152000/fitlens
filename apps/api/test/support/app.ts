@@ -31,12 +31,16 @@ export interface TestApp {
   signIn: (
     name?: string,
   ) => Promise<{ userId: string; token: string; agent: ReturnType<typeof request.agent> }>;
+  /** Give a user FITR8 Premium (a lifetime entitlement), for tests of Premium features. */
+  premium: (userId: string) => Promise<void>;
   close: () => Promise<void>;
 }
 
 export interface TestAppOptions {
   /** Environment overrides for this app only (e.g. a low AUTH_RATE_LIMIT). */
   env?: Record<string, string>;
+  /** Every user from `signIn` gets FITR8 Premium (suites that test Premium features). */
+  premium?: boolean;
 }
 
 /** Boots the real AppModule (same middleware as main.ts) against the test database, with a fake Google. */
@@ -66,6 +70,15 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
   const server = app.getHttpServer();
   const prisma = app.get(PrismaService);
 
+  /** A lifetime entitlement: the user has FITR8 Premium. */
+  const premium = async (userId: string) => {
+    await prisma.entitlement.upsert({
+      where: { userId },
+      create: { userId, lifetime: true, store: "TEST", syncedAt: new Date() },
+      update: { lifetime: true },
+    });
+  };
+
   return {
     app,
     prisma,
@@ -80,8 +93,11 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
         .post("/api/auth/dev")
         .send({ email: `${randomUUID()}@test.fitlens`, name })
         .expect(200);
-      return { userId: res.body.userId as string, token: res.body.token as string, agent };
+      const userId = res.body.userId as string;
+      if (options.premium) await premium(userId);
+      return { userId, token: res.body.token as string, agent };
     },
+    premium,
     close: () => app.close(),
   };
 }

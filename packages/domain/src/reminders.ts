@@ -21,8 +21,6 @@ export const MAX_REMINDER_SLOTS = 24;
 export const UPCOMING_PER_RULE = 3;
 /** Rules per reminder ("9 am on the 1st and 6 pm on the second-last day" is two). */
 export const MAX_RULES = 6;
-/** Reminders per account. */
-export const MAX_REMINDERS = 20;
 
 /** Which days a rule fires on. */
 export type DayRule =

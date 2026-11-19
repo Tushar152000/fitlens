@@ -14,7 +14,7 @@ function events(body: string): CoachStreamEvent[] {
 describe("coach (agent loop, mock model)", () => {
   let t: TestApp;
   beforeAll(async () => {
-    t = await createTestApp();
+    t = await createTestApp({ premium: true });
   });
   afterAll(() => t.close());
 

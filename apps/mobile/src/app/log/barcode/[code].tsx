@@ -4,7 +4,7 @@ import { ProductSkeleton } from "@/components/skeletons";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { BadgeCheck, Camera, Package, SearchX } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Linking, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { BackHeader } from "@/components/back-header";
 import { Button, Card, FieldError, Screen, Segmented, Stepper, Text } from "@/components/ui";
@@ -16,6 +16,7 @@ import { choiceParams, dayFromParam, mealFromParam, useMealChoice } from "@/lib/
 import { refreshDay } from "@/lib/query";
 import { showDay } from "@/lib/view-day";
 import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
+import { openPremium, premiumFeatureOf, usePremium } from "@/lib/premium";
 
 /** Most grams/ml one item can log (QuickAddSchema). */
 const MAX_GRAMS = 5000;
@@ -31,7 +32,13 @@ export default function ProductRoute() {
     retry: false,
   });
 
-  if (product.isPending) {
+  // Barcode scanning is Premium for free users: swap this screen for the Premium screen.
+  const premiumFeature = premiumFeatureOf(product.error);
+  useEffect(() => {
+    if (premiumFeature) router.replace({ pathname: "/pro", params: { feature: premiumFeature } });
+  }, [premiumFeature]);
+
+  if (product.isPending || premiumFeature) {
     return (
       <Screen>
         <BackHeader />
@@ -297,6 +304,7 @@ function NotFound({
   choice: { meal?: string; date?: string };
   reason: Reason;
 }) {
+  const labelLocked = usePremium().locked("label_scan");
   const c = useColors();
   const styles = useStyles();
   const [name, setName] = useState(
@@ -318,10 +326,12 @@ function NotFound({
           <Button
             icon={Camera}
             onPress={() =>
-              router.push({
-                pathname: "/log/label",
-                params: { ...choice, barcode: code, ...(name.trim() ? { name: name.trim() } : {}) },
-              })
+              labelLocked
+                ? openPremium("label_scan")
+                : router.push({
+                    pathname: "/log/label",
+                    params: { ...choice, barcode: code, ...(name.trim() ? { name: name.trim() } : {}) },
+                  })
             }
           >
             Photograph the label

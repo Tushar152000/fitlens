@@ -12,19 +12,20 @@ contain no Firebase configuration. Nothing comes from environment variables: the
 
 Events and their params are defined once in `packages/contracts/src/analytics.ts`:
 
-| Event                 | Params                                                   | Where                            |
-| --------------------- | -------------------------------------------------------- | -------------------------------- |
-| `login`               | `method`: google / apple / dev                           | app                              |
-| `onboarding_complete` | `platform`: web / app (first onboarding, not goal edits) | web, app                         |
-| `meal_logged`         | `method`: photo / type / barcode / label / usual / saved | app (first save only, not edits) |
-| `saved_meal_created`  | `from`: builder / meal                                   | app                              |
-| `reminder_created`    | `from`: words / edited (schedule changed before saving)  | app                              |
-| `welcome_back`        | `action`: updated / dismissed (back after 90+ days)      | app                              |
-| `coach_message`       | –                                                        | app                              |
-| `pro_purchase`        | `period`: month / year                                   | app                              |
-| `calculator_used`     | –                                                        | web landing                      |
-| `store_click`         | `store`: app_store / play_store                          | web landing                      |
-| screen / page views   | app: route pattern (`log/[id]`, never ids); web: GA auto | both                             |
+| Event                 | Params                                                          | Where                            |
+| --------------------- | --------------------------------------------------------------- | -------------------------------- |
+| `login`               | `method`: google / apple / dev                                  | app                              |
+| `onboarding_complete` | `platform`: web / app (first onboarding, not goal edits)        | web, app                         |
+| `meal_logged`         | `method`: photo / type / barcode / label / usual / saved        | app (first save only, not edits) |
+| `saved_meal_created`  | `from`: builder / meal                                          | app                              |
+| `reminder_created`    | `from`: words / edited (schedule changed before saving)         | app                              |
+| `welcome_back`        | `action`: updated / dismissed (back after 90+ days)             | app                              |
+| `coach_message`       | –                                                               | app                              |
+| `pro_purchase`        | `period`: month / year                                          | app                              |
+| `paywall_view`        | `feature` (or `none`), `source`: feature / onboarding / profile | app                              |
+| `calculator_used`     | –                                                               | web landing                      |
+| `store_click`         | `store`: app_store / play_store                                 | web landing                      |
+| screen / page views   | app: route pattern (`log/[id]`, never ids); web: GA auto        | both                             |
 
 The app also sets the GA user id to FITR8's internal user id (cleared on sign-out). **Never** add
 health values (weight, kcal, body fat, targets), names, emails, photos or free text to an event.

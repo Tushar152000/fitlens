@@ -4,7 +4,6 @@ import { Crown, Keyboard } from "lucide-react-native";
 import { View } from "react-native";
 import { Sheet } from "@/components/sheet";
 import { Button, Card, Text } from "@/components/ui";
-import { purchasesAvailable } from "@/lib/purchases";
 import { useColors } from "@/lib/theme";
 
 export type ScanUsage = UsageDto;
@@ -54,28 +53,27 @@ export function AiLimitSheet({
         ))}
       </View>
       <Text color={c.ink2}>Scans reset at {resets}. Typing a meal is free and doesn&apos;t use a scan.</Text>
-      {/* Paywall off: Pro can't be bought, so don't advertise it. */}
-      {usage?.plan !== "PRO" && usage?.paywall && purchasesAvailable && (
+      {usage?.plan !== "PRO" && (
         <Card dark style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Crown size={20} color={c.brandGlow} />
             <Text weight={700} color={c.white}>
-              FITR8 Pro
+              FITR8 Premium
             </Text>
           </View>
           <Text size={13} color="rgba(255,255,255,0.75)">
-            30 photo scans a day, nutrition label reading and more coach messages.
+            10 photo scans a day, barcode and label scanning, and the AI Coach.
           </Text>
         </Card>
       )}
-      {usage?.plan !== "PRO" && usage?.paywall && purchasesAvailable && (
+      {usage?.plan !== "PRO" && (
         <Button
           onPress={() => {
             onClose();
             router.push("/pro");
           }}
         >
-          See FITR8 Pro
+          See FITR8 Premium
         </Button>
       )}
       <Button

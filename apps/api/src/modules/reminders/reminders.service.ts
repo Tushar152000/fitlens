@@ -6,7 +6,6 @@ import {
   describeRules,
   formatLocal,
   isRepeating,
-  MAX_REMINDERS,
   parseRules,
   scheduleSlots,
   toCron,
@@ -18,6 +17,8 @@ import {
 import { AppError, notFound } from "../../common/errors.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import { FOOD_EXTRACTOR, type FoodExtractor } from "../ai/index.js";
+import { BillingService } from "../billing/billing.service.js";
+import { proRequired } from "../billing/pro-required.js";
 import { UsersService } from "../users/users.service.js";
 
 /** Turning words into a reminder is cheap but not free; this only stops runaway use. */
@@ -44,6 +45,7 @@ export class RemindersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly users: UsersService,
+    private readonly billing: BillingService,
     @Inject(FOOD_EXTRACTOR) private readonly extractor: FoodExtractor,
   ) {}
 
@@ -52,17 +54,26 @@ export class RemindersService {
       this.prisma.reminder.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
       this.localNow(userId),
     ]);
-    return { reminders: rows.map((r) => toDto(r, now)), max: MAX_REMINDERS };
+    const { reminders: max } = await this.billing.limits(userId);
+    return { reminders: rows.map((r) => toDto(r, now)), max };
   }
 
+  /**
+   * 402 (Premium) when a free user already has their 3 reminders; 409 at Premium's fair-use cap.
+   */
   async create(userId: string, input: ReminderInput) {
     const crons = checkedCrons(input.crons);
-    const count = await this.prisma.reminder.count({ where: { userId } });
-    if (count >= MAX_REMINDERS) {
-      throw new AppError(
-        409,
-        `You can have up to ${MAX_REMINDERS} reminders. Delete one to add another.`,
-      );
+    const [count, { reminders: max, plan }] = await Promise.all([
+      this.prisma.reminder.count({ where: { userId } }),
+      this.billing.limits(userId),
+    ]);
+    if (count >= max) {
+      if (plan === "FREE")
+        throw proRequired(
+          "reminders",
+          `Free includes ${max} reminders. FITR8 Premium gives you unlimited reminders.`,
+        );
+      throw new AppError(409, `You can have up to ${max} reminders. Delete one to add another.`);
     }
     const row = await this.prisma.reminder.create({
       data: {

@@ -4,6 +4,8 @@ import { normalizeBarcode } from "@fitr8/domain/barcode";
 import { labelAddsUp } from "@fitr8/domain/label";
 import { AppError } from "../../common/errors.js";
 import { InjectEnv, type Env } from "../../config/config.module.js";
+import { BillingService } from "../billing/billing.service.js";
+import { proRequired } from "../billing/pro-required.js";
 import { PrismaService } from "../../infra/prisma/prisma.service.js";
 import {
   barcodeSources,
@@ -45,6 +47,7 @@ export class BarcodeService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly billing: BillingService,
     @InjectEnv() env: Env,
   ) {
     this.sources = barcodeSources(env);
@@ -56,6 +59,9 @@ export class BarcodeService {
    * the app can prefill the label scan.
    */
   async product(raw: string, userId: string) {
+    if (!(await this.billing.limits(userId)).barcode) {
+      throw proRequired("barcode", "Barcode scanning is part of FITR8 Premium.");
+    }
     const result = await this.lookup(raw, userId);
     if (result.status === "invalid") throw new AppError(400, "That isn't a valid barcode");
     if (result.status === "not_found")

@@ -28,6 +28,8 @@ import { dayQuery, dayQueryFor, progressQuery } from "@/lib/queries";
 import { showDay, useViewDay } from "@/lib/view-day";
 import { makeStyles, radius, useColors } from "@/lib/theme";
 import type { Day } from "@/lib/types";
+import { usePremiumIntro } from "@/lib/premium";
+import { PremiumBadge } from "@/components/premium-badge";
 
 function greeting(hour: number) {
   if (hour < 5) return "Up late";
@@ -39,6 +41,7 @@ function greeting(hour: number) {
 /** Screen 6: intake vs targets for today (or a recent day, to fill in a forgotten meal), meals, and progress. */
 export default function TodayScreen() {
   const me = useMe();
+  usePremiumIntro(me);
   // null = today. A day that has slid out of the window (app left open for days) falls back to today.
   const viewDay = dayFromParam(useViewDay() ?? undefined);
   // The header is about today (greeting, date), so its streak always comes from today's data, even
@@ -90,7 +93,10 @@ export default function TodayScreen() {
         <Screen tabBar refreshing={refreshing} onRefresh={refresh}>
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
-              <Text variant="meta">{dateText}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text variant="meta">{dateText}</Text>
+                {me.plan === "PRO" && <PremiumBadge />}
+              </View>
               <Text variant="h1">
                 {greeting(hour)}
                 {firstName ? `, ${firstName}` : ""}

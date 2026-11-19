@@ -1,7 +1,18 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { RevenueCatWebhookSchema, type BillingDto, type PlanName } from "@fitr8/contracts";
+import {
+  RevenueCatWebhookSchema,
+  type BillingDto,
+  type PlanName,
+  type TestPurchaseInput,
+} from "@fitr8/contracts";
 import { Prisma } from "@fitr8/db";
-import { accessFromEvent, dailyLimits, planOf, type AccessChange } from "@fitr8/domain/billing";
+import {
+  accessFromEvent,
+  dailyLimits,
+  planOf,
+  TEST_PURCHASE_DAYS,
+  type AccessChange,
+} from "@fitr8/domain/billing";
 import { safeEqual } from "../../common/crypto.js";
 import { AppError } from "../../common/errors.js";
 import { InjectEnv, type Env } from "../../config/config.module.js";
@@ -36,8 +47,12 @@ export class BillingService {
     @InjectEnv() private readonly env: Env,
   ) {}
 
-  get paywall(): boolean {
-    return this.env.PAYWALL_ENABLED;
+  /**
+   * One-click test purchases (docs/PREMIUM.md "Buying"): on until store billing is connected
+   * (REVENUECAT_SECRET_KEY set), then real App Store / Google Play purchases take over.
+   */
+  get testPurchases(): boolean {
+    return !this.revenueCat.enabled;
   }
 
   private async entitlement(userId: string) {
@@ -53,11 +68,8 @@ export class BillingService {
     const plan = await this.plan(userId);
     return {
       plan,
-      paywall: this.paywall,
-      ...dailyLimits(plan, this.paywall, {
-        freeScans: this.env.AI_DAILY_LIMIT,
+      ...dailyLimits(plan, {
         proScans: this.env.AI_PRO_DAILY_LIMIT,
-        freeCoach: this.env.COACH_FREE_DAILY_LIMIT,
         proCoach: this.env.COACH_DAILY_LIMIT,
       }),
     };
@@ -65,16 +77,50 @@ export class BillingService {
 
   async billing(userId: string): Promise<BillingDto> {
     const row = await this.entitlement(userId);
-    const { plan, paywall, scans, coach, labelScans } = await this.limits(userId);
+    const { plan, scans, coach, labelScans, barcode, reminders } = await this.limits(userId);
     return {
       plan,
-      paywall,
+      testPurchases: this.testPurchases,
       proUntil: row?.proUntil?.toISOString() ?? null,
       lifetime: row?.lifetime ?? false,
       willRenew: plan === "PRO" && (row?.willRenew ?? false),
       store: row?.store ?? null,
-      limits: { scans, coach, labelScans },
+      limits: { scans, coach, labelScans, barcode, reminders },
     };
+  }
+
+  /**
+   * POST /billing/test-purchase: Premium in one tap, no money, while store billing isn't connected
+   * (404 after). Gives 30 or 365 days, like the plan picked; buying again extends from today.
+   */
+  async testPurchase(userId: string, { period }: TestPurchaseInput): Promise<BillingDto> {
+    if (!this.testPurchases) throw new AppError(404, "Buy FITR8 Premium in the app store.");
+    const now = new Date();
+    const proUntil = new Date(now.getTime() + TEST_PURCHASE_DAYS[period] * 86_400_000);
+    const data = {
+      proUntil,
+      lifetime: false,
+      willRenew: false,
+      productId: period === "year" ? "fitr8_pro_yearly" : "fitr8_pro_monthly",
+      store: "TEST",
+      periodType: "NORMAL",
+      environment: "TEST",
+      syncedAt: now,
+    };
+    await this.prisma.entitlement.upsert({
+      where: { userId },
+      create: { userId, ...data },
+      update: data,
+    });
+    this.logger.log(`test purchase: ${period} for ${userId}`);
+    return this.billing(userId);
+  }
+
+  /** DELETE /billing/test-purchase: end a test purchase (back to Free). Store purchases are untouched. */
+  async endTestPurchase(userId: string): Promise<BillingDto> {
+    if (!this.testPurchases) throw new AppError(404, "Manage FITR8 Premium in the app store.");
+    await this.prisma.entitlement.deleteMany({ where: { userId, store: "TEST" } });
+    return this.billing(userId);
   }
 
   /** After a purchase or "Restore purchases" in the app: read RevenueCat now, don't wait for the webhook. */

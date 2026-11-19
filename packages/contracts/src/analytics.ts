@@ -23,8 +23,10 @@ export interface AnalyticsEvents {
   reminder_created: { from: "words" | "edited" };
   /** A message was sent to the AI coach. */
   coach_message: Record<string, never>;
-  /** FITR8 Pro bought in the app store (trial starts count). */
+  /** FITR8 Premium bought in the app store (trial starts count). */
   pro_purchase: { period: "month" | "year" };
+  /** The Premium screen opened: which feature led there (or none), and from where. */
+  paywall_view: { feature: string; source: "feature" | "onboarding" | "profile" };
   /** Landing page calorie calculator submitted (web). */
   calculator_used: Record<string, never>;
   /** "Get the app" store badge tapped (web). */

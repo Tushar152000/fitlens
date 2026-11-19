@@ -12,19 +12,21 @@ import { Button, Chip, FieldError, Screen, Segmented, Switch, Text } from "@/com
 import { api, apiText } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { formatInt, mealTitle } from "@/lib/format";
-import { manageSubscriptionUrl, purchasesAvailable } from "@/lib/purchases";
-import { billingQuery, dayQuery, remindersQuery, waterQuery } from "@/lib/queries";
+import { manageSubscriptionUrl } from "@/lib/purchases";
+import { billingQuery, dayQuery, remindersQuery, usageQuery, waterQuery } from "@/lib/queries";
 import {
   ensureNotificationPermission,
   remindersAvailable,
   sendReminderConfirmation,
   syncWaterReminders,
 } from "@/lib/reminders";
+import { confirmAction } from "@/lib/confirm";
 import { queryClient } from "@/lib/query";
 import { fonts, makeStyles, radius, useAppearance, useColors, type AppearancePreference } from "@/lib/theme";
 import type { PlanResponse } from "@/lib/types-plan";
 import type { DeleteReason, UsageDto } from "@fitr8/contracts";
 import { openLegal } from "@/lib/legal";
+import { PremiumBadge } from "@/components/premium-badge";
 
 const GOAL_LABEL = { FAT_LOSS: "Lose fat", MUSCLE_GAIN: "Build muscle", RECOMPOSITION: "Recomposition" } as const;
 const DIET_LABEL = { VEG: "Veg", NON_VEG: "Non-veg", EGGETARIAN: "Eggetarian", VEGAN: "Vegan" } as const;
@@ -49,7 +51,7 @@ export default function ProfileScreen() {
   const me = useMe();
   const { signOut } = useAuth();
   const plan = useQuery({ queryKey: ["plan"], queryFn: () => api<PlanResponse>("/api/plan") });
-  const usage = useQuery({ queryKey: ["usage"], queryFn: () => api<UsageDto>("/api/usage") });
+  const usage = useQuery(usageQuery);
   const day = useQuery(dayQuery);
   // Also keeps this phone's scheduled reminders in step (tabs layout shares the query).
   const reminders = useQuery(remindersQuery);
@@ -92,11 +94,15 @@ export default function ProfileScreen() {
             {[me.name, me.lastName].filter(Boolean).join(" ") || "Your profile"}
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <View style={styles.planPill}>
-              <Text weight={600} size={13} color={c.ink2}>
-                {usage.data?.plan === "PRO" ? "FITR8 Pro" : "Free plan"}
-              </Text>
-            </View>
+            {usage.data?.plan === "PRO" ? (
+              <PremiumBadge label="FITR8 Premium" size="md" />
+            ) : (
+              <View style={styles.planPill}>
+                <Text weight={600} size={13} color={c.ink2}>
+                  Free plan
+                </Text>
+              </View>
+            )}
             {streak > 0 && (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                 <Flame size={16} color={c.brandGlow} fill={c.brandGlow} />
@@ -392,14 +398,30 @@ const formatNext = (d: Date) => {
   return today ? `today, ${time}` : `${new Intl.DateTimeFormat("en-IN", { weekday: "long" }).format(d)}, ${time}`;
 };
 
-/** Plan card: scans left today, and FITR8 Pro (upgrade, or renewal + manage). */
+/** Plan card: scans left today, and FITR8 Premium (upgrade, or renewal + manage). */
 function PlanCard({ usage }: { usage: UsageDto }) {
   const c = useColors();
   const styles = useStyles();
   const billing = useQuery({ ...billingQuery, enabled: usage.plan === "PRO" });
+  const [ending, setEnding] = useState(false);
+  const testPremium = billing.data?.store === "TEST";
+
+  /** A test purchase (store billing not connected yet): back to Free, to try the free plan again. */
+  async function endTest() {
+    if (!(await confirmAction("End test Premium?", "You'll go back to the free plan.", "End Premium"))) return;
+    setEnding(true);
+    try {
+      await api("/api/billing/test-purchase", { method: "DELETE" });
+      await queryClient.invalidateQueries();
+    } finally {
+      setEnding(false);
+    }
+  }
   const pips = Math.min(usage.limit, 10);
   const usedPips = Math.min(pips, Math.round((usage.used / usage.limit) * pips));
   const pro = usage.plan === "PRO";
+  // Free plan: no photo scans at all, so show what Premium adds instead of a 0/0 meter.
+  const noScans = usage.limit === 0;
   const until = billing.data?.proUntil
     ? new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(
         new Date(billing.data.proUntil),
@@ -410,46 +432,56 @@ function PlanCard({ usage }: { usage: UsageDto }) {
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           {pro && <Crown size={16} color={c.brandText} />}
-          <Text weight={600}>{pro ? "FITR8 Pro" : "Free plan"}</Text>
+          <Text weight={600}>{pro ? "FITR8 Premium" : "Free plan"}</Text>
         </View>
-        <Text weight={600} size={13} color={c.ink3} tabular>
-          {usage.left} of {usage.limit} photo scans left today
-        </Text>
+        {!noScans && (
+          <Text weight={600} size={13} color={c.ink3} tabular>
+            {usage.left} of {usage.limit} photo scans left today
+          </Text>
+        )}
       </View>
-      <View style={{ flexDirection: "row", gap: 6 }} aria-hidden>
-        {Array.from({ length: pips }, (_, i) => (
-          <View
-            key={i}
-            style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: i < usedPips ? c.brand : c.track }}
-          />
-        ))}
-      </View>
+      {!noScans && (
+        <View style={{ flexDirection: "row", gap: 6 }} aria-hidden>
+          {Array.from({ length: pips }, (_, i) => (
+            <View
+              key={i}
+              style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: i < usedPips ? c.brand : c.track }}
+            />
+          ))}
+        </View>
+      )}
       {pro ? (
         <>
+          <Text size={13} color={c.ink2}>
+            Included: the AI Coach (40 messages a day), barcode and label scanning, and unlimited reminders.
+          </Text>
           {until && (
             <Text size={13} color={c.ink3}>
               {billing.data?.lifetime
                 ? "Lifetime access."
                 : billing.data?.willRenew
                   ? `Renews ${until}.`
-                  : `Pro until ${until}; won't renew.`}
+                  : `Premium until ${until}; won't renew.`}
             </Text>
           )}
-          <Button variant="secondary" onPress={() => Linking.openURL(manageSubscriptionUrl)}>
-            Manage subscription
-          </Button>
+          {testPremium ? (
+            <Button variant="secondary" loading={ending} onPress={endTest}>
+              End test Premium
+            </Button>
+          ) : (
+            <Button variant="secondary" onPress={() => Linking.openURL(manageSubscriptionUrl)}>
+              Manage subscription
+            </Button>
+          )}
         </>
       ) : (
         <>
           <Text size={13} color={c.ink3}>
-            Typing meals and relogging usuals are always free.
+            Premium adds barcode and photo scanning, the AI Coach and unlimited reminders. Typing meals is always free.
           </Text>
-          {/* Paywall off: free users already have today's limits, so there is nothing to sell yet. */}
-          {usage.paywall && purchasesAvailable && (
-            <Button variant="strong" icon={Crown} onPress={() => router.push("/pro")}>
-              Go Pro
-            </Button>
-          )}
+          <Button icon={Crown} onPress={() => router.push("/pro")}>
+            See FITR8 Premium
+          </Button>
         </>
       )}
     </View>
@@ -585,7 +617,7 @@ function DangerZone({ onDeleted, onSignOut }: { onDeleted: () => void; onSignOut
               bring them back. You can download a copy first from &ldquo;Your data&rdquo;.
             </Text>
             <Text size={13} color={c.cautionText}>
-              Paying for FITR8 Pro through the App Store or Google Play? Cancel it there too: deleting your account
+              Paying for FITR8 Premium through the App Store or Google Play? Cancel it there too: deleting your account
               doesn&apos;t stop the store billing you.
             </Text>
             <View style={{ gap: 8 }}>

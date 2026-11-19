@@ -4,6 +4,8 @@ Record decisions as `YYYY-MM-DD — decision — why`. Move a question to Decide
 
 ## Decided
 
+- 2026-11-19 — No paywall switch: Premium rules always apply. Until store billing (RevenueCat) is connected, buying is a free one-tap test purchase (30/365 days) in every environment including production, since only the team uses the app; must connect store billing before a public store release.
+- 2026-11-19 — FITR8 Premium: ₹149/month or ₹1,499/year, 7-day trial. Free: typing meals, saved meals, workouts (logging, unlimited history, PRs), weight/water/progress, 3 custom reminders, Apple Health/Google Fit connect. Premium: barcode, AI photo + label scans (10/day), AI Coach (40/day), personalised workout plan, unlimited reminders (cap 50), detailed reports/insights, formatted export. Every Premium tap opens one Premium screen; it also shows once after onboarding. Workout plan stays free until free "log your own workout" exists; not-built items listed in docs/PREMIUM.md.
 - 2026-11-18 — Meal type defaults from the time of day (or the route) and is changeable on every log screen and later on the meal (`PUT /meals/:id mealType`); replaces "always the user's choice" — the owner found the meal chips cluttered.
 - 2026-11-18 — Generic foods: import the Indian Nutrient Databank (1,014 recipes) as seed data (`source INDB`), starter foods win on shared names. Open: commercial-use OK from the INDB authors (no licence file).
 - 2026-11-18 — Dark mode ground is true black `#000` (owner asked for the darkest); surfaces step up from it.

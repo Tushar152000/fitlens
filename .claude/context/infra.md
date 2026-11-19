@@ -2,7 +2,7 @@
 
 ## CI `.github/workflows/ci.yml`
 
-Every PR + push to main. Job `check` (Postgres 17): frozen install → `format:check` → `prisma validate` → **`pnpm db:drift`** (migrations vs schema, shadow DB `fitlens_shadow`; exit 2 = drift) → `turbo run lint typecheck test build` → `pnpm test:scripts`. Job `workflows`: actionlint 1.7.7 (also shellchecks `run:` blocks) + shellcheck on `infra/**/*.sh`. Job `docker`: api + web images (web with `NEXT_PUBLIC_API_URL`). `pnpm check` locally skips format, drift, build, docker, workflow lint.
+Every PR + push to main. Job `check` (Postgres 17): frozen install → `format:check` → `prisma validate` → **`pnpm db:drift`** (migrations vs schema, shadow DB `fitlens_shadow`; exit 2 = drift) → `turbo run lint typecheck test build` → `pnpm test:scripts`. Job `workflows`: actionlint 1.7.7 (also shellchecks `run:` blocks) + shellcheck on `infra/**/*.sh`. Job `docker`: api + web images (web with `NEXT_PUBLIC_API_URL`). `pnpm check` locally skips format, drift, build, docker, workflow lint. `apps/web/turbo.json` and `packages/db/turbo.json` make `typecheck` depend on the package's own `build` (they share `.next` / `src/generated`; in parallel they raced).
 
 ## Deploy `.github/workflows/deploy.yml` (single ordered pipeline)
 

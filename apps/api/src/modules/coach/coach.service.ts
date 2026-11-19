@@ -23,6 +23,7 @@ import { isOffTopic, OFF_TOPIC_REPLY } from "./scope.js";
 import { BillingService } from "../billing/billing.service.js";
 import { CoachToolbox } from "./tools/coach-toolbox.js";
 import { TurnLock } from "./turn-lock.js";
+import { proRequired } from "../billing/pro-required.js";
 
 const SYSTEM = [
   {
@@ -77,15 +78,13 @@ export class CoachService {
         conversation: { userId },
       },
     });
-    const { coach: limit, plan, paywall } = await this.billing.limits(userId);
+    const { coach: limit, plan } = await this.billing.limits(userId);
+    if (limit === 0) throw proRequired("coach", "The AI coach is part of FITR8 Premium.");
     if (sentToday >= limit) {
-      throw new AppError(
-        429,
-        plan === "FREE" && paywall
-          ? `You've used today's ${limit} free coach messages. Pro gives you more.`
-          : "You've reached today's coach limit. It resets at midnight.",
-        { limit, plan, paywall },
-      );
+      throw new AppError(429, "You've reached today's coach limit. It resets at midnight.", {
+        limit,
+        plan,
+      });
     }
 
     const conversation = input.conversationId

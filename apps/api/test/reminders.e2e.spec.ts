@@ -7,7 +7,7 @@ const LOCAL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 describe("reminders", () => {
   let t: TestApp;
   beforeAll(async () => {
-    t = await createTestApp();
+    t = await createTestApp({ premium: true });
   });
   afterEach(() => vi.restoreAllMocks());
   afterAll(() => t.close());
@@ -137,7 +137,7 @@ describe("reminders", () => {
     const id = created.body.id as string;
 
     const list = await owner.agent.get("/api/reminders").expect(200);
-    expect(list.body).toMatchObject({ max: 20, reminders: [{ id }] });
+    expect(list.body).toMatchObject({ max: 50, reminders: [{ id }] });
     expect((await stranger.agent.get("/api/reminders").expect(200)).body.reminders).toEqual([]);
 
     await stranger.agent.patch(`/api/reminders/${id}`).send({ enabled: false }).expect(404, {
@@ -173,7 +173,7 @@ describe("reminders", () => {
   it("caps reminders per account", async () => {
     const { agent, userId } = await t.signIn();
     await t.prisma.reminder.createMany({
-      data: Array.from({ length: 20 }, (_, i) => ({
+      data: Array.from({ length: 50 }, (_, i) => ({
         userId,
         title: `R${i}`,
         crons: ["0 9 * * *"],
@@ -183,6 +183,6 @@ describe("reminders", () => {
       .post("/api/reminders")
       .send({ title: "One more", crons: ["0 9 * * *"] })
       .expect(409);
-    expect(res.body.error).toMatch(/up to 20/);
+    expect(res.body.error).toMatch(/up to 50/);
   });
 });
