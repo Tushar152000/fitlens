@@ -1,17 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Figtree } from "next/font/google";
+import localFont from "next/font/local";
 import { Analytics } from "@/components/analytics";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({
+// Fonts are files in the repo (src/fonts, Fontsource, OFL): builds never download from Google, which
+// failed CI on flaky networks. Variable fonts: one file covers every weight in the range.
+const bricolage = localFont({
+  src: "../fonts/bricolage-grotesque-latin-wght-normal.woff2",
   variable: "--font-bricolage",
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+  weight: "200 800",
+  display: "swap",
 });
-const figtree = Figtree({
+const figtree = localFont({
+  src: "../fonts/figtree-latin-wght-normal.woff2",
   variable: "--font-figtree",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "300 900",
+  display: "swap",
 });
 
 export const metadata: Metadata = {

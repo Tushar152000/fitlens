@@ -66,3 +66,5 @@ Vitest node env, `src/**/*.test.ts`: `lib/onboarding/{draft,estimate,pending}.te
 ## Duplication
 
 `lib/onboarding/draft.ts` and `app/(app)/log/[id]/rows.ts` are copied in mobile. Label maps (goal/diet/activity) repeated across files; numeric ranges duplicated instead of from contracts.
+
+- Fonts: `next/font/local` from `apps/web/src/fonts/*.woff2` (Fontsource 5.3.0, OFL, `LICENSES.txt`): Bricolage + Figtree in `app/layout.tsx`; Jakarta, Inter, Playfair italic, Roboto 700 in `lib/fitr8-fonts.ts`. No build-time Google download (it failed CI intermittently).
