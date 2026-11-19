@@ -13,7 +13,7 @@ import { api, apiText } from "@/lib/api";
 import { useAuth, useMe } from "@/lib/auth";
 import { formatInt, mealTitle } from "@/lib/format";
 import { manageSubscriptionUrl } from "@/lib/purchases";
-import { billingQuery, dayQuery, remindersQuery, waterQuery } from "@/lib/queries";
+import { billingQuery, dayQuery, remindersQuery, usageQuery, waterQuery } from "@/lib/queries";
 import {
   ensureNotificationPermission,
   remindersAvailable,
@@ -26,6 +26,7 @@ import { fonts, makeStyles, radius, useAppearance, useColors, type AppearancePre
 import type { PlanResponse } from "@/lib/types-plan";
 import type { DeleteReason, UsageDto } from "@fitr8/contracts";
 import { openLegal } from "@/lib/legal";
+import { PremiumBadge } from "@/components/premium-badge";
 
 const GOAL_LABEL = { FAT_LOSS: "Lose fat", MUSCLE_GAIN: "Build muscle", RECOMPOSITION: "Recomposition" } as const;
 const DIET_LABEL = { VEG: "Veg", NON_VEG: "Non-veg", EGGETARIAN: "Eggetarian", VEGAN: "Vegan" } as const;
@@ -50,7 +51,7 @@ export default function ProfileScreen() {
   const me = useMe();
   const { signOut } = useAuth();
   const plan = useQuery({ queryKey: ["plan"], queryFn: () => api<PlanResponse>("/api/plan") });
-  const usage = useQuery({ queryKey: ["usage"], queryFn: () => api<UsageDto>("/api/usage") });
+  const usage = useQuery(usageQuery);
   const day = useQuery(dayQuery);
   // Also keeps this phone's scheduled reminders in step (tabs layout shares the query).
   const reminders = useQuery(remindersQuery);
@@ -93,11 +94,15 @@ export default function ProfileScreen() {
             {[me.name, me.lastName].filter(Boolean).join(" ") || "Your profile"}
           </Text>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <View style={styles.planPill}>
-              <Text weight={600} size={13} color={c.ink2}>
-                {usage.data?.plan === "PRO" ? "FITR8 Premium" : "Free plan"}
-              </Text>
-            </View>
+            {usage.data?.plan === "PRO" ? (
+              <PremiumBadge label="FITR8 Premium" size="md" />
+            ) : (
+              <View style={styles.planPill}>
+                <Text weight={600} size={13} color={c.ink2}>
+                  Free plan
+                </Text>
+              </View>
+            )}
             {streak > 0 && (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                 <Flame size={16} color={c.brandGlow} fill={c.brandGlow} />
@@ -447,6 +452,9 @@ function PlanCard({ usage }: { usage: UsageDto }) {
       )}
       {pro ? (
         <>
+          <Text size={13} color={c.ink2}>
+            Included: the AI Coach (40 messages a day), barcode and label scanning, and unlimited reminders.
+          </Text>
           {until && (
             <Text size={13} color={c.ink3}>
               {billing.data?.lifetime

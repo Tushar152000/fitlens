@@ -1,7 +1,7 @@
 {
  "api": {
-  "syncedAt": "2026-11-19T08:21:07.377Z",
-  "head": "1369b01",
+  "syncedAt": "2026-11-19T08:24:12.779Z",
+  "head": "3890083",
   "files": {
    "apps/api/.oxlintrc.json": "c46d7bfdcb62",
    "apps/api/Dockerfile": "5008ec25a6d3",
@@ -162,8 +162,8 @@
   }
  },
  "web": {
-  "syncedAt": "2026-11-19T08:21:07.421Z",
-  "head": "1369b01",
+  "syncedAt": "2026-11-19T08:24:12.822Z",
+  "head": "3890083",
   "files": {
    "apps/web/AGENTS.md": "8a38a9be445f",
    "apps/web/CLAUDE.md": "c140473a3a5f",
@@ -336,9 +336,10 @@
   }
  },
  "mobile": {
-  "syncedAt": "2026-11-19T08:21:07.452Z",
-  "head": "1369b01",
+  "syncedAt": "2026-11-19T08:24:12.856Z",
+  "head": "3890083",
   "files": {
+   "apps/mobile/src/components/premium-badge.tsx": "3fba81346150",
    "apps/mobile/.claude/settings.json": "14b797af98bf",
    "apps/mobile/.gitignore": "1b3d2a4eff0b",
    "apps/mobile/.vscode/extensions.json": "c745cc723589",
@@ -354,21 +355,21 @@
    "apps/mobile/metro.config.js": "64c88981b262",
    "apps/mobile/package.json": "f1b285285f77",
    "apps/mobile/src/app/(tabs)/_layout.tsx": "1f9e2a457880",
-   "apps/mobile/src/app/(tabs)/profile.tsx": "e06e5b96985c",
-   "apps/mobile/src/app/(tabs)/today.tsx": "22f7f99e4b06",
+   "apps/mobile/src/app/(tabs)/profile.tsx": "97bbb054e82f",
+   "apps/mobile/src/app/(tabs)/today.tsx": "bccf30e4a91c",
    "apps/mobile/src/app/(tabs)/workout.tsx": "61390775277f",
    "apps/mobile/src/app/+native-intent.tsx": "665bdee69042",
    "apps/mobile/src/app/_layout.tsx": "bc5b9ed9336c",
    "apps/mobile/src/app/briefing.tsx": "7d1467a91d13",
    "apps/mobile/src/app/coach-memory.tsx": "c97dd316dc78",
-   "apps/mobile/src/app/coach.tsx": "3e2f3810cd3c",
+   "apps/mobile/src/app/coach.tsx": "16166d605011",
    "apps/mobile/src/app/history.tsx": "878f7afef3e1",
    "apps/mobile/src/app/index.tsx": "39f76d4fc44d",
    "apps/mobile/src/app/log/[id].tsx": "040febd06d7a",
    "apps/mobile/src/app/log/_layout.tsx": "99f4672567be",
    "apps/mobile/src/app/log/barcode/[code].tsx": "6b87ed743f06",
    "apps/mobile/src/app/log/barcode/index.tsx": "50a60656f329",
-   "apps/mobile/src/app/log/index.tsx": "e120b7d93ac7",
+   "apps/mobile/src/app/log/index.tsx": "bcd6d4f56470",
    "apps/mobile/src/app/log/label/[id].tsx": "9200fdad7926",
    "apps/mobile/src/app/log/label/index.tsx": "68be0aff71c4",
    "apps/mobile/src/app/log/saved/[id].tsx": "81cdaf82f340",
@@ -377,9 +378,9 @@
    "apps/mobile/src/app/onboarding/_layout.tsx": "a0a4ccfe60ff",
    "apps/mobile/src/app/onboarding/index.tsx": "a253ab349b0e",
    "apps/mobile/src/app/onboarding/plan.tsx": "da05e643fd44",
-   "apps/mobile/src/app/pro.tsx": "0dc4c7e0a97f",
+   "apps/mobile/src/app/pro.tsx": "9f0b8ebe330f",
    "apps/mobile/src/app/progress.tsx": "56c1786f80c1",
-   "apps/mobile/src/app/reminders.tsx": "1a278f1d0157",
+   "apps/mobile/src/app/reminders.tsx": "34316e3dd970",
    "apps/mobile/src/app/welcome-back.tsx": "00107f14b8b8",
    "apps/mobile/src/components/back-header.tsx": "8f5ce667f45f",
    "apps/mobile/src/components/day-pager.tsx": "db7d5ee2f392",
@@ -443,7 +444,7 @@
    "apps/mobile/src/lib/photo.ts": "074fd5ced5b6",
    "apps/mobile/src/lib/premium.ts": "6f58890981da",
    "apps/mobile/src/lib/purchases.ts": "75bc7b63aea4",
-   "apps/mobile/src/lib/queries.ts": "f3f3aa53abbf",
+   "apps/mobile/src/lib/queries.ts": "293e7d129a95",
    "apps/mobile/src/lib/query.ts": "de5907ae32ef",
    "apps/mobile/src/lib/reminders.ts": "8c964dd3c5ca",
    "apps/mobile/src/lib/saved-meals.ts": "3b261f83fb68",
@@ -457,8 +458,8 @@
   }
  },
  "packages": {
-  "syncedAt": "2026-11-19T08:21:07.459Z",
-  "head": "1369b01",
+  "syncedAt": "2026-11-19T08:24:12.863Z",
+  "head": "3890083",
   "files": {
    "packages/contracts/.oxlintrc.json": "c46d7bfdcb62",
    "packages/contracts/package.json": "ba213d965337",
@@ -581,8 +582,8 @@
   }
  },
  "infra": {
-  "syncedAt": "2026-11-19T08:21:07.480Z",
-  "head": "1369b01",
+  "syncedAt": "2026-11-19T08:24:12.883Z",
+  "head": "3890083",
   "files": {
    ".env.example": "3956fa8cc452",
    ".env.production.example": "5acf76009259",

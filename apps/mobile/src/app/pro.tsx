@@ -5,6 +5,7 @@ import {
   Bell,
   Camera,
   Check,
+  ChevronRight,
   Crown,
   MessageCircle,
   Minus,
@@ -13,7 +14,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Platform, Pressable, View } from "react-native";
 import { Button, FieldError, Screen, Text } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -95,6 +96,14 @@ const BENEFITS: Benefit[] = [
   { feature: "reminders", icon: Bell, title: "Unlimited reminders", sub: "Free includes 3 of your own." },
   { icon: BarChart3, title: "Reports and insights", sub: "Detailed weekly and monthly reports.", soon: true },
 ];
+
+/** Where a new Premium user can try each feature right away ("What you just unlocked"). */
+const TRY: Partial<Record<PremiumFeature, "/log" | "/coach" | "/reminders">> = {
+  barcode: "/log",
+  photo_scan: "/log",
+  coach: "/coach",
+  reminders: "/reminders",
+};
 
 /** Free vs Premium at a glance. `true` = included, `false` = not, a string = the amount. */
 const COMPARE: { label: string; free: boolean | string; premium: boolean | string }[] = [
@@ -351,12 +360,36 @@ export default function ProScreen() {
       {!isPremium && trialDays ? <TrialTimeline days={trialDays} price={chosenPrice} /> : null}
 
       <View style={{ gap: 12 }}>
-        <Text variant="h2">{isPremium ? "Included in your plan" : "Everything in Free, plus"}</Text>
+        <Text variant="h2">
+          {done ? "What you just unlocked" : isPremium ? "Included in your plan" : "Everything in Free, plus"}
+        </Text>
         <View style={styles.list}>
           {ordered.map((b, i) => {
             const lead = !isPremium && b.feature !== undefined && b.feature === feature;
-            return (
-              <View key={b.title} style={[styles.benefit, i > 0 && styles.divider, lead && styles.lead]}>
+            const tryRoute = isPremium && b.feature ? TRY[b.feature] : undefined;
+            const row = [styles.benefit, i > 0 && styles.divider, lead && styles.lead];
+            const wrap = (children: ReactNode) =>
+              tryRoute ? (
+                <Pressable
+                  key={b.title}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Try ${b.title}`}
+                  onPress={() => router.replace(tryRoute)}
+                  style={({ pressed }) => [...row, pressed && { backgroundColor: c.sunken }]}
+                >
+                  {children}
+                  <Text size={13} weight={600} color={c.brandText}>
+                    Try it
+                  </Text>
+                  <ChevronRight size={18} color={c.brandText} />
+                </Pressable>
+              ) : (
+                <View key={b.title} style={row}>
+                  {children}
+                </View>
+              );
+            return wrap(
+              <>
                 <View style={[styles.benefitIcon, lead && { backgroundColor: c.brand }]}>
                   <b.icon size={18} color={lead ? c.white : c.brandText} />
                 </View>
@@ -375,7 +408,7 @@ export default function ProScreen() {
                     {b.sub}
                   </Text>
                 </View>
-              </View>
+              </>,
             );
           })}
         </View>

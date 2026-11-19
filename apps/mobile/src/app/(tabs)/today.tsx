@@ -29,6 +29,7 @@ import { showDay, useViewDay } from "@/lib/view-day";
 import { makeStyles, radius, useColors } from "@/lib/theme";
 import type { Day } from "@/lib/types";
 import { usePremiumIntro } from "@/lib/premium";
+import { PremiumBadge } from "@/components/premium-badge";
 
 function greeting(hour: number) {
   if (hour < 5) return "Up late";
@@ -92,7 +93,10 @@ export default function TodayScreen() {
         <Screen tabBar refreshing={refreshing} onRefresh={refresh}>
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
-              <Text variant="meta">{dateText}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text variant="meta">{dateText}</Text>
+                {me.plan === "PRO" && <PremiumBadge />}
+              </View>
               <Text variant="h1">
                 {greeting(hour)}
                 {firstName ? `, ${firstName}` : ""}

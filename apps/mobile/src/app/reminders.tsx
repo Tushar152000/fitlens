@@ -16,6 +16,7 @@ import { queryClient } from "@/lib/query";
 import { remindersQuery } from "@/lib/queries";
 import { ensureNotificationPermission, localDate, notificationStatus } from "@/lib/reminders";
 import { fonts, makeStyles, radius, useColors } from "@/lib/theme";
+import { PremiumBadge } from "@/components/premium-badge";
 
 /** The one shape the sheet edits directly: days of the week + time(s). */
 type Weekly = NonNullable<ReminderRuleDto["weekly"]>;
@@ -67,7 +68,8 @@ export default function RemindersScreen() {
   const max = list.data?.max ?? 20;
   const full = reminders.length >= max;
   // Free plan at its 3 reminders: more is a Premium feature, not a hard wall.
-  const upgradeForMore = usePremium().locked("reminders", reminders.length);
+  const { locked, isPremium } = usePremium();
+  const upgradeForMore = locked("reminders", reminders.length);
 
   async function create() {
     const value = text.trim();
@@ -175,10 +177,14 @@ export default function RemindersScreen() {
       <View style={{ gap: 8 }}>
         <View style={styles.sectionHead}>
           <Text variant="h2">Your reminders</Text>
-          {reminders.length > 0 && (
-            <Text size={13} color={c.ink3} tabular>
-              {reminders.length} of {max}
-            </Text>
+          {isPremium ? (
+            <PremiumBadge label="Unlimited" />
+          ) : (
+            reminders.length > 0 && (
+              <Text size={13} color={c.ink3} tabular>
+                {reminders.length} of {max}
+              </Text>
+            )
           )}
         </View>
         {list.isPending ? (

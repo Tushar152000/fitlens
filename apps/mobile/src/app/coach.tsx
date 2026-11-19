@@ -23,6 +23,7 @@ import { readConversationId, writeConversationId } from "@/lib/coach-store";
 import { openPremium, premiumFeatureOf, usePremium } from "@/lib/premium";
 import { queryClient } from "@/lib/query";
 import { fonts, gutter, makeStyles, radius, useColors } from "@/lib/theme";
+import { PremiumBadge } from "@/components/premium-badge";
 
 type ToolStatus = Extract<CoachStreamEvent, { type: "tool" }>["status"];
 type ToolChip = { id: string; label: string; status: ToolStatus };
@@ -63,7 +64,8 @@ export default function CoachScreen() {
   const c = useColors();
   const styles = useStyles();
   const insets = useSafeAreaInsets();
-  const coachLocked = usePremium().locked("coach");
+  const { locked, isPremium } = usePremium();
+  const coachLocked = locked("coach");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -236,7 +238,10 @@ export default function CoachScreen() {
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <Text variant="meta">Food, training, running and recovery</Text>
-              <Text variant="h2">Your coach</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text variant="h2">Your coach</Text>
+                {isPremium && <PremiumBadge />}
+              </View>
             </View>
             <Pressable
               accessibilityRole="button"

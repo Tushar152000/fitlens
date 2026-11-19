@@ -315,6 +315,19 @@ Why: relevance first (the tried feature leads), anchoring (yearly shown per mont
 default effect (yearly preselected), risk reversal (the timeline says when money moves), one accent
 colour for the one action, and free is respected, never shamed.
 
+## Premium touches (Premium users)
+
+Quiet confirmation of the plan, never a different look, and never a worse free app.
+
+- **`PremiumBadge`** (`src/components/premium-badge.tsx`): brand crown + label on `brandSoft`, pill.
+  On Today next to the date, in the Profile header ("FITR8 Premium", md), beside "Your coach", and
+  "Unlimited" in the reminders header.
+- **Camera:** under "Snap your meal", a `brandGlow` crown and "7 of 10 photo scans left today".
+- **Profile plan card:** what's included (coach 40 a day, barcode and labels, unlimited reminders),
+  the scan meter, renewal, Manage subscription (or "End test Premium" for a test purchase).
+- **Right after buying:** the Premium screen lists "What you just unlocked"; scanning, coach and
+  reminders rows end in "Try it ›" and open that feature.
+
 ## Workout coach engine (calorie-aware)
 
 The plan is built by deterministic rules in `src/lib/training/` (unit-tested like `src/lib/nutrition`). An LLM may only vary exercise choice inside a slot and write the one-line coach notes; it never sets sets, reps or loads.

@@ -14,6 +14,8 @@ import { useMealChoice } from "@/lib/meal-param";
 import { handlePremiumError, openPremium, usePremium } from "@/lib/premium";
 import { compressPhoto, uploadPhoto } from "@/lib/photo";
 import { palettes, radius } from "@/lib/theme";
+import { useQuery } from "@tanstack/react-query";
+import { usageQuery } from "@/lib/queries";
 
 /** The camera stays dark in both schemes, so its colours are fixed (the light palette's). */
 const cam = palettes.light;
@@ -76,6 +78,7 @@ export default function CameraScreen() {
   const premium = usePremium();
   const barcodeLocked = premium.locked("barcode");
   const photoLocked = premium.locked("photo_scan");
+  const scans = useQuery({ ...usageQuery, enabled: premium.isPremium });
 
   useEffect(
     () => () => {
@@ -184,9 +187,19 @@ export default function CameraScreen() {
         >
           <X size={26} color={cam.white} />
         </Pressable>
-        <Text weight={600} color={cam.white} style={{ flex: 1 }}>
-          Snap your meal
-        </Text>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text weight={600} color={cam.white}>
+            Snap your meal
+          </Text>
+          {premium.isPremium && scans.data && (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Crown size={12} color={cam.brandGlow} />
+              <Text size={12} weight={600} color="rgba(255,255,255,0.75)" tabular>
+                {scans.data.left} of {scans.data.limit} photo scans left today
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
 
       <View style={{ paddingTop: 8, paddingBottom: 12 }}>
