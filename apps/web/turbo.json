@@ -1,0 +1,9 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // `next typegen` writes .next/types while `next build` empties .next: run typecheck after build,
+    // or the two race and typecheck fails on a missing .next/types/routes.d.ts.
+    "typecheck": { "dependsOn": ["$TURBO_EXTENDS$", "build"] }
+  }
+}
