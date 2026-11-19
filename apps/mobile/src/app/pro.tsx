@@ -1,192 +1,189 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import {
-  BarChart3,
   Bell,
   Camera,
   Check,
-  ChevronRight,
+  ChevronDown,
   Crown,
+  Database,
+  Keyboard,
   MessageCircle,
-  Minus,
+  RefreshCw,
   ScanBarcode,
   ScanText,
+  ShieldCheck,
   X,
   type LucideIcon,
 } from "lucide-react-native";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Platform, Pressable, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Linking, Platform, Pressable, View } from "react-native";
 import { Button, FieldError, Screen, Text } from "@/components/ui";
+import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import { useAuth } from "@/lib/auth";
 import { openLegal } from "@/lib/legal";
-import type { PremiumFeature } from "@/lib/premium";
-import { buyPlan, proPlans, purchasesAvailable, restorePurchases, type ProPlan } from "@/lib/purchases";
+import { LIST_PRICE, type PaywallSource } from "@/lib/premium";
+import {
+  buyPlan,
+  manageSubscriptionUrl,
+  proPlans,
+  purchasesAvailable,
+  restorePurchases,
+  type ProPlan,
+} from "@/lib/purchases";
 import { billingQuery } from "@/lib/queries";
 import { makeStyles, radius, useColors } from "@/lib/theme";
+import { showToast } from "@/lib/toast";
+import Animated from "react-native-reanimated";
+import { reveal } from "@/lib/motion";
 
-/** Shown when the store can't give prices (no SDK key yet, or offline). Matches docs/PREMIUM.md. */
-const LIST_PRICE = { month: "₹149", year: "₹1,499", trialDays: 7 };
+type Period = ProPlan["period"];
 
-type Hero = { eyebrow: string; title: string; sub: string };
+const SOURCES: PaywallSource[] = [
+  "home_banner",
+  "profile",
+  "onboarding",
+  "locked_photo",
+  "locked_barcode",
+  "locked_label",
+  "locked_coach",
+  "locked_reminders",
+];
 
-/** The screen opens on what the user just tried: relevance first, then the rest of Premium. */
-const HEROES: Record<PremiumFeature | "default" | "onboarding", Hero> = {
-  barcode: {
-    eyebrow: "Premium feature",
-    title: "Scan a barcode, done",
-    sub: "Point at any pack and get its exact label nutrition in a second.",
-  },
-  photo_scan: {
-    eyebrow: "Premium feature",
-    title: "Snap your plate. We'll count it.",
-    sub: "AI reads your meal from a photo: dal, roti, sabzi and all.",
-  },
-  label_scan: {
-    eyebrow: "Premium feature",
-    title: "Read any nutrition label",
-    sub: "Photograph the label and get the exact values, no typing.",
-  },
-  coach: {
-    eyebrow: "Premium feature",
-    title: "Your personal AI coach",
-    sub: "Answers grounded in sports science and your own meals, workouts and goal.",
-  },
-  reminders: {
-    eyebrow: "You've used your 3 free reminders",
-    title: "As many reminders as you need",
-    sub: "Creatine, stretching, weigh-ins: set every reminder that keeps you on track.",
-  },
-  onboarding: {
-    eyebrow: "Your plan is ready",
-    title: "Reach your goal faster with Premium",
-    sub: "More intelligence. Better guidance. Smarter fitness.",
-  },
-  default: {
-    eyebrow: "FITR8 Premium",
-    title: "Get more from your plan",
-    sub: "More intelligence. Better guidance. Smarter fitness.",
-  },
-};
-
-type Benefit = { feature?: PremiumFeature; icon: LucideIcon; title: string; sub: string; soon?: boolean };
-
-/** What Premium adds, in docs/PREMIUM.md order. Only "soon" items aren't built yet. */
-const BENEFITS: Benefit[] = [
-  { feature: "barcode", icon: ScanBarcode, title: "Barcode scanning", sub: "Exact label nutrition for packed food." },
+/** "What you get": one row open at a time, the first open by default. */
+const FEATURES: { key: string; icon: LucideIcon; title: string; line: string; detail: string; example: string }[] = [
   {
-    feature: "photo_scan",
+    key: "photo",
     icon: Camera,
     title: "AI photo scanning",
-    sub: "Snap a meal, get calories and macros. 10 a day.",
+    line: "Snap a meal, get calories and macros",
+    detail: "Up to 10 photos a day. Works on mixed thalis, and you can fix any portion with one tap.",
+    example: "Thali photo → 4 items, 780 kcal",
   },
   {
-    feature: "label_scan",
+    key: "barcode",
+    icon: ScanBarcode,
+    title: "Barcode scanning",
+    line: "Exact label nutrition for packed food",
+    detail: "Scan biscuits, curd, protein bars or namkeen. Change the serving to half a pack or 3 biscuits.",
+    example: "Curd 400 g → 64 kcal per 100 g",
+  },
+  {
+    key: "label",
     icon: ScanText,
     title: "Nutrition label reading",
-    sub: "Photograph any label for exact values.",
+    line: "No barcode? Photograph the label",
+    detail: "fitr8 reads the nutrition table on the pack and fills in exact values for you to check.",
+    example: "Label photo → protein, carbs, fat",
   },
   {
-    feature: "coach",
+    key: "coach",
     icon: MessageCircle,
     title: "AI Coach",
-    sub: "Nutrition, training and running advice made for you.",
+    line: "Nutrition and training advice",
+    detail: "Ask what to eat for dinner or how to adjust today's workout. Answers use your log and your goal.",
+    example: "“520 kcal left, what should I eat?”",
   },
-  { feature: "reminders", icon: Bell, title: "Unlimited reminders", sub: "Free includes 3 of your own." },
-  { icon: BarChart3, title: "Reports and insights", sub: "Detailed weekly and monthly reports.", soon: true },
+  {
+    key: "reminders",
+    icon: Bell,
+    title: "Unlimited reminders",
+    line: "Meals, water and workouts",
+    detail: "Set as many reminders as you like, at the times that suit your day. Free includes 3.",
+    example: "Water every 2 hours, 8 am to 8 pm",
+  },
 ];
 
-/** Where a new Premium user can try each feature right away ("What you just unlocked"). */
-const TRY: Partial<Record<PremiumFeature, "/log" | "/coach" | "/reminders">> = {
-  barcode: "/log",
-  photo_scan: "/log",
-  coach: "/coach",
-  reminders: "/reminders",
-};
-
-/** Free vs Premium at a glance. `true` = included, `false` = not, a string = the amount. */
-const COMPARE: { label: string; free: boolean | string; premium: boolean | string }[] = [
-  { label: "Type meals, calories and macros", free: true, premium: true },
-  { label: "Saved meals, water and weight", free: true, premium: true },
-  { label: "Workouts, sets and reps", free: true, premium: true },
-  { label: "Custom reminders", free: "3", premium: "Unlimited" },
+/** Free vs Premium. `true` included, `false` not (a muted dash), a string = the amount. */
+const TIERS: { label: string; free: boolean | string; premium: boolean | string }[] = [
+  { label: "Type meals", free: true, premium: true },
+  { label: "Calorie and protein targets", free: true, premium: true },
+  { label: "Water and weight tracking", free: true, premium: true },
+  { label: "AI photo scanning", free: false, premium: "10 a day" },
   { label: "Barcode scanning", free: false, premium: true },
-  { label: "AI photo and label scanning", free: false, premium: "10 a day" },
+  { label: "Nutrition label reading", free: false, premium: true },
   { label: "AI Coach", free: false, premium: true },
-  { label: "Detailed reports and insights", free: false, premium: "Soon" },
+  { label: "Reminders", free: "3", premium: "Unlimited" },
 ];
-
-const isFeature = (v: unknown): v is PremiumFeature => typeof v === "string" && BENEFITS.some((b) => b.feature === v);
 
 function money(amount: number, currency: string) {
   return new Intl.NumberFormat("en-IN", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount);
 }
 
 /**
- * FITR8 Premium (modal), opened by any Premium feature a free user taps (`?feature=`), once after
- * onboarding (`?source=onboarding`) and from Profile. Prices and the trial come from the store through
- * RevenueCat; after a purchase or restore the API re-reads RevenueCat so features unlock at once.
+ * Design 14c: the Premium screen. Opened from the Today banner, Profile, a locked feature's sheet
+ * (`?source=`), or once after onboarding. Prices come from the store (Google Play / App Store through
+ * RevenueCat) and the per-month, per-day and savings figures are computed from them; until store
+ * billing is connected, "Get Premium" is a one-tap test purchase (docs/PREMIUM.md "Buying").
  *
- * Design (docs/DESIGN.md "Premium"): the feature the user tried leads (relevance); yearly is
- * preselected and shown per month, with the saving in rupees (anchoring); the trial timeline says
- * exactly when money moves (risk reversal, no surprises); one purple action; free is never shamed:
- * "Continue with Free" is always visible.
+ * Never blocks: ✕ and "Continue with Free" always return to where the user was.
  */
 export default function ProScreen() {
   const c = useColors();
   const styles = useStyles();
   const queryClient = useQueryClient();
   const { refresh } = useAuth();
-  const params = useLocalSearchParams<{ feature?: string; source?: string }>();
-  const feature = isFeature(params.feature) ? params.feature : undefined;
-  const onboarding = params.source === "onboarding";
+  const params = useLocalSearchParams<{ source?: string }>();
+  const source: PaywallSource = SOURCES.includes(params.source as PaywallSource)
+    ? (params.source as PaywallSource)
+    : "profile";
   const plans = useQuery({ queryKey: ["pro-plans"], queryFn: proPlans, enabled: purchasesAvailable });
   const billing = useQuery(billingQuery);
-  const [picked, setPicked] = useState<ProPlan["period"]>("year");
+  const [picked, setPicked] = useState<Period>("year");
+  const [open, setOpen] = useState<string>(FEATURES[0]!.key);
   const [busy, setBusy] = useState<"buy" | "restore" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
-  /** The store charged but our server couldn't confirm yet: never show an error that invites a second purchase. */
-  const [syncPending, setSyncPending] = useState(false);
 
-  const tracked = useRef(false);
-  useEffect(() => {
-    if (tracked.current) return;
-    tracked.current = true;
-    track("paywall_view", {
-      feature: feature ?? "none",
-      source: onboarding ? "onboarding" : feature ? "feature" : "profile",
-    });
-  }, [feature, onboarding]);
-
+  const storeName = Platform.OS === "ios" ? "the App Store" : "Google Play";
+  const storeSettings = Platform.OS === "ios" ? "Settings › Subscriptions" : "Play Store › Subscriptions";
   const monthly = plans.data?.find((p) => p.period === "month");
   const yearly = plans.data?.find((p) => p.period === "year");
-  const plan = plans.data?.find((p) => p.period === picked) ?? plans.data?.[0];
-  const isPremium = done || billing.data?.plan === "PRO";
-  const store = Platform.OS === "ios" ? "App Store" : "Google Play";
-  const hero = isPremium
-    ? { eyebrow: "FITR8 Premium", title: "You're on Premium", sub: "Everything is unlocked. Thanks for backing FITR8." }
-    : HEROES[onboarding ? "onboarding" : (feature ?? "default")];
+  const plan = picked === "year" ? yearly : monthly;
   // No store plans and store billing not connected: buying is a one-tap test purchase, no money.
-  const testMode = !plan && billing.data?.testPurchases === true;
-  const trialDays = testMode ? null : (plan?.trialDays ?? (plans.data?.length ? null : LIST_PRICE.trialDays));
+  const testMode = !plans.data?.length && billing.data?.testPurchases === true;
+  const loadingPrices = purchasesAvailable && plans.isPending;
+  const canBuy = Boolean(plan) || testMode;
 
-  // Yearly framed per month, and the saving in rupees: concrete numbers persuade more than percentages.
+  // Store prices when we have them; the launch prices otherwise.
   const currency = yearly?.pkg.product.currencyCode ?? "INR";
-  const yearlyPerMonth = yearly ? money(yearly.pkg.product.price / 12, currency) : "₹125";
-  const saving =
-    monthly && yearly ? monthly.pkg.product.price * 12 - yearly.pkg.product.price : monthly || yearly ? 0 : 289;
   const yearPrice = yearly?.price ?? LIST_PRICE.year;
   const monthPrice = monthly?.price ?? LIST_PRICE.month;
+  const perMonth = yearly ? money(yearly.pkg.product.price / 12, currency) : LIST_PRICE.perMonth;
+  const perDayUnder = yearly ? money(Math.ceil(yearly.pkg.product.price / 365), currency) : LIST_PRICE.perDayUnder;
+  const storeSaving = yearly && monthly ? monthly.pkg.product.price * 12 - yearly.pkg.product.price : null;
+  const saving =
+    storeSaving !== null
+      ? storeSaving > 0
+        ? money(storeSaving, currency)
+        : null
+      : plans.data?.length
+        ? null
+        : LIST_PRICE.yearSaving;
+  const trialDays = plan?.trialDays ?? null;
+  const planName = picked === "year" ? "yearly" : "monthly";
   const chosenPrice = picked === "year" ? `${yearPrice}/year` : `${monthPrice}/month`;
 
-  const ordered = feature
-    ? [...BENEFITS.filter((b) => b.feature === feature), ...BENEFITS.filter((b) => b.feature !== feature)]
-    : BENEFITS;
+  const viewed = useRef(false);
+  useEffect(() => {
+    if (viewed.current) return;
+    viewed.current = true;
+    track("paywall_viewed", { source });
+  }, [source]);
 
-  async function afterStore() {
-    await api("/api/billing/refresh", { method: "POST" });
+  // Already Premium: nothing to sell here. Go back, and open the store's subscription page.
+  const alreadyPremium = billing.data?.plan === "PRO" && busy === null;
+  const store = billing.data?.store;
+  useEffect(() => {
+    if (!alreadyPremium) return;
+    router.back();
+    if (store && store !== "TEST") void Linking.openURL(manageSubscriptionUrl);
+  }, [alreadyPremium, store]);
+
+  const close = () => (router.canGoBack() ? router.back() : router.replace("/today"));
+
+  async function unlocked() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["billing"] }),
       queryClient.invalidateQueries({ queryKey: ["usage"] }),
@@ -196,22 +193,32 @@ export default function ProScreen() {
   }
 
   async function buy() {
-    if (!plan && !testMode) return;
+    if (!canBuy || busy) return;
     setBusy("buy");
     setError(null);
+    track("purchase_started", { plan: planName, source });
     try {
       if (testMode) {
         await api("/api/billing/test-purchase", { json: { period: picked } });
-        setDone(true);
-        await afterStore();
-      } else if (plan && (await buyPlan(plan))) {
-        track("pro_purchase", { period: plan.period });
-        setDone(true);
-        await afterStore().catch(() => setSyncPending(true));
+      } else if (!(await buyPlan(plan!))) {
+        track("purchase_cancelled", { plan: planName, source });
+        setBusy(null);
+        return;
+      } else {
+        // The store has charged: never show an error that invites a second purchase.
+        await api("/api/billing/refresh", { method: "POST" }).catch(() => undefined);
       }
+      track("purchase_succeeded", { plan: planName, source });
+      close();
+      showToast("Welcome to Premium");
+      await unlocked().catch(() => undefined);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
-    } finally {
+      track("purchase_failed", {
+        plan: planName,
+        source,
+        error_code: err instanceof Error && err.name ? err.name : "error",
+      });
+      setError(`Payment didn't go through. Try again, or check your payment method in ${storeName}.`);
       setBusy(null);
     }
   }
@@ -221,10 +228,15 @@ export default function ProScreen() {
     setError(null);
     try {
       await restorePurchases();
-      await afterStore();
-      const now = await queryClient.fetchQuery(billingQuery);
-      if (now.plan === "PRO") setDone(true);
-      else setError(`No FITR8 Premium subscription found for this ${store} account.`);
+      await api("/api/billing/refresh", { method: "POST" });
+      const now = await queryClient.fetchQuery({ ...billingQuery, staleTime: 0 });
+      if (now.plan === "PRO") {
+        close();
+        showToast("Welcome back to Premium");
+        await unlocked();
+        return;
+      }
+      setError(`No FITR8 Premium subscription found for this ${storeName} account.`);
     } catch {
       setError("Couldn't restore purchases. Check your connection and try again.");
     } finally {
@@ -232,76 +244,78 @@ export default function ProScreen() {
     }
   }
 
-  const close = () => (router.canGoBack() ? router.back() : router.replace("/today"));
-  const cta = testMode
-    ? `Get Premium · ${chosenPrice}`
-    : !plan
-      ? "Coming soon"
-      : trialDays
-        ? `Start ${trialDays}-day free trial`
-        : `Get Premium for ${chosenPrice}`;
+  function pick(period: Period) {
+    if (busy) return;
+    setPicked(period);
+    track("paywall_plan_selected", { plan: period === "year" ? "yearly" : "monthly" });
+  }
+
+  if (alreadyPremium) return null;
 
   return (
     <Screen
       gutter={20}
       footer={
-        isPremium ? (
-          <>
-            {syncPending && (
-              <Text size={13} color={c.ink2} center>
-                Payment received. Premium will switch on in a moment; if it doesn&apos;t, use Restore purchases.
+        <View style={{ gap: 10 }}>
+          <View style={styles.priceLine}>
+            <Text size={13} weight={600} color={c.ink2} tabular>
+              {trialDays
+                ? `Free for ${trialDays} days, then ${chosenPrice}`
+                : picked === "year"
+                  ? `${perMonth} a month, billed yearly`
+                  : "Billed monthly"}
+            </Text>
+            {picked === "year" && saving && (
+              <Text size={13} weight={700} color={c.protein} tabular>
+                You save {saving}
               </Text>
             )}
-            <Button onPress={close}>{feature ? "Continue" : "Done"}</Button>
-          </>
-        ) : (
-          <View style={{ gap: 10 }}>
-            {error && <FieldError>{error}</FieldError>}
-            <Button onPress={buy} loading={busy === "buy"} disabled={!(plan || testMode) || busy !== null}>
-              {cta}
-            </Button>
-            {testMode && (
-              <Text size={13} weight={600} color={c.ink2} center>
-                Test purchase: no money is charged while FITR8 is in testing.
+          </View>
+          <Button onPress={buy} loading={busy === "buy"} disabled={!canBuy || busy !== null || loadingPrices}>
+            {busy === "buy"
+              ? "Processing…"
+              : !canBuy && !loadingPrices
+                ? "Coming soon"
+                : trialDays
+                  ? `Start ${trialDays}-day free trial`
+                  : `Get Premium · ${chosenPrice}`}
+          </Button>
+          {error && <FieldError>{error}</FieldError>}
+          {testMode && (
+            <Text size={12} weight={600} color={c.ink2} center>
+              Test purchase: no money is charged while FITR8 is in testing.
+            </Text>
+          )}
+          {plan && (
+            <Text size={11} color={c.ink3} center>
+              Renews automatically until you cancel, at least 24 hours before the period ends, in {storeSettings}.{" "}
+              <Text size={11} color={c.brandText} weight={600} onPress={() => openLegal("terms")}>
+                Terms
               </Text>
-            )}
-            {plan && (
-              <Text size={13} weight={600} color={c.ink2} center>
-                {trialDays ? `₹0 today · ${chosenPrice} after ${trialDays} days · ` : ""}Cancel anytime
+              {" · "}
+              <Text size={11} color={c.brandText} weight={600} onPress={() => openLegal("privacy")}>
+                Privacy
               </Text>
-            )}
-            {plan && (
-              <Text size={11} color={c.ink3} center>
-                {trialDays ? `Free for ${trialDays} days, then ` : ""}
-                {plan.price} a {plan.period}. Renews automatically until you cancel; cancel at least 24 hours before the
-                period ends in your {store} settings.{" "}
-                <Text size={11} color={c.brandText} weight={600} onPress={() => openLegal("terms")}>
-                  Terms
-                </Text>
-                {" · "}
-                <Text size={11} color={c.brandText} weight={600} onPress={() => openLegal("privacy")}>
-                  Privacy
-                </Text>
-              </Text>
-            )}
-            <View style={styles.links}>
-              {purchasesAvailable && (
-                <Pressable accessibilityRole="button" onPress={restore} disabled={busy !== null} style={styles.link}>
-                  <Text size={14} weight={600} color={c.ink2}>
-                    {busy === "restore" ? "Restoring…" : "Restore purchases"}
-                  </Text>
-                </Pressable>
-              )}
-              <Pressable accessibilityRole="button" onPress={close} disabled={busy !== null} style={styles.link}>
+            </Text>
+          )}
+          <View style={styles.links}>
+            {purchasesAvailable && (
+              <Pressable accessibilityRole="button" onPress={restore} disabled={busy !== null} style={styles.link}>
                 <Text size={14} weight={600} color={c.ink2}>
-                  Continue with Free
+                  {busy === "restore" ? "Restoring…" : "Restore purchases"}
                 </Text>
               </Pressable>
-            </View>
+            )}
+            <Pressable accessibilityRole="button" onPress={close} disabled={busy === "buy"} style={styles.link}>
+              <Text size={14} weight={600} color={c.ink2}>
+                Continue with Free
+              </Text>
+            </Pressable>
           </View>
-        )
+        </View>
       }
     >
+      {/* 1. Top bar */}
       <View style={styles.topRow}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <View style={styles.crown}>
@@ -314,145 +328,264 @@ export default function ProScreen() {
         </Pressable>
       </View>
 
-      {/* Hero: the dark panel sets Premium apart; the purple glow is the only accent. */}
+      {/* 2. Hero: what changes, side by side */}
       <View style={styles.hero}>
-        <View style={styles.eyebrow}>
-          <Text size={12} weight={700} color={c.brandGlow}>
-            {hero.eyebrow.toUpperCase()}
-          </Text>
-        </View>
         <Text variant="h1" color={c.white}>
-          {hero.title}
+          Log meals in seconds, not minutes
         </Text>
-        <Text color="rgba(255,255,255,0.78)">{hero.sub}</Text>
+        <Text color="rgba(255,255,255,0.78)">
+          Photo and barcode scanning, an AI coach and unlimited reminders, on top of everything in Free.
+        </Text>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <View style={styles.mini}>
+            <View style={styles.miniHead}>
+              <Keyboard size={14} color="rgba(255,255,255,0.7)" />
+              <Text size={12} weight={700} color="rgba(255,255,255,0.7)">
+                FREE
+              </Text>
+            </View>
+            <Text size={13} color="rgba(255,255,255,0.85)">
+              Type each item: dal, rice, sabzi, 2 roti
+            </Text>
+          </View>
+          <View style={[styles.mini, styles.miniPremium]}>
+            <View style={styles.miniHead}>
+              <Camera size={14} color={c.brandGlow} />
+              <Text size={12} weight={700} color={c.brandGlow}>
+                PREMIUM
+              </Text>
+            </View>
+            <Text size={13} color={c.white}>
+              One photo of the thali. All 4 items found.
+            </Text>
+          </View>
+        </View>
       </View>
 
-      {!isPremium && (
-        <View style={{ gap: 10 }} accessibilityRole="radiogroup" accessibilityLabel="Choose a plan">
-          <PlanOption
-            selected={picked === "year"}
-            onPress={() => setPicked("year")}
-            title="Yearly"
-            price={`${yearPrice}/year`}
-            detail={`Just ${yearlyPerMonth}/month`}
-            badge={saving > 0 ? `Save ${money(saving, currency)}` : undefined}
-          />
-          <PlanOption
-            selected={picked === "month"}
-            onPress={() => setPicked("month")}
-            title="Monthly"
-            price={`${monthPrice}/month`}
-            detail="Billed every month"
-          />
-          {purchasesAvailable && plans.isPending && (
-            <Text size={13} color={c.ink3}>
-              Loading prices from {store}…
-            </Text>
-          )}
-          {!plans.data?.length && !testMode && !(purchasesAvailable && plans.isPending) && (
-            <Text size={13} color={c.ink3}>
-              Premium is coming soon. These are the launch prices.
-            </Text>
-          )}
-        </View>
-      )}
+      {/* 3. Choose your plan */}
+      <View style={{ gap: 10 }}>
+        <Text variant="h2">Choose your plan</Text>
+        {loadingPrices ? (
+          <>
+            <Skeleton height={84} radius={radius.card} />
+            <Skeleton height={72} radius={radius.card} />
+          </>
+        ) : (
+          <View style={{ gap: 10 }} accessibilityRole="radiogroup" accessibilityLabel="Choose a plan">
+            <PlanCard
+              selected={picked === "year"}
+              disabled={busy !== null}
+              onPress={() => pick("year")}
+              title="Yearly"
+              badge={saving ? `Save ${saving}` : undefined}
+              detail={`Under ${perDayUnder} a day · best value`}
+              price={yearPrice}
+              priceDetail={`a year · ${perMonth}/mo`}
+            />
+            <PlanCard
+              selected={picked === "month"}
+              disabled={busy !== null}
+              onPress={() => pick("month")}
+              title="Monthly"
+              detail="Billed every month, cancel anytime"
+              price={monthPrice}
+              priceDetail="a month"
+            />
+          </View>
+        )}
+      </View>
 
-      {!isPremium && trialDays ? <TrialTimeline days={trialDays} price={chosenPrice} /> : null}
-
-      <View style={{ gap: 12 }}>
-        <Text variant="h2">
-          {done ? "What you just unlocked" : isPremium ? "Included in your plan" : "Everything in Free, plus"}
-        </Text>
+      {/* 4. What you get */}
+      <View style={{ gap: 10 }}>
+        <Text variant="h2">What you get</Text>
         <View style={styles.list}>
-          {ordered.map((b, i) => {
-            const lead = !isPremium && b.feature !== undefined && b.feature === feature;
-            const tryRoute = isPremium && b.feature ? TRY[b.feature] : undefined;
-            const row = [styles.benefit, i > 0 && styles.divider, lead && styles.lead];
-            const wrap = (children: ReactNode) =>
-              tryRoute ? (
+          {FEATURES.map((f, i) => {
+            const expanded = open === f.key;
+            return (
+              <View key={f.key} style={i > 0 && styles.divider}>
                 <Pressable
-                  key={b.title}
                   accessibilityRole="button"
-                  accessibilityLabel={`Try ${b.title}`}
-                  onPress={() => router.replace(tryRoute)}
-                  style={({ pressed }) => [...row, pressed && { backgroundColor: c.sunken }]}
+                  accessibilityState={{ expanded }}
+                  accessibilityLabel={`${f.title}: ${f.line}`}
+                  onPress={() => {
+                    if (expanded) return;
+                    setOpen(f.key);
+                    track("paywall_feature_expanded", { feature: f.key });
+                  }}
+                  style={styles.row}
                 >
-                  {children}
-                  <Text size={13} weight={600} color={c.brandText}>
-                    Try it
-                  </Text>
-                  <ChevronRight size={18} color={c.brandText} />
-                </Pressable>
-              ) : (
-                <View key={b.title} style={row}>
-                  {children}
-                </View>
-              );
-            return wrap(
-              <>
-                <View style={[styles.benefitIcon, lead && { backgroundColor: c.brand }]}>
-                  <b.icon size={18} color={lead ? c.white : c.brandText} />
-                </View>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Text weight={600}>{b.title}</Text>
-                    {b.soon && (
-                      <View style={styles.soon}>
-                        <Text size={11} weight={700} color={c.ink2}>
-                          SOON
-                        </Text>
-                      </View>
-                    )}
+                  <View style={styles.icon}>
+                    <f.icon size={18} color={c.brandText} />
                   </View>
-                  <Text size={13} color={c.ink3}>
-                    {b.sub}
-                  </Text>
-                </View>
-              </>,
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text weight={700}>{f.title}</Text>
+                    <Text size={13} color={c.ink3}>
+                      {f.line}
+                    </Text>
+                  </View>
+                  <View style={{ transform: [{ rotate: expanded ? "180deg" : "0deg" }] }}>
+                    <ChevronDown size={18} color={c.ink3} />
+                  </View>
+                </Pressable>
+                {expanded && (
+                  <Animated.View entering={reveal} style={styles.expanded}>
+                    <Text size={14} color={c.ink2}>
+                      {f.detail}
+                    </Text>
+                    <View style={styles.example}>
+                      <Text size={12} weight={700} color={c.brandText} tabular>
+                        {f.example}
+                      </Text>
+                    </View>
+                  </Animated.View>
+                )}
+              </View>
             );
           })}
         </View>
       </View>
 
-      {!isPremium && <Compare />}
+      {/* 5. Free vs Premium */}
+      <View style={{ gap: 10 }}>
+        <Text variant="h2">Free and Premium</Text>
+        <View style={styles.list}>
+          <View style={[styles.tierRow, { backgroundColor: c.sunken }]}>
+            <Text size={12} weight={700} color={c.ink3} style={{ flex: 1 }}>
+              FEATURE
+            </Text>
+            <Text size={12} weight={700} color={c.ink3} style={styles.col} center>
+              FREE
+            </Text>
+            <Text size={12} weight={700} color={c.brandText} style={styles.col} center>
+              PREMIUM
+            </Text>
+          </View>
+          {TIERS.map((r) => (
+            <View
+              key={r.label}
+              style={[styles.tierRow, styles.divider]}
+              accessible
+              accessibilityLabel={`${r.label}: Free ${cellLabel(r.free)}, Premium ${cellLabel(r.premium)}`}
+            >
+              <Text size={14} style={{ flex: 1 }}>
+                {r.label}
+              </Text>
+              <View style={styles.col}>
+                <Cell value={r.free} />
+              </View>
+              <View style={styles.col}>
+                <Cell value={r.premium} premium />
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* 6. Billing reassurance */}
+      <View style={styles.list}>
+        {(
+          [
+            [
+              ShieldCheck,
+              testMode ? "Nothing is charged while FITR8 is in testing" : `Paid securely through ${storeName}`,
+            ],
+            [RefreshCw, `Cancel anytime in ${storeSettings}`],
+            [Database, "Your logs stay if you go back to Free"],
+          ] as const
+        ).map(([Icon, text], i) => (
+          <View key={text} style={[styles.row, i > 0 && styles.divider]}>
+            <Icon size={18} color={c.protein} />
+            <Text size={14} style={{ flex: 1 }}>
+              {text}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {/* 7. Questions */}
+      <View style={{ gap: 12 }}>
+        <Text variant="h2">Questions</Text>
+        {(
+          [
+            [
+              "What happens after 10 photos in a day?",
+              "You can still scan barcodes and type meals. Photo scans reset at midnight.",
+            ],
+            ["Can I switch between monthly and yearly?", `Yes, any time from ${storeSettings}.`],
+            ["Is my Free data safe if I upgrade?", "Yes. Your meals, targets and streak carry over as they are."],
+          ] as const
+        ).map(([q, a]) => (
+          <View key={q} style={{ gap: 4 }}>
+            <Text weight={700}>{q}</Text>
+            <Text size={14} color={c.ink2}>
+              {a}
+            </Text>
+          </View>
+        ))}
+      </View>
     </Screen>
   );
 }
 
-function PlanOption({
+const cellLabel = (v: boolean | string) => (v === true ? "included" : v === false ? "not included" : v);
+
+function Cell({ value, premium }: { value: boolean | string; premium?: boolean }) {
+  const c = useColors();
+  if (value === true) return <Check size={18} color={premium ? c.brandText : c.protein} strokeWidth={2.6} />;
+  if (value === false)
+    return (
+      <Text size={16} weight={700} color={c.ink3}>
+        —
+      </Text>
+    );
+  return (
+    <Text size={12} weight={700} color={premium ? c.brandText : c.ink2} center>
+      {value}
+    </Text>
+  );
+}
+
+function PlanCard({
   selected,
+  disabled,
   onPress,
   title,
-  price,
-  detail,
   badge,
+  detail,
+  price,
+  priceDetail,
 }: {
   selected: boolean;
+  disabled: boolean;
   onPress: () => void;
   title: string;
-  price: string;
-  detail: string;
   badge?: string;
+  detail: string;
+  price: string;
+  priceDetail: string;
 }) {
   const c = useColors();
   const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
-      accessibilityLabel={`${title}, ${price}, ${detail}${badge ? `, ${badge}` : ""}`}
+      accessibilityState={{ checked: selected, disabled }}
+      accessibilityLabel={`${title}, ${price} ${priceDetail}${badge ? `, ${badge}` : ""}. ${detail}`}
       onPress={onPress}
-      style={[styles.plan, selected && styles.planSelected]}
+      disabled={disabled}
+      style={[styles.plan, selected && styles.planSelected, disabled && { opacity: 0.6 }]}
     >
       <View style={[styles.radio, selected && { borderColor: c.brand, backgroundColor: c.brand }]}>
         {selected && <Check size={14} color={c.white} strokeWidth={3} />}
       </View>
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: 4 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <Text weight={700}>{title}</Text>
+          <Text weight={700} size={16}>
+            {title}
+          </Text>
           {badge && (
             <View style={styles.save}>
-              <Text size={12} weight={700} color={c.protein}>
+              <Text size={12} weight={700} color={c.protein} tabular>
                 {badge}
               </Text>
             </View>
@@ -462,88 +595,15 @@ function PlanOption({
           {detail}
         </Text>
       </View>
-      <Text weight={700}>{price}</Text>
-    </Pressable>
-  );
-}
-
-/** When money moves, stated plainly: today is free, the first charge comes after the trial. */
-function TrialTimeline({ days, price }: { days: number; price: string }) {
-  const c = useColors();
-  const styles = useStyles();
-  const steps = [
-    { when: "Today", what: "Every Premium feature unlocks. You pay ₹0." },
-    { when: `Day ${days}`, what: `Your plan starts at ${price}. Cancel before then and you pay nothing.` },
-  ];
-  return (
-    <View style={styles.timeline} accessible accessibilityLabel={steps.map((s) => `${s.when}: ${s.what}`).join(" ")}>
-      {steps.map((s, i) => (
-        <View key={s.when} style={{ flexDirection: "row", gap: 12 }}>
-          <View style={{ alignItems: "center", width: 14 }}>
-            <View style={[styles.dot, i === 0 && { backgroundColor: c.brand, borderColor: c.brand }]} />
-            {i < steps.length - 1 && <View style={styles.rail} />}
-          </View>
-          <View style={{ flex: 1, paddingBottom: i < steps.length - 1 ? 14 : 0, gap: 2 }}>
-            <Text weight={700} size={14}>
-              {s.when}
-            </Text>
-            <Text size={13} color={c.ink2}>
-              {s.what}
-            </Text>
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-/** Free vs Premium. Free's missing items are a quiet dash, never a red cross: nothing to be ashamed of. */
-function Compare() {
-  const c = useColors();
-  const styles = useStyles();
-  const cell = (v: boolean | string, premium: boolean) =>
-    v === true ? (
-      <Check size={18} color={premium ? c.brandText : c.protein} strokeWidth={2.6} />
-    ) : v === false ? (
-      <Minus size={18} color={c.ink3} />
-    ) : (
-      <Text size={12} weight={700} color={premium ? c.brandText : c.ink2} center>
-        {v}
-      </Text>
-    );
-  return (
-    <View style={{ gap: 12 }}>
-      <Text variant="h2">Free and Premium</Text>
-      <View style={styles.list}>
-        <View style={[styles.row, { paddingVertical: 10 }]}>
-          <Text size={12} weight={700} color={c.ink3} style={{ flex: 1 }}>
-            FEATURE
-          </Text>
-          <Text size={12} weight={700} color={c.ink3} style={styles.col} center>
-            FREE
-          </Text>
-          <Text size={12} weight={700} color={c.brandText} style={styles.col} center>
-            PREMIUM
-          </Text>
-        </View>
-        {COMPARE.map((r) => (
-          <View
-            key={r.label}
-            style={[styles.row, styles.divider]}
-            accessible
-            accessibilityLabel={`${r.label}: Free ${r.free === true ? "yes" : r.free === false ? "no" : r.free}, Premium ${
-              r.premium === true ? "yes" : r.premium
-            }`}
-          >
-            <Text size={14} style={{ flex: 1 }}>
-              {r.label}
-            </Text>
-            <View style={styles.col}>{cell(r.free, false)}</View>
-            <View style={styles.col}>{cell(r.premium, true)}</View>
-          </View>
-        ))}
+      <View style={{ alignItems: "flex-end" }}>
+        <Text weight={700} size={18} tabular>
+          {price}
+        </Text>
+        <Text size={12} color={c.ink3} tabular>
+          {priceDetail}
+        </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -564,22 +624,24 @@ const useStyles = makeStyles((c) => ({
     borderColor: c.panelLine,
     borderRadius: radius.card,
     padding: 20,
-    gap: 10,
+    gap: 12,
   },
-  eyebrow: { flexDirection: "row" },
+  mini: { flex: 1, gap: 6, padding: 12, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.08)" },
+  miniPremium: { backgroundColor: "rgba(168,85,247,0.18)", borderWidth: 1, borderColor: "rgba(168,85,247,0.45)" },
+  miniHead: { flexDirection: "row", alignItems: "center", gap: 6 },
   plan: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    minHeight: 68,
+    minHeight: 72,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: radius.card,
     borderWidth: 1,
     borderColor: c.lineStrong,
     backgroundColor: c.surface,
   },
-  planSelected: { borderWidth: 2, borderColor: c.brand, backgroundColor: c.brandSoft },
+  planSelected: { borderWidth: 2, borderColor: c.brandGlow, backgroundColor: c.brandSoft },
   save: { backgroundColor: c.proteinSoft, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
   radio: {
     width: 24,
@@ -590,16 +652,6 @@ const useStyles = makeStyles((c) => ({
     alignItems: "center",
     justifyContent: "center",
   },
-  timeline: { backgroundColor: c.surface, borderRadius: radius.card, borderWidth: 1, borderColor: c.line, padding: 16 },
-  dot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: c.lineStrong,
-    backgroundColor: c.surface,
-  },
-  rail: { flex: 1, width: 2, backgroundColor: c.line, marginVertical: 2 },
   list: {
     backgroundColor: c.surface,
     borderRadius: radius.card,
@@ -607,10 +659,16 @@ const useStyles = makeStyles((c) => ({
     borderColor: c.line,
     overflow: "hidden",
   },
-  benefit: { flexDirection: "row", gap: 12, alignItems: "center", paddingHorizontal: 14, paddingVertical: 12 },
-  lead: { backgroundColor: c.brandSoft },
   divider: { borderTopWidth: 1, borderTopColor: c.line },
-  benefitIcon: {
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    minHeight: 56,
+  },
+  icon: {
     width: 36,
     height: 36,
     borderRadius: 10,
@@ -618,9 +676,17 @@ const useStyles = makeStyles((c) => ({
     alignItems: "center",
     justifyContent: "center",
   },
-  soon: { backgroundColor: c.chip, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 1 },
-  row: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 12 },
-  col: { width: 72, alignItems: "center" },
+  expanded: { paddingRight: 14, paddingBottom: 14, paddingLeft: 62, gap: 8 },
+  example: {
+    alignSelf: "flex-start",
+    backgroundColor: c.brandSoft,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  tierRow: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 14, paddingVertical: 12 },
+  col: { width: 76, alignItems: "center" },
+  priceLine: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
   links: { flexDirection: "row", justifyContent: "center", gap: 16 },
   link: { minHeight: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
 }));

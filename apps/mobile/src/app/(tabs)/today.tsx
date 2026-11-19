@@ -30,6 +30,7 @@ import { makeStyles, radius, useColors } from "@/lib/theme";
 import type { Day } from "@/lib/types";
 import { usePremiumIntro } from "@/lib/premium";
 import { PremiumBadge } from "@/components/premium-badge";
+import { PremiumBanner } from "@/components/premium/home-banner";
 
 function greeting(hour: number) {
   if (hour < 5) return "Up late";
@@ -209,6 +210,8 @@ function DayContent({ day, pastDay }: { day: Day; pastDay: string | null }) {
       )}
 
       {target && over > 0 && <InsightCard headline="A little over. No stress." reason={positiveNote} />}
+
+      {!pastDay && <PremiumBanner />}
 
       <View style={{ gap: 10 }}>
         <View style={[styles.sectionHead, { alignItems: "center" }]}>

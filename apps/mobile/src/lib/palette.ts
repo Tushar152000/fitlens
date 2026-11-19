@@ -34,6 +34,8 @@ const light = {
   brandText: "#8116e0",
   /** Tinted brand background (selected chips, highlights). */
   brandSoft: "#f1e6fd",
+  /** Border of Premium cards and banners. */
+  premiumLine: "#dcc4f8",
   protein: "#2f6b4f",
   proteinSoft: "#ddebe3",
   carbs: "#e3a13b",
@@ -83,6 +85,7 @@ const dark: Colors = {
   brandGlow: "#b98af8",
   brandText: "#c09cfa",
   brandSoft: "#1e1433",
+  premiumLine: "#3d3266",
   protein: "#5fc490",
   proteinSoft: "#0e2417",
   carbs: "#e8ad52",

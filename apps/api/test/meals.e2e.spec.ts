@@ -76,6 +76,7 @@ describe("meals", () => {
       left: 10,
       resetsAt: expect.any(String),
       plan: "PRO",
+      typedMeals: { today: 0, thisMonth: 0 },
     });
   });
 
@@ -99,6 +100,11 @@ describe("meals", () => {
     expect(calls).toMatchObject([
       { type: "MEAL_TEXT", success: true, countsAsScan: false, provider: "mock" },
     ]);
+    // Counted as a typed meal (the Premium banner and Profile card read this).
+    expect((await agent.get("/api/usage").expect(200)).body.typedMeals).toEqual({
+      today: 1,
+      thisMonth: 1,
+    });
   });
 
   it("creates an empty manual meal with no AI call", async () => {

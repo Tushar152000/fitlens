@@ -4,7 +4,19 @@ import { Image } from "expo-image";
 import { File, Paths } from "expo-file-system";
 import { router } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { BellRing, ChevronRight, Crown, Download, Flame, LogOut, Pencil, Trash2 } from "lucide-react-native";
+import {
+  BellRing,
+  Camera,
+  ChevronRight,
+  Crown,
+  Download,
+  Flame,
+  LogOut,
+  MessageCircle,
+  Pencil,
+  ScanBarcode,
+  Trash2,
+} from "lucide-react-native";
 import { useEffect, useState, type ReactNode } from "react";
 import { Alert, Linking, Platform, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { Sheet } from "@/components/sheet";
@@ -21,6 +33,7 @@ import {
   syncWaterReminders,
 } from "@/lib/reminders";
 import { confirmAction } from "@/lib/confirm";
+import { LIST_PRICE, openPaywall } from "@/lib/premium";
 import { queryClient } from "@/lib/query";
 import { fonts, makeStyles, radius, useAppearance, useColors, type AppearancePreference } from "@/lib/theme";
 import type { PlanResponse } from "@/lib/types-plan";
@@ -115,6 +128,8 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      {usage.data && <PlanCard usage={usage.data} />}
+
       {plan.isPending ? (
         <GoalCardSkeleton />
       ) : (
@@ -192,8 +207,6 @@ export default function ProfileScreen() {
       <Group title="Appearance">
         <AppearancePicker />
       </Group>
-
-      {usage.data && <PlanCard usage={usage.data} />}
 
       <Group title="Your data">
         <ExportRow />
@@ -398,13 +411,21 @@ const formatNext = (d: Date) => {
   return today ? `today, ${time}` : `${new Intl.DateTimeFormat("en-IN", { weekday: "long" }).format(d)}, ${time}`;
 };
 
-/** Plan card: scans left today, and FITR8 Premium (upgrade, or renewal + manage). */
+/**
+ * Design 14a: the plan card, right under the name. Free: what typing already gives, what Premium
+ * adds (with this month's typed meals when there are enough to matter), one button to the plans.
+ * Premium: which plan, when it renews, and where to manage it.
+ */
 function PlanCard({ usage }: { usage: UsageDto }) {
   const c = useColors();
   const styles = useStyles();
-  const billing = useQuery({ ...billingQuery, enabled: usage.plan === "PRO" });
+  const pro = usage.plan === "PRO";
+  const billing = useQuery({ ...billingQuery, enabled: pro });
   const [ending, setEnding] = useState(false);
-  const testPremium = billing.data?.store === "TEST";
+  const b = billing.data;
+  const until = b?.proUntil
+    ? new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(b.proUntil))
+    : null;
 
   /** A test purchase (store billing not connected yet): back to Free, to try the free plan again. */
   async function endTest() {
@@ -417,73 +438,104 @@ function PlanCard({ usage }: { usage: UsageDto }) {
       setEnding(false);
     }
   }
-  const pips = Math.min(usage.limit, 10);
-  const usedPips = Math.min(pips, Math.round((usage.used / usage.limit) * pips));
-  const pro = usage.plan === "PRO";
-  // Free plan: no photo scans at all, so show what Premium adds instead of a 0/0 meter.
-  const noScans = usage.limit === 0;
-  const until = billing.data?.proUntil
-    ? new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(
-        new Date(billing.data.proUntil),
-      )
-    : null;
-  return (
-    <View style={styles.planCard} accessibilityLabel="Your plan">
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          {pro && <Crown size={16} color={c.brandText} />}
-          <Text weight={600}>{pro ? "FITR8 Premium" : "Free plan"}</Text>
-        </View>
-        {!noScans && (
-          <Text weight={600} size={13} color={c.ink3} tabular>
+
+  if (pro) {
+    const period = b?.period === "year" ? "Yearly" : b?.period === "month" ? "Monthly" : null;
+    const renewal = b?.lifetime
+      ? "Lifetime access"
+      : until
+        ? b?.willRenew
+          ? `renews ${until}`
+          : `until ${until}`
+        : null;
+    return (
+      <View style={[styles.planCard, styles.premiumCard]} accessibilityLabel="Your plan">
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <PremiumBadge label="Premium" size="md" />
+          <Text size={13} weight={600} color={c.ink3} tabular>
             {usage.left} of {usage.limit} photo scans left today
           </Text>
+        </View>
+        <Text weight={700} size={16}>
+          {["Premium", period, renewal].filter(Boolean).join(" · ")}
+        </Text>
+        <Text size={13} color={c.ink2}>
+          Photo, barcode and label scanning, the AI Coach (40 messages a day) and unlimited reminders.
+        </Text>
+        {b?.store === "TEST" ? (
+          <Button variant="secondary" loading={ending} onPress={endTest}>
+            End test Premium
+          </Button>
+        ) : (
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => Linking.openURL(manageSubscriptionUrl)}
+            style={{ minHeight: 44, justifyContent: "center" }}
+          >
+            <Text weight={600} color={c.brandText}>
+              Manage subscription ›
+            </Text>
+          </Pressable>
         )}
       </View>
-      {!noScans && (
-        <View style={{ flexDirection: "row", gap: 6 }} aria-hidden>
-          {Array.from({ length: pips }, (_, i) => (
-            <View
-              key={i}
-              style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: i < usedPips ? c.brand : c.track }}
-            />
-          ))}
+    );
+  }
+
+  const month = usage.typedMeals?.thisMonth ?? 0;
+  return (
+    <View style={[styles.planCard, styles.premiumCard]} accessibilityLabel="Your plan">
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <Text size={13} weight={600} color={c.ink3}>
+          Your plan
+        </Text>
+        <View style={styles.planPill}>
+          <Text weight={600} size={12} color={c.ink2}>
+            Free
+          </Text>
+        </View>
+      </View>
+      <View style={{ gap: 4 }}>
+        <Text weight={700} size={18}>
+          Typing meals is free, always.
+        </Text>
+        <Text size={14} color={c.ink2}>
+          Premium adds faster ways to log and a coach that knows your day.
+        </Text>
+      </View>
+      {month >= 5 && (
+        <View style={styles.usageStrip}>
+          <Text size={13} color={c.ink2} tabular>
+            This month you typed {month} meals. With Premium, most of them take one photo.
+          </Text>
         </View>
       )}
-      {pro ? (
-        <>
-          <Text size={13} color={c.ink2}>
-            Included: the AI Coach (40 messages a day), barcode and label scanning, and unlimited reminders.
-          </Text>
-          {until && (
-            <Text size={13} color={c.ink3}>
-              {billing.data?.lifetime
-                ? "Lifetime access."
-                : billing.data?.willRenew
-                  ? `Renews ${until}.`
-                  : `Premium until ${until}; won't renew.`}
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {(
+          [
+            [Camera, "Snap a plate", "10 photos a day"],
+            [ScanBarcode, "Scan packs", "Barcode and label"],
+            [MessageCircle, "Ask the coach", "Food and training"],
+          ] as const
+        ).map(([Icon, title, sub]) => (
+          <View key={title} style={styles.tile}>
+            <View style={styles.tileIcon}>
+              <Icon size={16} color={c.brandText} />
+            </View>
+            <Text size={13} weight={700}>
+              {title}
             </Text>
-          )}
-          {testPremium ? (
-            <Button variant="secondary" loading={ending} onPress={endTest}>
-              End test Premium
-            </Button>
-          ) : (
-            <Button variant="secondary" onPress={() => Linking.openURL(manageSubscriptionUrl)}>
-              Manage subscription
-            </Button>
-          )}
-        </>
-      ) : (
-        <>
-          <Text size={13} color={c.ink3}>
-            Premium adds barcode and photo scanning, the AI Coach and unlimited reminders. Typing meals is always free.
-          </Text>
-          <Button icon={Crown} onPress={() => router.push("/pro")}>
-            See FITR8 Premium
-          </Button>
-        </>
-      )}
+            <Text size={12} color={c.ink3}>
+              {sub}
+            </Text>
+          </View>
+        ))}
+      </View>
+      <Button icon={Crown} onPress={() => openPaywall("profile")}>
+        See what Premium adds
+      </Button>
+      <Text size={12} color={c.ink3} center>
+        From {LIST_PRICE.perMonth} a month, billed yearly. Cancel anytime.
+      </Text>
     </View>
   );
 }
@@ -723,6 +775,17 @@ const useStyles = makeStyles((c) => ({
     paddingVertical: 10,
   },
   planCard: { gap: 12, borderRadius: radius.card, backgroundColor: c.surface, padding: 16 },
+  premiumCard: { borderWidth: 1, borderColor: c.premiumLine },
+  usageStrip: { backgroundColor: c.brandSoft, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
+  tile: { flex: 1, gap: 4, padding: 10, borderRadius: 14, backgroundColor: c.sunken },
+  tileIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: c.brandSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   confirm: {
     height: 52,
     borderWidth: 1,

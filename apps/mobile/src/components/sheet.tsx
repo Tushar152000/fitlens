@@ -4,8 +4,13 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui";
 import { makeStyles, radius, useColors } from "@/lib/theme";
+import Animated from "react-native-reanimated";
+import { sheetIn } from "@/lib/motion";
 
-/** Bottom sheet (radius 28) over a dimmed backdrop. Tapping the backdrop or × closes it. */
+/**
+ * Bottom sheet (radius 28) over a dimmed backdrop. Tapping the backdrop or × closes it. The backdrop
+ * fades in while the panel rises (lib/motion `sheetIn`), so the dim layer never slides.
+ */
 export function Sheet({
   open,
   onClose,
@@ -21,10 +26,10 @@ export function Sheet({
   const styles = useStyles();
   const insets = useSafeAreaInsets();
   return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.root}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
-        <View style={[styles.sheet, { paddingBottom: Math.max(20, insets.bottom + 8) }]}>
+        <Animated.View entering={sheetIn} style={[styles.sheet, { paddingBottom: Math.max(20, insets.bottom + 8) }]}>
           <View style={styles.handle} />
           <View style={styles.head}>
             <Text variant="h2" style={{ flex: 1 }}>
@@ -37,7 +42,7 @@ export function Sheet({
           <ScrollView contentContainerStyle={{ gap: 16 }} keyboardShouldPersistTaps="handled">
             {children}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );

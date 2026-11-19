@@ -208,6 +208,7 @@ describe("test purchases (store billing not connected)", () => {
     expect(month.body).toMatchObject({
       plan: "PRO",
       store: "TEST",
+      period: "month",
       willRenew: false,
       testPurchases: true,
       limits: { scans: 10, coach: 40, barcode: true, reminders: 50 },
@@ -220,6 +221,7 @@ describe("test purchases (store billing not connected)", () => {
       .send({ period: "year" })
       .expect(200);
     expect(days(year.body.proUntil)).toBe(365);
+    expect(year.body.period).toBe("year");
 
     const ended = await agent.delete("/api/billing/test-purchase").expect(200);
     expect(ended.body).toMatchObject({ plan: "FREE", proUntil: null, store: null });

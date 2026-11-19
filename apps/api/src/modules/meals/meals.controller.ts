@@ -44,10 +44,14 @@ export class MealsController {
     private readonly quota: ScanQuotaService,
   ) {}
 
-  /** Photo scans used today, the daily limit and when it resets (local midnight). */
+  /** Photo scans used today, the daily limit and when it resets; meals typed today and this month. */
   @Get("usage")
-  usage(@UserId() userId: string): Promise<UsageDto> {
-    return this.quota.scanUsage(userId);
+  async usage(@UserId() userId: string): Promise<UsageDto> {
+    const [scans, typedMeals] = await Promise.all([
+      this.quota.scanUsage(userId),
+      this.quota.typedMeals(userId),
+    ]);
+    return { ...scans, typedMeals };
   }
 
   /** Step 1 of photo logging: get a signed URL, then PUT the (compressed) image to it. */

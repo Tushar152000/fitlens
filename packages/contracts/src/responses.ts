@@ -293,6 +293,11 @@ export interface UsageDto {
   left: number;
   resetsAt: string;
   plan: "FREE" | "PRO";
+  /**
+   * Meals logged by typing (source TEXT) on the user's local today and this calendar month, for
+   * the Premium banner and Profile card. Only on GET /api/usage, not in a 429's details.
+   */
+  typedMeals?: { today: number; thisMonth: number };
 }
 
 /** One entry of GET /api/meals/usuals. */

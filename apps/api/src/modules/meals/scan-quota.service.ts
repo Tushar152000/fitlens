@@ -66,6 +66,18 @@ export class ScanQuotaService {
     return usage;
   }
 
+  /** Meals logged by typing today and this calendar month (the user's local dates). */
+  async typedMeals(userId: string) {
+    const today = await this.users.today(userId);
+    const monthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+    const where = { userId, source: "TEXT" as const };
+    const [todayCount, thisMonth] = await Promise.all([
+      this.prisma.mealLog.count({ where: { ...where, date: today } }),
+      this.prisma.mealLog.count({ where: { ...where, date: { gte: monthStart, lte: today } } }),
+    ]);
+    return { today: todayCount, thisMonth };
+  }
+
   async assertWithinTextCap(userId: string) {
     const { since } = await this.userDayStart(userId);
     const count = await this.prisma.aiCall.count({

@@ -47,8 +47,10 @@ export interface BillingDto {
   proUntil: string | null;
   lifetime: boolean;
   willRenew: boolean;
-  /** Store the subscription was bought in (APP_STORE, PLAY_STORE…), for "manage subscription". */
+  /** Store the subscription was bought in (APP_STORE, PLAY_STORE, TEST…), for "manage subscription". */
   store: string | null;
+  /** Yearly or monthly Premium, from the product bought; null on Free or when unknown. */
+  period: "year" | "month" | null;
   limits: {
     /** Photo scans a day (meals and labels); 0 = Premium only for this user. */
     scans: number;
