@@ -1,28 +1,20 @@
 /**
- * Which steps the rail shows. "welcome": signed out from the website (ends with sign-in).
- * "new": signed in but not onboarded yet. "edit": changing the goal from Profile.
+ * Which steps the rail shows. Everyone signs in first (/login), so onboarding is always signed in:
+ * "new" = not onboarded yet, "edit" = changing the goal from Profile.
  */
-export type OnboardingMode = "welcome" | "new" | "edit";
+export type OnboardingMode = "new" | "edit";
 
 export const RAIL: Record<OnboardingMode, readonly string[]> = {
-  welcome: [
-    "Your details",
-    "Your goal",
-    "About you",
-    "Save your plan",
-    "Your daily target",
-    "Get the app",
-  ],
   new: ["Your details", "Your goal", "About you", "Your daily target", "Get the app"],
   edit: ["Your goal", "About you", "Your daily target"],
 };
 
 /** Steps that are part of the form (the rest are the plan and get-the-app screens). */
-export const SETUP_STEPS: Record<OnboardingMode, number> = { welcome: 4, new: 3, edit: 2 };
+export const SETUP_STEPS: Record<OnboardingMode, number> = { new: 3, edit: 2 };
 
 /** `?flow=` on /onboarding/plan and /onboarding/app; anything else is an edit. */
 export const parseMode = (v: unknown): OnboardingMode =>
-  v === "welcome" || v === "new" ? v : "edit";
+  v === "new" || v === "welcome" ? "new" : "edit";
 
 export const dateLabel = (ymd: string) =>
   new Intl.DateTimeFormat("en-IN", {

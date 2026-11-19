@@ -44,25 +44,16 @@ export function SiteHeader() {
         </Link>
 
         <div className="ml-auto flex items-center gap-2.5">
+          {/* One way in: /login signs in with Google, then sends members to their plan and new
+              people to onboarding. */}
           <Link
             href="/login"
             className={cn(
-              "flex h-11 items-center rounded-full px-3.5 text-[15px] font-semibold transition-colors sm:px-5",
-              scrolled
-                ? "shadow-[inset_0_0_0_1.5px_var(--color-line)] hover:bg-fitr8-soft"
-                : "shadow-[inset_0_0_0_1.5px_rgb(255_255_255/0.7)] hover:bg-white/10",
-            )}
-          >
-            Log in
-          </Link>
-          <Link
-            href="/welcome"
-            className={cn(
-              "hidden h-11 items-center rounded-full px-5 text-[15px] font-semibold shadow-hard-sm transition-[transform,box-shadow] duration-150 hover:-translate-0.5 hover:shadow-hard active:translate-0.5 active:shadow-hard-press min-[360px]:flex",
+              "flex h-11 items-center rounded-full px-5 text-[15px] font-semibold shadow-hard-sm transition-[transform,box-shadow] duration-150 hover:-translate-0.5 hover:shadow-hard active:translate-0.5 active:shadow-hard-press",
               scrolled ? "bg-fitr8 text-white" : "bg-white text-fitr8",
             )}
           >
-            Start for free
+            Log in / Sign up
           </Link>
         </div>
       </div>

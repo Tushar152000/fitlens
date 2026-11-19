@@ -20,7 +20,7 @@ export function FinalCta() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-5">
-          <Link href="/welcome" className={`${hardButton} bg-white text-fitr8`}>
+          <Link href="/login" className={`${hardButton} bg-white text-fitr8`}>
             Start for free
             <ArrowRight className={ctaArrow} aria-hidden />
           </Link>

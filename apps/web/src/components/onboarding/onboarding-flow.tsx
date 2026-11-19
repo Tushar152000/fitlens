@@ -1,10 +1,8 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check, PersonStanding, Sparkles, Utensils } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeft, ArrowRight, PersonStanding, Sparkles, Utensils } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
-import { DevLogin } from "@/components/dev-login";
 import { cn } from "@/lib/cn";
 import { track } from "@/lib/client/analytics";
 import { api, ApiError } from "@/lib/client/api";
@@ -16,38 +14,27 @@ import {
   type OnboardingDraft,
 } from "@/lib/onboarding/draft";
 import { estimateFromDraft } from "@/lib/onboarding/estimate";
-import {
-  CALCULATOR_KEY,
-  draftFromCalculator,
-  parseCalculator,
-  parsePending,
-  PENDING_KEY,
-  stashPending,
-} from "@/lib/onboarding/pending";
-import { formatInt } from "@fitr8/domain/format";
+import { CALCULATOR_KEY, draftFromCalculator, parseCalculator } from "@/lib/onboarding/pending";
 import {
   DEFAULT_PHONE_COUNTRY,
   PHONE_TAKEN,
   personProblems,
   phoneToE164,
-  splitPhone,
   type PersonDetails,
   type PersonProblems,
 } from "@fitr8/domain/person";
-import type { PhoneCheckDto, ProvidersDto } from "@fitr8/contracts";
+import type { PhoneCheckDto } from "@fitr8/contracts";
 import { PlanBuilding } from "./plan-building";
 import { FoldSection } from "./fold-section";
 import { bodySummary, trainingSummary } from "@/lib/onboarding/summary";
-import { GoogleMark } from "@/components/google-mark";
-import { googleButton, onboardingButton } from "./button-styles";
+import { onboardingButton } from "./button-styles";
 import { OnboardingShell } from "./shell";
 import { estimateLine, RAIL, SETUP_STEPS, type OnboardingMode } from "./steps-meta";
 import { AboutStep, GoalStep, NameStep, TrainingStep } from "./steps";
-import { apiUrl } from "@/lib/api-url";
 
-type FormStep = "name" | "goal" | "about" | "signin";
+type FormStep = "name" | "goal" | "about";
+/** Everyone is signed in by now (Google comes first, at /login). */
 const FORM: Record<OnboardingMode, FormStep[]> = {
-  welcome: ["name", "goal", "about", "signin"],
   new: ["name", "goal", "about"],
   edit: ["goal", "about"],
 };
@@ -55,8 +42,8 @@ const FORM: Record<OnboardingMode, FormStep[]> = {
 const DRAFT_STEPS: Partial<Record<FormStep, number[]>> = { goal: [1], about: [2, 3] };
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// The calculator handoff and unsaved answers live in sessionStorage, which the server can't see:
-// read them as an external store so the first client render matches the server, then remount.
+// The landing-page calculator hands its numbers over in sessionStorage, which the server can't
+// see: read it as an external store so the first client render matches the server, then remount.
 const noSubscribe = () => () => {};
 function readStored(key: string) {
   try {
@@ -66,65 +53,29 @@ function readStored(key: string) {
   }
 }
 
-/** A saved E.164 number as the picker's country + the number typed after it. */
-function phoneFields(e164: string): Pick<PersonDetails, "phoneCountry" | "phone"> {
-  const { country, national } = splitPhone(e164);
-  return { phoneCountry: country, phone: national };
-}
-
-/** The onboarding form for every entry point (docs/WEBSITE.md §3). */
+/** The onboarding form, signed in: first time ("new") or changing the goal ("edit"). docs/WEBSITE.md §3. */
 export function OnboardingFlow(props: {
   mode: OnboardingMode;
   initial?: Partial<OnboardingDraft>;
   initialPerson?: Partial<PersonDetails>;
-  providers?: ProvidersDto;
 }) {
   const calculatorRaw = useSyncExternalStore(
     noSubscribe,
     () => (props.mode === "edit" ? null : readStored(CALCULATOR_KEY)),
     () => null,
   );
-  // Answers whose save failed after sign-in come back here (signed-in, not onboarded).
-  const pendingRaw = useSyncExternalStore(
-    noSubscribe,
-    () => (props.mode === "new" ? readStored(PENDING_KEY) : null),
-    () => null,
-  );
-  const pending = parsePending(pendingRaw);
-  return (
-    <Flow
-      key={`${calculatorRaw ?? ""}|${pendingRaw ?? ""}`}
-      {...props}
-      initial={pending ? { ...props.initial, ...pending.draft } : props.initial}
-      initialPerson={
-        pending
-          ? {
-              ...props.initialPerson,
-              name: pending.name,
-              ...(pending.lastName ? { lastName: pending.lastName } : {}),
-              ...(pending.phone ? phoneFields(pending.phone) : {}),
-            }
-          : props.initialPerson
-      }
-      initialPhoneError={pending?.phoneError}
-      calculatorRaw={calculatorRaw}
-    />
-  );
+  return <Flow key={calculatorRaw ?? ""} {...props} calculatorRaw={calculatorRaw} />;
 }
 
 function Flow({
   mode,
   initial,
   initialPerson,
-  initialPhoneError,
-  providers,
   calculatorRaw,
 }: {
-  initialPhoneError?: string;
   mode: OnboardingMode;
   initial?: Partial<OnboardingDraft>;
   initialPerson?: Partial<PersonDetails>;
-  providers?: ProvidersDto;
   calculatorRaw: string | null;
 }) {
   const router = useRouter();
@@ -154,9 +105,7 @@ function Flow({
         ) as (keyof OnboardingDraft)[],
       ),
   );
-  const [errors, setErrors] = useState<DraftErrors & PersonProblems>(() =>
-    initialPhoneError ? { phone: initialPhoneError } : {},
-  );
+  const [errors, setErrors] = useState<DraftErrors & PersonProblems>({});
   const [checking, setChecking] = useState(false);
   const [building, setBuilding] = useState(false);
   const [built, setBuilt] = useState(false);
@@ -244,8 +193,6 @@ function Flow({
     setIndex(i);
     setReached((r) => Math.max(r, i));
     window.scrollTo({ top: 0 });
-    if (steps[i] === "signin")
-      stashPending({ ...personPayload(), phone: personPayload().phone ?? "", draft });
   }
 
   function startBlank() {
@@ -275,8 +222,8 @@ function Flow({
       );
       return;
     }
-    // Signed in: warn now if another account has the number (signed out, /welcome/done checks).
-    const phone = step === "name" && mode !== "welcome" ? personPayload().phone : null;
+    // Warn now if another account has the number (the save refuses it too: 409).
+    const phone = step === "name" ? personPayload().phone : null;
     if (phone) {
       setChecking(true);
       const check = await api<PhoneCheckDto>(
@@ -330,16 +277,13 @@ function Flow({
   }
 
   const hasErrors = Object.values(errors).some(Boolean);
-  /** Continue / Build my plan unlock once this step's required answers are valid. */
   /** What still blocks this step, in field order (body before food on "About you"). */
   const problems: DraftErrors & PersonProblems =
     step === "name"
       ? personProblems(person)
       : step === "goal"
         ? validateStep(1, draft)
-        : step === "about"
-          ? { ...validateStep(2, draft), ...validateStep(3, draft) }
-          : {};
+        : { ...validateStep(2, draft), ...validateStep(3, draft) };
   const stepValid = Object.keys(problems).length === 0;
   // The hint names the first thing to fix, so a filled-in but rejected field never looks stuck.
   const firstProblem = Object.entries(problems).find(([, message]) => message);
@@ -362,16 +306,6 @@ function Flow({
           line: estimateLine({ ...est, targetDate: draft.targetDate }),
         }
       }
-      railFooter={
-        mode === "welcome" && (
-          <>
-            Already have an account?{" "}
-            <Link href="/login" className="font-semibold text-white underline underline-offset-4">
-              Log in
-            </Link>
-          </>
-        )
-      }
       footer={
         <>
           {serverError && (
@@ -384,8 +318,7 @@ function Flow({
               Check the highlighted fields above.
             </p>
           ) : (
-            !stepValid &&
-            step !== "signin" && (
+            !stepValid && (
               <p id="continue-hint" className="text-center text-[13px] text-ink-3">
                 {continueHint}
               </p>
@@ -402,28 +335,22 @@ function Flow({
                 <ArrowLeft className="size-5" />
               </button>
             )}
-            {step === "signin" ? (
-              <p className="self-center text-[13px] text-ink-3">
-                Continue with Google above to build your plan.
-              </p>
-            ) : (
-              // The pill is full width and won't shrink; this box shares the row with Back.
-              <div className="min-w-0 flex-1">
-                <button
-                  type="button"
-                  onClick={next}
-                  // Looks disabled until the step is valid, but a click still runs the checks:
-                  // it highlights what's wrong instead of doing nothing.
-                  disabled={building || checking}
-                  aria-disabled={!stepValid}
-                  aria-describedby={!stepValid ? "continue-hint" : undefined}
-                  className={cn(onboardingButton, NOT_READY)}
-                >
-                  {index === steps.length - 1 ? "Build my plan" : "Continue"}
-                  <ArrowRight className="size-5" aria-hidden />
-                </button>
-              </div>
-            )}
+            {/* The pill is full width and won't shrink; this box shares the row with Back. */}
+            <div className="min-w-0 flex-1">
+              <button
+                type="button"
+                onClick={next}
+                // Looks disabled until the step is valid, but a click still runs the checks:
+                // it highlights what's wrong instead of doing nothing.
+                disabled={building || checking}
+                aria-disabled={!stepValid}
+                aria-describedby={!stepValid ? "continue-hint" : undefined}
+                className={cn(onboardingButton, NOT_READY)}
+              >
+                {index === steps.length - 1 ? "Build my plan" : "Continue"}
+                <ArrowRight className="size-5" aria-hidden />
+              </button>
+            </div>
           </div>
         </>
       }
@@ -431,7 +358,7 @@ function Flow({
       {step === "name" && (
         <>
           <Heading
-            kicker={mode === "welcome" ? "Welcome to FITR8" : stepNo}
+            kicker={stepNo}
             title="First, what can we call you?"
             lead="A few quick questions and you’ll have daily calories, macros and a training week built for you."
           />
@@ -446,14 +373,6 @@ function Flow({
               {/* Enter in any field continues. */}
               <button type="submit" hidden aria-hidden tabIndex={-1} />
             </form>
-            {mode === "welcome" && (
-              <p className="text-sm text-ink-3 lg:hidden">
-                Already have an account?{" "}
-                <Link href="/login" className="font-semibold text-fitr8">
-                  Log in
-                </Link>
-              </p>
-            )}
           </StepBody>
         </>
       )}
@@ -538,22 +457,6 @@ function Flow({
         </>
       )}
 
-      {step === "signin" && (
-        <>
-          <Heading
-            kicker={stepNo}
-            title="Save your plan"
-            lead="Sign in so your plan, meals and progress are kept safe, and waiting for you in the app."
-          />
-          <SignInCard
-            providers={providers ?? { google: true, apple: false, dev: false }}
-            kcal={est?.kcal ?? null}
-            days={draft.trainingDaysPerWeek}
-            where={draft.equipment}
-          />
-        </>
-      )}
-
       {building && <PlanBuilding done={built} />}
     </OnboardingShell>
   );
@@ -613,74 +516,6 @@ function Heading({ kicker, title, lead }: { kicker: string; title: string; lead?
         {title}
       </h1>
       {lead && <p className="mt-2 text-ink-2">{lead}</p>}
-    </div>
-  );
-}
-
-const WHERE = { FULL_GYM: "the gym", DUMBBELLS: "home", BODYWEIGHT: "anywhere" } as const;
-
-/** Step 5 (signed out): what gets saved, then Google. Answers are already stashed for /welcome/done. */
-function SignInCard({
-  providers,
-  kcal,
-  days,
-  where,
-}: {
-  providers: ProvidersDto;
-  kcal: number | null;
-  days: number;
-  where?: keyof typeof WHERE;
-}) {
-  const returnTo = "/welcome/done";
-  return (
-    <div className="flex flex-col gap-[18px] rounded-3xl bg-white p-6">
-      <ul className="flex flex-col gap-2.5">
-        {[
-          <>
-            Your daily target
-            {kcal != null && (
-              <>
-                , about <b className="tabular-nums">{formatInt(kcal)} kcal</b>,
-              </>
-            )}{" "}
-            with protein, carbs and fat
-          </>,
-          <>
-            A {days}-day training week for {where ? WHERE[where] : "you"}
-          </>,
-          <>The same account on the web and on your phone</>,
-        ].map((item, i) => (
-          <li key={i} className="flex items-start gap-2.5">
-            <Check
-              className="mt-1 size-[18px] shrink-0 text-protein"
-              strokeWidth={2.6}
-              aria-hidden
-            />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-      {providers.google && (
-        <a
-          href={apiUrl(`/api/auth/google?returnTo=${encodeURIComponent(returnTo)}`)}
-          className={googleButton}
-        >
-          <GoogleMark />
-          Continue with Google
-        </a>
-      )}
-      {providers.dev && <DevLogin next={returnTo} />}
-      <p className="text-center text-xs text-ink-3">
-        We only use Google to sign you in. By continuing you agree to the{" "}
-        <Link href="/terms" className="font-semibold text-fitr8 hover:underline">
-          Terms
-        </Link>{" "}
-        and{" "}
-        <Link href="/privacy" className="font-semibold text-fitr8 hover:underline">
-          Privacy Policy
-        </Link>
-        . FITR8 gives general fitness guidance, not medical advice.
-      </p>
     </div>
   );
 }

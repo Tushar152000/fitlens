@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     "Track your meals, log your workouts, and discover what to do next. Everything you need to reach your fitness goals, all in one place.",
 };
 
-/** Public landing page (docs/WEBSITE.md). "Start for free" opens the /welcome flow. */
+/** Public landing page (docs/WEBSITE.md). "Start for free" opens /login (Google first, then onboarding for new people). */
 export default function LandingPage() {
   return (
     <>

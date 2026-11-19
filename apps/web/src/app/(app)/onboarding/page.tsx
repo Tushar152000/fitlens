@@ -10,7 +10,7 @@ const ymd = (d: string) => d.slice(0, 10);
 const str = (n: number | null | undefined) => (n == null ? "" : String(n));
 
 /**
- * Signed-in onboarding: first time ("new", e.g. after /login without the welcome flow) or to
+ * Signed-in onboarding: first time ("new", straight after Google at /login) or to
  * change the goal from Profile ("edit", prefilled from the profile).
  */
 export default async function OnboardingPage() {

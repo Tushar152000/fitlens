@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** The old step-1 URL; the name is now the first step of /welcome. */
+/** An even older first-step URL. Everyone starts at /login now. */
 export default function NamePage() {
-  redirect("/welcome");
+  redirect("/login");
 }
