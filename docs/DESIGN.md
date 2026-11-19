@@ -90,7 +90,7 @@ Put these in `src/app/globals.css` using Tailwind v4 `@theme`:
 }
 ```
 
-Load fonts with `next/font/google` (`Bricolage_Grotesque` weights 500–800, `Figtree` 400–700) in `src/app/layout.tsx`, replacing Geist.
+Fonts are files in the repo, loaded with `next/font/local`: Bricolage Grotesque and Figtree in `src/app/layout.tsx`; Plus Jakarta Sans, Inter, Playfair Display (italic) and Roboto 700 in `src/lib/fitr8-fonts.ts`. Variable WOFF2 files (Latin) from Fontsource in `apps/web/src/fonts/` (OFL, `LICENSES.txt`), so builds never download from Google. To add a font or weight, copy the file from the Fontsource npm package there.
 
 - **Type:** Display 40/1.0 Bricolage 700 (−0.03em). H1 26–30 Bricolage 700. H2 19 Bricolage 700. Body 15/1.45 Figtree. Button 16 Figtree 600. Meta 12–13 Figtree 600 ink-3. All numbers `tabular-nums`.
 - **Spacing:** 4-pt scale (4, 8, 12, 16, 20, 24, 32, 48). Screen gutter 20 (app screens) / 24 (onboarding).

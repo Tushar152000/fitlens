@@ -1,7 +1,7 @@
 {
  "api": {
-  "syncedAt": "2026-11-19T08:30:27.324Z",
-  "head": "a069994",
+  "syncedAt": "2026-11-19T11:05:14.643Z",
+  "head": "b9d63d7",
   "files": {
    "apps/api/.oxlintrc.json": "c46d7bfdcb62",
    "apps/api/Dockerfile": "5008ec25a6d3",
@@ -162,9 +162,10 @@
   }
  },
  "web": {
-  "syncedAt": "2026-11-19T08:30:27.334Z",
-  "head": "a069994",
+  "syncedAt": "2026-11-19T11:05:15.191Z",
+  "head": "b9d63d7",
   "files": {
+   "apps/web/src/fonts/LICENSES.txt": "b55f97dfa616",
    "apps/web/AGENTS.md": "8a38a9be445f",
    "apps/web/CLAUDE.md": "c140473a3a5f",
    "apps/web/Dockerfile": "6aa8ecf428aa",
@@ -265,7 +266,7 @@
    "apps/web/src/app/dev/ui/ui-gallery.tsx": "7d8abcda738a",
    "apps/web/src/app/globals.css": "7a8f19d56b49",
    "apps/web/src/app/icon.svg": "5f81714f9e3d",
-   "apps/web/src/app/layout.tsx": "9a89daa6f918",
+   "apps/web/src/app/layout.tsx": "bf99251d64a6",
    "apps/web/src/app/login/hero-plate.tsx": "62fa67aed5ed",
    "apps/web/src/app/login/page.tsx": "7bd3220d0856",
    "apps/web/src/app/manifest.ts": "4e022cd4da75",
@@ -318,7 +319,7 @@
    "apps/web/src/lib/client/upload.ts": "2437517cec82",
    "apps/web/src/lib/client/use-camera.ts": "3100c2c76496",
    "apps/web/src/lib/cn.ts": "7cfdacd21e63",
-   "apps/web/src/lib/fitr8-fonts.ts": "d6404cc9d35f",
+   "apps/web/src/lib/fitr8-fonts.ts": "29044460ded4",
    "apps/web/src/lib/ga-id.ts": "99090d37561a",
    "apps/web/src/lib/onboarding/draft.test.ts": "8c322bfd95ef",
    "apps/web/src/lib/onboarding/draft.ts": "5cbfac7988e6",
@@ -337,8 +338,8 @@
   }
  },
  "mobile": {
-  "syncedAt": "2026-11-19T08:30:27.341Z",
-  "head": "a069994",
+  "syncedAt": "2026-11-19T11:05:15.877Z",
+  "head": "b9d63d7",
   "files": {
    "apps/mobile/.claude/settings.json": "14b797af98bf",
    "apps/mobile/.gitignore": "1b3d2a4eff0b",
@@ -459,8 +460,8 @@
   }
  },
  "packages": {
-  "syncedAt": "2026-11-19T08:30:27.348Z",
-  "head": "a069994",
+  "syncedAt": "2026-11-19T11:05:16.448Z",
+  "head": "b9d63d7",
   "files": {
    "packages/contracts/.oxlintrc.json": "c46d7bfdcb62",
    "packages/contracts/package.json": "ba213d965337",
@@ -583,8 +584,8 @@
   }
  },
  "infra": {
-  "syncedAt": "2026-11-19T08:30:27.353Z",
-  "head": "a069994",
+  "syncedAt": "2026-11-19T11:05:16.486Z",
+  "head": "b9d63d7",
   "files": {
    ".env.example": "3956fa8cc452",
    ".env.production.example": "5acf76009259",
