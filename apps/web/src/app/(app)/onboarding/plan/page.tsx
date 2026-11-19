@@ -20,7 +20,7 @@ export const metadata = { title: "Your plan | FITR8" };
 
 /**
  * Screen 5 / 5b: the plan computed at onboarding, rebuilt from the database so a refresh still
- * works. `?flow=welcome|new` continues to Get the app; editing a goal goes back to /home.
+ * works. `?flow=new` continues to Get the app; editing a goal goes back to /home.
  */
 export default async function PlanPage({ searchParams }: PageProps<"/onboarding/plan">) {
   const [{ profile }, sp] = await Promise.all([requireViewer(), searchParams]);

@@ -213,7 +213,7 @@ export function TargetCalculator() {
               ))}
             </dl>
             <Link
-              href="/welcome"
+              href="/login"
               onClick={() => {
                 track("calculator_used", {});
                 // Onboarding prefills from these (sessionStorage, this tab only).

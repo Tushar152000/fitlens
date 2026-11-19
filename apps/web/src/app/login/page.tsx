@@ -1,3 +1,4 @@
+import { Sparkles, UserRound } from "lucide-react";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { DevLogin } from "@/components/dev-login";
@@ -10,9 +11,13 @@ import { signInProviders } from "@/lib/server/providers";
 import { HeroPlate } from "./hero-plate";
 import { apiUrl } from "@/lib/api-url";
 
-export const metadata = { title: "Log in | FITR8" };
+export const metadata = { title: "Log in or sign up | FITR8" };
 
-/** Returning users. New users start at /welcome (the onboarding flow ends with sign-in). */
+/**
+ * The one way in, for members and new people alike ("Log in / Sign up" and every "Start for
+ * free"). Google first; then `next` (default /home) sends members to their plan, and /home sends
+ * anyone not onboarded yet to /onboarding.
+ */
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const [me, available, sp] = await Promise.all([currentUser(), signInProviders(), searchParams]);
   // Where to land after sign-in. Same-site paths only: no "//" or "/\", which browsers resolve to another host.
@@ -59,11 +64,39 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <HeroPlate className="my-8 lg:hidden" />
 
         <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.025em]">
-          Welcome back
+          Log in or start for free
         </h1>
-        <p className="mt-2 text-ink-2">Log in to see today’s target, meals and workout.</p>
+        <p className="mt-2 text-ink-2">One step with Google, whichever you are.</p>
 
-        <div className="mt-8 flex flex-col gap-3">
+        <ul className="mt-6 flex flex-col gap-2.5">
+          {[
+            {
+              icon: <UserRound className="size-5" aria-hidden />,
+              title: "Already on FITR8?",
+              body: "You’ll go straight to your plan.",
+            },
+            {
+              icon: <Sparkles className="size-5" aria-hidden />,
+              title: "New here?",
+              body: "We’ll build your free plan in 3 quick steps.",
+            },
+          ].map((row) => (
+            <li
+              key={row.title}
+              className="flex items-center gap-3.5 rounded-2xl bg-white px-4 py-3.5 shadow-[0_0_0_1px_var(--color-line)]"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-fitr8-lilac-soft text-fitr8">
+                {row.icon}
+              </span>
+              <span className="flex flex-col">
+                <span className="font-semibold">{row.title}</span>
+                <span className="text-sm text-ink-2">{row.body}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="mt-6 flex flex-col gap-3">
           {error && (
             <p
               role="alert"
@@ -82,13 +115,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             </a>
           )}
           {available.dev && <DevLogin next={next} />}
-          <p className="mt-3 text-center text-sm text-ink-2">
-            New to FITR8?{" "}
-            <Link href="/welcome" className="font-semibold text-fitr8 hover:underline">
-              Build your free plan
-            </Link>
-          </p>
-          <p className="text-center text-xs text-ink-3">
+          <p className="mt-2 text-center text-xs text-ink-3">
             By continuing you agree to our{" "}
             <Link href="/terms" className="font-semibold text-fitr8 hover:underline">
               Terms

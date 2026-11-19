@@ -33,8 +33,8 @@ export default async function GetTheAppPage({ searchParams }: PageProps<"/onboar
     searchParams,
     serverApiOrNull<PlanDto>("/plan"),
   ]);
-  // Straight after the welcome flow the rail shows its seven steps; otherwise the signed-in five.
-  const mode = parseMode(sp.flow) === "welcome" ? "welcome" : "new";
+  // Only first-time onboarding reaches this screen (editing a goal returns to /home).
+  const mode = parseMode(sp.flow) === "edit" ? "new" : parseMode(sp.flow);
   const rail = RAIL[mode];
   const first = name?.split(" ")[0];
   const { live } = storeLinks();

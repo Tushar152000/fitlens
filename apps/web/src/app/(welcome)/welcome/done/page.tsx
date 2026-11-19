@@ -1,10 +1,6 @@
-import { requireViewer } from "@/lib/server/api";
-import { FinishSignup } from "./finish-signup";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Building your plan | FITR8" };
-
-/** Landing spot after Google from the welcome flow: saves the stashed answers, then the plan. */
-export default async function WelcomeDonePage() {
-  const viewer = await requireViewer();
-  return <FinishSignup onboarded={Boolean(viewer.profile?.onboardedAt)} />;
+/** Where Google used to return after the old /welcome flow. /home routes to the plan or onboarding. */
+export default function WelcomeDonePage() {
+  redirect("/home");
 }

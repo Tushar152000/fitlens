@@ -32,7 +32,7 @@ export function Hero() {
             to reach your fitness goals, all in one place.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
-            <Link href="/welcome" className={`${hardButton} bg-white text-fitr8`}>
+            <Link href="/login" className={`${hardButton} bg-white text-fitr8`}>
               Start for free
               <ArrowRight className={ctaArrow} aria-hidden />
             </Link>

@@ -1,23 +1,8 @@
 import type { ActivityLevel, GoalType, Sex } from "@fitr8/domain/nutrition";
 import type { OnboardingDraft } from "./draft";
 
-/**
- * Answers given before sign-in, carried across the Google round trip in sessionStorage (this tab
- * only). /welcome/done turns them into POST /api/onboarding once there's a session.
- */
-export const PENDING_KEY = "fitr8.onboarding.pending";
 /** What the visitor typed into the landing-page calculator, to prefill onboarding. */
 export const CALCULATOR_KEY = "fitr8.onboarding.calculator";
-
-export interface PendingOnboarding {
-  name: string;
-  /** Optional: stashes written before step 1 asked for them. */
-  lastName?: string;
-  phone?: string;
-  /** Set by /welcome/done when the number turned out to be taken: step 1 opens with it. */
-  phoneError?: string;
-  draft: OnboardingDraft;
-}
 
 export interface CalculatorNumbers {
   goal: GoalType;
@@ -32,23 +17,9 @@ function write(key: string, value: unknown) {
   try {
     sessionStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // Storage blocked (private mode): the answers are simply asked again after sign-in.
+    // Storage blocked (private mode): onboarding just starts without the calculator numbers.
   }
 }
-
-function read<T>(key: string, remove: boolean): T | null {
-  try {
-    const raw = sessionStorage.getItem(key);
-    if (remove) sessionStorage.removeItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch {
-    return null;
-  }
-}
-
-export const stashPending = (p: PendingOnboarding) => write(PENDING_KEY, p);
-/** Reads and clears: the answers are used once. */
-export const takePending = () => read<PendingOnboarding>(PENDING_KEY, true);
 
 export const stashCalculator = (c: CalculatorNumbers) => write(CALCULATOR_KEY, c);
 
@@ -79,15 +50,4 @@ export function draftFromCalculator(c: CalculatorNumbers): Partial<OnboardingDra
     weightKg: String(c.weightKg),
     activityLevel: c.activity,
   };
-}
-
-/** Parses a raw pending entry without clearing it (used to prefill after a failed save). */
-export function parsePending(raw: string | null): PendingOnboarding | null {
-  if (!raw) return null;
-  try {
-    const p = JSON.parse(raw) as PendingOnboarding;
-    return p && typeof p === "object" && p.draft && typeof p.draft === "object" ? p : null;
-  } catch {
-    return null;
-  }
 }
