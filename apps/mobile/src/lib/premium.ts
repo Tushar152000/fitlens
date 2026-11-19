@@ -1,4 +1,4 @@
-import type { BillingDto, PremiumFeature, ProRequiredDetails } from "@fitr8/contracts";
+import type { BillingDto, MeDto, PremiumFeature, ProRequiredDetails } from "@fitr8/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
@@ -68,13 +68,8 @@ export function handlePremiumError(err: unknown): boolean {
 
 // ── First login ───────────────────────────────────────────────────────────
 
-/** Set when onboarding finishes in this app session; Today then shows Premium once. */
-let introPending = false;
-
-/** Call when the user finishes onboarding ("Start" on the plan screen). */
-export function premiumIntroAfterOnboarding() {
-  introPending = true;
-}
+/** How long after onboarding the first-login Premium screen may still show (app opened later). */
+const INTRO_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const introKey = (userId: string) => `fitr8.premium.intro.${userId}`;
 
@@ -97,20 +92,25 @@ async function markIntroShown(userId: string) {
 }
 
 /**
- * On Today: right after onboarding, open the Premium screen once per user ("Your plan is ready"),
- * unless they already have it. "Continue with Free" closes it.
+ * On Today: the first-login Premium screen ("Your plan is ready"), once per user, for a free user
+ * who finished onboarding in the last 24 hours (in the app or on the web). Based on the server's
+ * onboarding time, so it can't miss the moment the app switches from onboarding to Today.
  */
-export function usePremiumIntro(userId: string) {
+export function usePremiumIntro(me: Pick<MeDto, "id" | "profile">) {
   const billing = useQuery(billingQuery);
-  const data = billing.data;
+  const plan = billing.data?.plan;
+  const onboardedAt = me.profile?.onboardedAt;
   useEffect(() => {
-    if (!introPending || !data) return;
-    introPending = false;
-    if (data.plan === "PRO") return;
+    if (plan !== "FREE" || !onboardedAt) return;
+    if (Date.now() - new Date(onboardedAt).getTime() > INTRO_WINDOW_MS) return;
+    let cancelled = false;
     void (async () => {
-      if (await introShown(userId)) return;
-      await markIntroShown(userId);
-      openPremium(undefined, "onboarding");
+      if (cancelled || (await introShown(me.id))) return;
+      await markIntroShown(me.id);
+      if (!cancelled) openPremium(undefined, "onboarding");
     })();
-  }, [data, userId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [plan, onboardedAt, me.id]);
 }

@@ -107,8 +107,9 @@ API: /api/me.plan, /api/billing, /api/usage, coach + label checks read BillingSe
   Premium" pill), barcode product screen (402 → Premium), "Photograph the label", label upload,
   coach (Premium card on the empty chat; Send opens Premium and keeps the text), reminders (at the
   free 3: "Get unlimited reminders"), Profile plan card ("Try Premium free for 7 days").
-- First login: the plan screen's Start calls `premiumIntroAfterOnboarding()`; Today
-  (`usePremiumIntro`) opens Premium once per user (flag in secure storage), unless already Premium.
+- First login: Today (`usePremiumIntro`) opens Premium once per user (flag in secure storage) for a
+  free user whose `profile.onboardedAt` is within the last 24 hours, so it also works after web
+  onboarding.
 - Premium screen: `apps/mobile/src/app/pro.tsx` (modal), design in docs/DESIGN.md "Premium screen".
   Prices and trial from the store (RevenueCat); without store plans it shows the launch prices and,
   while `testPurchases` is on, buys with the one-tap test purchase. Restore purchases, Terms / Privacy and renewal terms (App Store 3.1.1 / 3.1.2).
