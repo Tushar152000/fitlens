@@ -1,23 +1,68 @@
-# FITR8 Pro (RevenueCat)
+# FITR8 Premium
 
-Decided 2026-10-13: **₹199/month or ₹1,499/year, 7-day free trial**, bought in the phone app
-(App Store / Google Play subscriptions through RevenueCat). The web only shows your plan.
+Decided 2026-11-19 (replaces the 2026-10-13 plan of ₹199/month). Bought in the phone app through the
+App Store / Google Play (RevenueCat). The web only shows your plan.
 
-## What Pro unlocks
+## Plans (what users see)
 
-| Feature                                                     | Free                         | Pro                                 |
-| ----------------------------------------------------------- | ---------------------------- | ----------------------------------- |
-| Typing meals, barcode, usuals, water                        | Unlimited                    | Unlimited                           |
-| Daily target, weekly adjustments, plan                      | ✓                            | ✓                                   |
-| Photo scans a day                                           | 3 (`AI_DAILY_LIMIT`)         | 30, fair use (`AI_PRO_DAILY_LIMIT`) |
-| AI coach messages a day                                     | 5 (`COACH_FREE_DAILY_LIMIT`) | 40 (`COACH_DAILY_LIMIT`)            |
-| Photographing nutrition labels                              | –                            | ✓                                   |
-| Meal ideas, 30-day insights, calorie cycling, voice logging | –                            | ✓ when built                        |
+### Free · ₹0 forever
 
-**Paywall switch.** `PAYWALL_ENABLED` (API) is off by default. Off: free users keep today's limits
-(3 scans, the full coach limit, label scans), so nobody loses anything before Pro can be bought;
-Pro buyers already get Pro limits. On: the free column above applies. Rules and tests:
-`packages/domain/src/billing` (`dailyLimits`, `isPro`, `accessFromEvent`).
+Essential fitness tracking for everyone.
+
+- **Food:** type what you ate, calories and macros, unlimited saved meals
+- **Workout:** log sets, reps and weights, unlimited workout history, personal records (PRs)
+- **Progress:** weight, body progress and water tracking
+- **Reminders:** water and meal reminders, plus up to 3 of your own
+- **Health apps:** connect Apple Health or Google Fit
+
+### FITR8 Premium · ₹149/month or ₹1,499/year
+
+More intelligence. Better guidance. Smarter fitness. Everything in Free, plus:
+
+- **Scan your food:** barcode scanning, AI photo scanning (meals and nutrition labels)
+- **AI Coach:** your personal nutrition and training coach
+- **Personalised workouts:** a weekly plan built for your goal, adjusted every day
+- **Insights and reports:** detailed weekly reports, monthly progress reports, health insights
+  from Apple Health / Google Fit
+- **Unlimited reminders**
+- **Data export:** full reports to download
+
+Yearly is about ₹125/month (save ₹289). **7-day free trial**, then ₹149/month or ₹1,499/year.
+Cancel anytime; trial eligibility and renewal terms apply.
+
+## Rules (what the code enforces)
+
+| What                          | Free                                   | Premium                     |
+| ----------------------------- | -------------------------------------- | --------------------------- |
+| AI photo scans (meal + label) | none                                   | 10 a day                    |
+| Barcode scanning              | none                                   | ✓                           |
+| AI Coach messages             | none                                   | 40 a day                    |
+| Personalised workout plan     | none                                   | ✓                           |
+| Custom reminders              | 3                                      | unlimited (fair-use cap 50) |
+| Weekly / monthly reports      | basic week view                        | detailed                    |
+| Data export                   | simple CSV of your data (a user right) | + formatted reports         |
+| Health app connection         | ✓                                      | ✓ + insights                |
+
+- **Every Premium feature opens the same Premium screen** when a free user taps it (barcode,
+  photo scan, coach, workout plan, 4th reminder, insights, reports). After buying, it unlocks at once.
+- **First login:** the Premium screen shows once, right after onboarding ("Your plan is ready"), with
+  "Continue with Free". Stores require it to be closable, with Restore purchases and the terms.
+- **Profile:** "Go Premium"; Premium users see their plan, renewal date and Manage subscription.
+- **Paywall switch** `PAYWALL_ENABLED` (API, off by default): off means everyone keeps today's limits
+  until Premium can be bought; on means the rules above apply. Rules and tests:
+  `packages/domain/src/billing` (`dailyLimits`, `isPro`, `accessFromEvent`).
+
+## Not built yet (to tackle one by one)
+
+- [ ] **Log your own workout** for free users: pick exercises and enter sets, without the Premium plan.
+      Until this exists, the workout plan stays open to free users.
+- [ ] **Workout history** screen (unlimited, all past sessions).
+- [ ] **Personal records (PRs)** per exercise.
+- [ ] **Apple Health and Google Fit** connection (Health Connect on Android; Google Fit's API is being
+      retired). See the health integration plan.
+- [ ] **Health insights** from that data (Premium).
+- [ ] **Detailed weekly reports** and **monthly progress reports** (Premium): define contents first.
+- [ ] **Formatted report export** (Premium), beside the free CSV.
 
 ## How it works
 
@@ -54,7 +99,7 @@ API: /api/me.plan, /api/billing, /api/usage, coach + label checks read BillingSe
 ## Setup (once, by you)
 
 1. **Stores** (after the app exists in each store):
-   - App Store Connect → Subscriptions → group "FITR8 Pro" → `fitr8_pro_monthly` (₹199) and
+   - App Store Connect → Subscriptions → group "FITR8 Pro" → `fitr8_pro_monthly` (₹149) and
      `fitr8_pro_yearly` (₹1,499), each with a 7-day free-trial introductory offer. Paid Apps
      agreement, tax and banking must be complete.
    - Play Console → Monetize → Subscriptions → same two ids, base plans monthly / yearly, a 7-day
