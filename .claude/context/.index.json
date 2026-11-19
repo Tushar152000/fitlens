@@ -1,7 +1,7 @@
 {
  "api": {
-  "syncedAt": "2026-11-19T08:24:12.779Z",
-  "head": "3890083",
+  "syncedAt": "2026-11-19T08:30:27.324Z",
+  "head": "a069994",
   "files": {
    "apps/api/.oxlintrc.json": "c46d7bfdcb62",
    "apps/api/Dockerfile": "5008ec25a6d3",
@@ -162,8 +162,8 @@
   }
  },
  "web": {
-  "syncedAt": "2026-11-19T08:24:12.822Z",
-  "head": "3890083",
+  "syncedAt": "2026-11-19T08:30:27.334Z",
+  "head": "a069994",
   "files": {
    "apps/web/AGENTS.md": "8a38a9be445f",
    "apps/web/CLAUDE.md": "c140473a3a5f",
@@ -331,15 +331,15 @@
    "apps/web/src/lib/server/api.ts": "47f2530ebaf7",
    "apps/web/src/lib/server/providers.ts": "c2d3ab83b5c9",
    "apps/web/tsconfig.json": "e00d3075ad40",
+   "apps/web/turbo.json": "aae46aec836a",
    "apps/web/vercel.json": "efb074370468",
    "apps/web/vitest.config.mts": "daacfe2ab5ea"
   }
  },
  "mobile": {
-  "syncedAt": "2026-11-19T08:24:12.856Z",
-  "head": "3890083",
+  "syncedAt": "2026-11-19T08:30:27.341Z",
+  "head": "a069994",
   "files": {
-   "apps/mobile/src/components/premium-badge.tsx": "3fba81346150",
    "apps/mobile/.claude/settings.json": "14b797af98bf",
    "apps/mobile/.gitignore": "1b3d2a4eff0b",
    "apps/mobile/.vscode/extensions.json": "c745cc723589",
@@ -393,6 +393,7 @@
    "apps/mobile/src/components/log/save-meal-sheet.tsx": "c830b64935fc",
    "apps/mobile/src/components/offline-banner.tsx": "e5d6ff00128a",
    "apps/mobile/src/components/plan-builder.tsx": "8fe12b9ee2dc",
+   "apps/mobile/src/components/premium-badge.tsx": "3fba81346150",
    "apps/mobile/src/components/profile-options.tsx": "ddf1cded47bf",
    "apps/mobile/src/components/query-error.tsx": "6bcb24b646f1",
    "apps/mobile/src/components/reminder-prompt.tsx": "80b9adbb925c",
@@ -458,8 +459,8 @@
   }
  },
  "packages": {
-  "syncedAt": "2026-11-19T08:24:12.863Z",
-  "head": "3890083",
+  "syncedAt": "2026-11-19T08:30:27.348Z",
+  "head": "a069994",
   "files": {
    "packages/contracts/.oxlintrc.json": "c46d7bfdcb62",
    "packages/contracts/package.json": "ba213d965337",
@@ -534,7 +535,7 @@
    "packages/db/scripts/knowledge.ts": "f3ea4c210257",
    "packages/db/src/index.ts": "4987b5e58f07",
    "packages/db/tsconfig.json": "8458b7027016",
-   "packages/db/turbo.json": "f5f77a91c49a",
+   "packages/db/turbo.json": "b939a9dcb049",
    "packages/domain/.oxlintrc.json": "c46d7bfdcb62",
    "packages/domain/package.json": "b1d36c572ea3",
    "packages/domain/src/activity.test.ts": "3bc24df06e88",
@@ -582,8 +583,8 @@
   }
  },
  "infra": {
-  "syncedAt": "2026-11-19T08:24:12.883Z",
-  "head": "3890083",
+  "syncedAt": "2026-11-19T08:30:27.353Z",
+  "head": "a069994",
   "files": {
    ".env.example": "3956fa8cc452",
    ".env.production.example": "5acf76009259",
