@@ -288,32 +288,50 @@ Drawn: 5b, 6b, 6c, 8, 9b, 9c. Build these from the description:
 - **Logging:** `POST /api/meals` with `source: SUGGESTION` and the item list → status `CONFIRMED` directly; never counts toward the photo-scan limit.
 - **Safety:** no ideas when over target (show light options only); never suggest pushing the day below the calorie floor.
 
-## Premium screen (`/pro`, app modal)
+## Premium upsell and paywall (designs 14–14c)
 
-One screen sells Premium everywhere (docs/PREMIUM.md). It opens on the feature the user just tried
-(`?feature=barcode|photo_scan|label_scan|coach|reminders`), once after onboarding
-(`?source=onboarding`), or from Profile.
+Premium shows up where it helps, explains each feature with an example, makes the price easy to
+judge, and never blocks: a free path is always one tap away. Tokens are the app's (`brand`,
+`brandSoft`, `brandText`, `premiumLine` for Premium borders, `protein`/`proteinSoft` for savings and
+checks); prices and kcal use tabular numbers.
 
-- **Top row:** 28 px brand crown tile + "FITR8 Premium"; close (X) on the right.
-- **Hero:** `panel` card (dark in both themes), eyebrow in `brandGlow` caps ("PREMIUM FEATURE",
-  "YOUR PLAN IS READY", "YOU'VE USED YOUR 3 FREE REMINDERS"), h1 in white, one line at 78% white.
-  The headline names the outcome of the feature tried ("Scan a barcode, done").
-- **Plans:** two radio cards, **Yearly preselected**: "₹1,499/year", "Just ₹125/month", green
-  `proteinSoft` pill "Save ₹289" (saving in rupees from store prices); Monthly "₹149/month". Selected =
-  2 px brand border on `brandSoft`, filled brand radio with a white check.
-- **Trial timeline** (when the store offers a trial): "Today: every Premium feature unlocks. You pay
-  ₹0." → "Day 7: your plan starts at …. Cancel before then and you pay nothing."
-- **Everything in Free, plus:** list card, the tried feature first on `brandSoft` with a filled brand
-  icon tile; "Reports and insights" carries a grey SOON pill.
-- **Free and Premium:** compare table, Premium column header in brand. Included = check (green in
-  Free, brand in Premium); not included = a grey dash, never a red cross.
-- **Footer (pinned):** one purple button "Start 7-day free trial"; "₹0 today · ₹1,499/year after 7 days
-  · Cancel anytime"; renewal terms with Terms · Privacy; "Restore purchases" and **"Continue with
-  Free"** side by side (always visible). Bought: "You're on Premium", button Continue/Done.
+- **14 · Today banner** (`components/premium/home-banner.tsx`), free users, under the calorie card:
+  camera tile, "You typed {n} meals today" (or "Log meals faster with a photo" when none), one line on
+  photo scanning, chips Photo scans · Barcode · AI Coach, "See Premium" (→ 14c, `source=home_banner`),
+  "From ₹125 a month", ✕ "Hide Premium banner for today". Hidden for the day on ✕; after 3 days in a
+  row it rests 7 days (`lib/premium-banner.ts`); never in the first 3 days after onboarding.
+- **14a · Profile plan card**, right under the name: "Your plan · Free", "Typing meals is free,
+  always.", the usage strip "This month you typed {n} meals…" when n ≥ 5, three tiles (Snap a plate ·
+  Scan packs · Ask the coach), "See what Premium adds", "From ₹125 a month, billed yearly. Cancel
+  anytime." Premium: "Premium · Yearly · renews {date}", what's included, Manage subscription ›
+  (or End test Premium).
+- **14b · Locked sheet** (`components/premium/locked-sheet.tsx`, one global sheet opened by
+  `openPremium(feature, {meal, date})`): an example card (thali → 4 items, 780 kcal; curd 400 g →
+  64 kcal per 100 g; label → protein, carbs, fat; coach Q&A), a Premium chip, title and body per
+  feature, three checks, "See Premium plans" (→ 14c `source=locked_*`) and the free path "Type this
+  meal instead (free)" (same meal slot and day; "Not now" for the coach). Reminders go straight to 14c.
+- **14c · Premium screen** (`app/pro.tsx`): top bar (crown + FITR8 Premium, ✕); hero "Log meals in
+  seconds, not minutes" with Free vs Premium mini panels; plan cards (Yearly default: "Save ₹289",
+  "Under ₹5 a day · best value", ₹1,499 "a year · ₹125/mo"; Monthly ₹149); "What you get" accordion
+  (one row open, first by default); Free and Premium table (muted "—" for not included); billing
+  reassurance (paid through the store, cancel anytime, logs stay on Free); three questions; sticky
+  upgrade block ("₹125 a month, billed yearly" + green "You save ₹289", "Get Premium · ₹1,499/year",
+  the test-purchase line while store billing isn't connected, Restore, Continue with Free). Prices,
+  per-month, per-day and savings come from the store's prices when loaded.
+- **States:** prices loading = plan skeletons, button disabled; buying = "Processing…", plans
+  disabled; success = close, toast "Welcome to Premium", features unlock; cancelled = stay, no error;
+  failed = "Payment didn't go through. Try again, or check your payment method in Google Play.";
+  already Premium = never shown (goes back and opens Manage subscription).
 
-Why: relevance first (the tried feature leads), anchoring (yearly shown per month beside monthly),
-default effect (yearly preselected), risk reversal (the timeline says when money moves), one accent
-colour for the one action, and free is respected, never shamed.
+## Motion
+
+One feel across the app (`src/lib/motion.ts`); everything follows the phone's reduce-motion setting.
+
+- **Screens:** push from the right (Android uses the iOS-style push, smoother than the default zoom),
+  swipe back from the edge; modals (`/pro`) rise from the bottom; tab switches cross-fade.
+- **Sheets:** the backdrop fades while the panel rises (280 ms, ease-out).
+- **In place:** banners and cards fade up 240 ms; accordion content fades in 180 ms; toasts drop in
+  from the top and leave upward.
 
 ## Premium touches (Premium users)
 

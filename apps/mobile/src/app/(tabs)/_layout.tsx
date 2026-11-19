@@ -5,13 +5,14 @@ import { ReminderPrompt } from "@/components/reminder-prompt";
 import { TabBar } from "@/components/tab-bar";
 import { remindersQuery } from "@/lib/queries";
 import { syncCustomReminders } from "@/lib/reminders";
+import { tabMotion } from "@/lib/motion";
 
 /** Today, Workout, [camera], [coach], Profile. Camera and coach are buttons that open stacks (tab-bar.tsx). */
 export default function TabsLayout() {
   useReminderSync();
   return (
     <>
-      <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
+      <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false, ...tabMotion }}>
         <Tabs.Screen name="today" />
         <Tabs.Screen name="workout" />
         <Tabs.Screen name="profile" />

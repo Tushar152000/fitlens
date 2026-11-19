@@ -26,6 +26,14 @@ type Meta = {
   environment?: string | null;
 };
 
+/** "fitr8_pro_yearly" → year; "fitr8_pro_monthly" → month (store product ids, docs/PREMIUM.md). */
+export function periodOf(productId: string | null | undefined): "year" | "month" | null {
+  if (!productId) return null;
+  if (/year|annual/i.test(productId)) return "year";
+  if (/month/i.test(productId)) return "month";
+  return null;
+}
+
 /** RevenueCat anonymous ids aren't our users; ours are cuid ids set with Purchases.logIn(userId). */
 const isOurId = (id: string) => /^c[a-z0-9]{20,32}$/.test(id);
 const isFkViolation = (err: unknown) =>
@@ -85,6 +93,7 @@ export class BillingService {
       lifetime: row?.lifetime ?? false,
       willRenew: plan === "PRO" && (row?.willRenew ?? false),
       store: row?.store ?? null,
+      period: plan === "PRO" ? periodOf(row?.productId) : null,
       limits: { scans, coach, labelScans, barcode, reminders },
     };
   }

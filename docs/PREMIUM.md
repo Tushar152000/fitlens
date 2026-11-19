@@ -103,10 +103,13 @@ API: /api/me.plan, /api/billing, /api/usage, coach + label checks read BillingSe
 - `apps/mobile/src/lib/premium.ts`: the one gate. `usePremium().locked(feature)` reads
   `GET /api/billing` limits; `openPremium(feature)` opens the Premium screen led by that feature;
   `handlePremiumError(err)` does the same for any 402 `pro_required` the API returns.
-- Gated entry points: camera (barcode read, shutter, gallery; a "Photo and barcode scanning are
-  Premium" pill), barcode product screen (402 → Premium), "Photograph the label", label upload,
-  coach (Premium card on the empty chat; Send opens Premium and keeps the text), reminders (at the
-  free 3: "Get unlimited reminders"), Profile plan card ("Try Premium free for 7 days").
+- Entry points: Today banner (free users, design 14), Profile plan card (14a), and every Premium
+  feature a free user taps: photo, barcode and label scanning and the coach open the locked sheet
+  (14b, with the free path "Type this meal instead"); a 4th reminder opens the Premium screen. A 402
+  from the API (`handlePremiumError`) opens the same sheet. Designs: docs/DESIGN.md "Premium upsell
+  and paywall".
+- `GET /api/usage` adds `typedMeals {today, thisMonth}` (meals logged by typing) for the banner and
+  the Profile usage strip; `GET /api/billing` adds `period` (year / month).
 - First login: Today (`usePremiumIntro`) opens Premium once per user (flag in secure storage) for a
   free user whose `profile.onboardedAt` is within the last 24 hours, so it also works after web
   onboarding.
@@ -114,7 +117,7 @@ API: /api/me.plan, /api/billing, /api/usage, coach + label checks read BillingSe
   Prices and trial from the store (RevenueCat); without store plans it shows the launch prices and,
   while `testPurchases` is on, buys with the one-tap test purchase. Restore purchases, Terms / Privacy and renewal terms (App Store 3.1.1 / 3.1.2).
 - `react-native-purchases` is native: it needs a new EAS build (Expo Go runs it in preview mode,
-  no real purchases). Analytics: `paywall_view` (feature, source) and `pro_purchase`.
+  no real purchases). Analytics (docs/ANALYTICS.md): `premium_banner_*`, `premium_locked_*`, `paywall_viewed` (source), `paywall_plan_selected`, `paywall_feature_expanded`, `purchase_started/_succeeded/_failed/_cancelled`.
 
 ## Setup (once, by you)
 

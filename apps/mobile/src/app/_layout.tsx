@@ -27,6 +27,9 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { queryClient, wireQueryLifecycle } from "@/lib/query";
 import { configureNotifications } from "@/lib/reminders";
 import { AppearanceProvider, palettes, useColors, useScheme } from "@/lib/theme";
+import { PremiumLockedSheet } from "@/components/premium/locked-sheet";
+import { Toast } from "@/components/toast";
+import { modalMotion, stackMotion } from "@/lib/motion";
 
 SplashScreen.preventAutoHideAsync();
 // Finishes the sign-in popup when the web preview is used.
@@ -58,6 +61,8 @@ export default function RootLayout() {
               <AuthProvider>
                 {fontsLoaded && <Routes />}
                 <OfflineBanner />
+                <PremiumLockedSheet />
+                <Toast />
               </AuthProvider>
             </NavigationTheme>
           </AppearanceProvider>
@@ -116,7 +121,7 @@ function Routes() {
   // Back after 90+ days: only the welcome-back check-in until it's answered or dismissed.
   const welcomeBack = onboarded && Boolean(me?.welcomeBack);
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ground } }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ground }, ...stackMotion }}>
       {/*
         Order matters: when a guard flips (sign-in, sign-out), the stack falls back to the FIRST screen
         still allowed. The app must come before onboarding, or a returning user who signs in again
@@ -137,7 +142,7 @@ function Routes() {
         <Stack.Screen name="coach" />
         <Stack.Screen name="coach-memory" />
         <Stack.Screen name="reminders" />
-        <Stack.Screen name="pro" options={{ presentation: "modal" }} />
+        <Stack.Screen name="pro" options={modalMotion} />
       </Stack.Protected>
       {/* First-time setup, and where an onboarded user edits their goal (pushed from Profile). */}
       <Stack.Protected guard={signedIn}>

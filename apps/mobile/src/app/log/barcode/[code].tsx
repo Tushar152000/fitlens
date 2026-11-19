@@ -32,11 +32,13 @@ export default function ProductRoute() {
     retry: false,
   });
 
-  // Barcode scanning is Premium for free users: swap this screen for the Premium screen.
+  // Barcode scanning is Premium for free users: go back and show the locked sheet instead.
   const premiumFeature = premiumFeatureOf(product.error);
   useEffect(() => {
-    if (premiumFeature) router.replace({ pathname: "/pro", params: { feature: premiumFeature } });
-  }, [premiumFeature]);
+    if (!premiumFeature) return;
+    router.back();
+    openPremium(premiumFeature, { meal: params.meal, date: params.date });
+  }, [premiumFeature, params.meal, params.date]);
 
   if (product.isPending || premiumFeature) {
     return (
@@ -327,7 +329,7 @@ function NotFound({
             icon={Camera}
             onPress={() =>
               labelLocked
-                ? openPremium("label_scan")
+                ? openPremium("label_scan", choice)
                 : router.push({
                     pathname: "/log/label",
                     params: { ...choice, barcode: code, ...(name.trim() ? { name: name.trim() } : {}) },

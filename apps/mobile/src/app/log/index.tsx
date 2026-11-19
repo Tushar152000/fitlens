@@ -50,6 +50,8 @@ async function barcodeInPhoto(uri: string): Promise<string | null> {
  */
 export default function CameraScreen() {
   const { mealType, setMealType, date, dateBody, params } = useMealChoice();
+  // For the locked sheet's free path: type this meal instead, same slot and day.
+  const logContext = { meal: mealType, date: date ?? undefined };
   const insets = useSafeAreaInsets();
   const camera = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
@@ -117,13 +119,13 @@ export default function CameraScreen() {
   /** The barcode path: the product screen asks for the meal and the portion. */
   function openProduct(code: string) {
     setPhase("idle");
-    if (barcodeLocked) return openPremium("barcode");
+    if (barcodeLocked) return openPremium("barcode", logContext);
     router.push({ pathname: "/log/barcode/[code]", params: { code, ...params } });
   }
 
   function fail(e: unknown) {
     setPhase("idle");
-    if (handlePremiumError(e)) return;
+    if (handlePremiumError(e, logContext)) return;
     if (e instanceof ApiError && e.status === 429) {
       setLimit((e.details as ScanUsage | undefined) ?? null);
       setLimitOpen(true);
@@ -140,7 +142,7 @@ export default function CameraScreen() {
     if (code) return openProduct(code);
     if (photoLocked) {
       setPhase("idle");
-      return openPremium("photo_scan");
+      return openPremium("photo_scan", logContext);
     }
     setPhase("uploading");
     try {
@@ -158,7 +160,7 @@ export default function CameraScreen() {
   async function shoot() {
     // A barcode in view wins: no photo, no upload, no scan used.
     if (seen) return openProduct(seen);
-    if (photoLocked) return openPremium("photo_scan");
+    if (photoLocked) return openPremium("photo_scan", logContext);
     if (!camera.current || !ready) return;
     try {
       const photo = await camera.current.takePictureAsync({ quality: 0.9 });
@@ -169,7 +171,7 @@ export default function CameraScreen() {
   }
 
   async function pickFromGallery() {
-    if (photoLocked && barcodeLocked) return openPremium("photo_scan");
+    if (photoLocked && barcodeLocked) return openPremium("photo_scan", logContext);
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
     const asset = result.canceled ? null : result.assets[0];
     if (asset) await route(asset);
@@ -239,7 +241,7 @@ export default function CameraScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Scanning is part of FITR8 Premium. See Premium"
-            onPress={() => openPremium("photo_scan")}
+            onPress={() => openPremium("photo_scan", logContext)}
             style={[styles.hint, { backgroundColor: cam.brand }]}
           >
             <Crown size={16} color={cam.white} />

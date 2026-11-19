@@ -53,7 +53,7 @@ export default function LabelCamera() {
       router.replace({ pathname: "/log/label/[id]", params: { id: scan.id, ...choice } });
     } catch (e) {
       setPhase("idle");
-      if (handlePremiumError(e)) return;
+      if (handlePremiumError(e, choice)) return;
       if (e instanceof ApiError && e.status === 429) {
         setLimit((e.details as ScanUsage | undefined) ?? null);
         setLimitOpen(true);

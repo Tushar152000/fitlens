@@ -1,8 +1,8 @@
-import type { BillingDto, MeDto, PremiumFeature, ProRequiredDetails } from "@fitr8/contracts";
+import type { AnalyticsEvents, BillingDto, MeDto, PremiumFeature, ProRequiredDetails } from "@fitr8/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { Platform } from "react-native";
 import { ApiError } from "./api";
 import { billingQuery } from "./queries";
@@ -43,9 +43,68 @@ export function usePremium() {
   };
 }
 
-/** Opens the Premium screen, led by the feature the user just tried. */
-export function openPremium(feature?: PremiumFeature, source?: "onboarding") {
-  router.push({ pathname: "/pro", params: { ...(feature ? { feature } : {}), ...(source ? { source } : {}) } });
+/**
+ * Launch prices (docs/PREMIUM.md), shown wherever the store's prices aren't loaded (banner, sheet,
+ * Profile). The Premium screen uses the store's localised prices when it has them.
+ */
+export const LIST_PRICE = {
+  month: "₹149",
+  year: "₹1,499",
+  perMonth: "₹125",
+  perDayUnder: "₹5",
+  yearSaving: "₹289",
+};
+
+/** Where the Premium screen was opened from (analytics `source`). */
+export type PaywallSource = AnalyticsEvents["paywall_viewed"]["source"];
+export type FeatureLabel = AnalyticsEvents["premium_locked_sheet_shown"]["feature"];
+
+/** Premium feature → its short analytics label. */
+export const FEATURE_LABEL: Record<PremiumFeature, FeatureLabel> = {
+  photo_scan: "photo",
+  barcode: "barcode",
+  label_scan: "label",
+  coach: "coach",
+  reminders: "reminders",
+};
+
+/** Opens the Premium screen (14c). Never call it for a Premium user: they get Manage subscription. */
+export function openPaywall(source: PaywallSource) {
+  router.push({ pathname: "/pro", params: { source } });
+}
+
+/** The meal slot and day being logged, kept for the locked sheet's free path ("Type this meal instead"). */
+export type LogContext = { meal?: string; date?: string };
+
+type Locked = { feature: PremiumFeature; context: LogContext } | null;
+let locked: Locked = null;
+const lockedListeners = new Set<() => void>();
+function setLocked(next: Locked) {
+  locked = next;
+  for (const l of lockedListeners) l();
+}
+
+/** The locked-feature sheet's state (rendered once, in the root layout). */
+export function useLockedSheet() {
+  const state = useSyncExternalStore(
+    (l) => {
+      lockedListeners.add(l);
+      return () => lockedListeners.delete(l);
+    },
+    () => locked,
+    () => locked,
+  );
+  return { state, close: () => setLocked(null) };
+}
+
+/**
+ * A free user tapped a Premium feature. Food logging and the coach open the locked sheet (14b): an
+ * example of what the feature does, the plans, and the free alternative. Reminders go straight to
+ * the Premium screen (the reminders screen already explains the free 3).
+ */
+export function openPremium(feature: PremiumFeature, context: LogContext = {}) {
+  if (feature === "reminders") return openPaywall("locked_reminders");
+  setLocked({ feature, context });
 }
 
 /** The feature of a 402 "pro_required" from the API, or null for any other error. */
@@ -59,10 +118,10 @@ export function premiumFeatureOf(err: unknown): PremiumFeature | null {
  * For catch blocks: a 402 from the API opens the Premium screen and returns true (show no error);
  * anything else returns false.
  */
-export function handlePremiumError(err: unknown): boolean {
+export function handlePremiumError(err: unknown, context?: LogContext): boolean {
   const feature = premiumFeatureOf(err);
   if (!feature) return false;
-  openPremium(feature);
+  openPremium(feature, context);
   return true;
 }
 
@@ -107,7 +166,7 @@ export function usePremiumIntro(me: Pick<MeDto, "id" | "profile">) {
     void (async () => {
       if (cancelled || (await introShown(me.id))) return;
       await markIntroShown(me.id);
-      if (!cancelled) openPremium(undefined, "onboarding");
+      if (!cancelled) openPaywall("onboarding");
     })();
     return () => {
       cancelled = true;
