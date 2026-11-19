@@ -65,7 +65,7 @@ if [ "$HAVE_GH" = 1 ]; then
     value="$(var "$v")"
     if [ -n "$value" ]; then ok "$v = $value"; else bad "$v is not set"; fi
   done
-  for v in AI_PROVIDER API_MIN_INSTANCES APPLE_CLIENT_ID REVENUECAT_ENABLED PAYWALL_ENABLED; do
+  for v in AI_PROVIDER API_MIN_INSTANCES APPLE_CLIENT_ID REVENUECAT_ENABLED; do
     value="$(var "$v")"
     if [ -n "$value" ]; then ok "$v = $value"; else warn "$v not set (default applies)"; fi
   done
@@ -79,7 +79,6 @@ PUBLIC_URL="${PUBLIC_URL:-$(var PUBLIC_URL)}"
 API_PUBLIC_URL="${API_PUBLIC_URL:-$(var API_PUBLIC_URL)}"
 APPLE_CLIENT_ID="$(var APPLE_CLIENT_ID)"
 REVENUECAT_ENABLED="$(var REVENUECAT_ENABLED)"
-PAYWALL_ENABLED="$(var PAYWALL_ENABLED)"
 AI_PROVIDER="$(var AI_PROVIDER)"
 AI_PROVIDER="${AI_PROVIDER:-openai}"
 
@@ -100,9 +99,8 @@ for s in "${required[@]}"; do
   fi
 done
 [ -z "$APPLE_CLIENT_ID" ] && warn "Sign in with Apple off (APPLE_CLIENT_ID unset): needed before an iOS App Store release"
-if [ "$PAYWALL_ENABLED" = true ] && [ "$REVENUECAT_ENABLED" != true ]; then
-  bad "PAYWALL_ENABLED=true without RevenueCat: the API will refuse to boot"
-fi
+[ "$REVENUECAT_ENABLED" != true ] &&
+  warn "Store billing off (REVENUECAT_ENABLED unset): Premium is a free one-tap test purchase for everyone"
 
 # ---------- Cloud SQL ----------
 section "Cloud SQL"

@@ -116,7 +116,7 @@ export default function CoachScreen() {
   async function send(raw: string) {
     const message = raw.trim().slice(0, MAX_LENGTH);
     if (!message || sending) return;
-    // Free plan with the paywall on: the coach is Premium. Keep what they typed for after buying.
+    // Free plan: the coach is Premium. Keep what they typed for after buying.
     if (coachLocked) {
       setDraft(message);
       return openPremium("coach");

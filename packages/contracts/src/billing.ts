@@ -38,8 +38,11 @@ export type RevenueCatWebhook = z.infer<typeof RevenueCatWebhookSchema>;
 /** GET /api/billing and POST /api/billing/refresh — the caller's plan and today's limits. */
 export interface BillingDto {
   plan: PlanName;
-  /** False until Pro can be bought: clients hide upgrade prompts and keep today's limits. */
-  paywall: boolean;
+  /**
+   * True until store billing (RevenueCat) is connected: the app buys with one tap through
+   * POST /api/billing/test-purchase, no money involved. False: real App Store / Google Play purchases.
+   */
+  testPurchases: boolean;
   /** ISO; when Pro access ends (renews before then unless `willRenew` is false). */
   proUntil: string | null;
   lifetime: boolean;
@@ -57,6 +60,10 @@ export interface BillingDto {
     reminders: number;
   };
 }
+
+/** POST /api/billing/test-purchase — Premium without the store, while store billing isn't connected. */
+export const TestPurchaseSchema = z.object({ period: z.enum(["month", "year"]) });
+export type TestPurchaseInput = z.infer<typeof TestPurchaseSchema>;
 
 /** Premium features (docs/PREMIUM.md); the app opens the Premium screen for each. */
 export type PremiumFeature = "photo_scan" | "label_scan" | "barcode" | "coach" | "reminders";

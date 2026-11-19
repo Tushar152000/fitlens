@@ -4,16 +4,11 @@ import { createTestApp, onboardingPayload, type TestApp } from "./support/app.js
 
 const AUTH = "Bearer test-webhook-secret";
 let t: TestApp;
-let paywalled: TestApp;
 beforeAll(async () => {
   t = await createTestApp({ env: { REVENUECAT_WEBHOOK_AUTH: AUTH } });
-  paywalled = await createTestApp({
-    env: { REVENUECAT_WEBHOOK_AUTH: AUTH, PAYWALL_ENABLED: "true" },
-  });
 });
 afterAll(async () => {
   await t.close();
-  await paywalled.close();
 });
 
 const DAY = 86_400_000;
@@ -62,7 +57,6 @@ describe("RevenueCat webhook", () => {
     expect((await agent.get("/api/usage").expect(200)).body).toMatchObject({
       plan: "PRO",
       limit: 10,
-      paywall: false,
     });
   });
 
@@ -141,22 +135,12 @@ describe("RevenueCat webhook", () => {
   });
 });
 
-describe("paywall", () => {
-  it("keeps today's limits while the paywall is off", async () => {
-    const { agent } = await t.signIn();
-    expect((await agent.get("/api/billing").expect(200)).body).toMatchObject({
-      plan: "FREE",
-      paywall: false,
-      limits: { scans: 3, coach: 40, labelScans: true, barcode: true, reminders: 20 },
-    });
-  });
-
-  it("with the paywall on: every Premium feature answers 402 for its feature, and buying lifts them", async () => {
-    const { userId, agent } = await paywalled.signIn();
+describe("Premium features", () => {
+  it("answer 402 for their feature on the free plan, and buying Premium lifts them", async () => {
+    const { userId, agent } = await t.signIn();
     await agent.post("/api/onboarding").send(onboardingPayload()).expect(201);
     expect((await agent.get("/api/billing").expect(200)).body).toMatchObject({
       plan: "FREE",
-      paywall: true,
       limits: { scans: 0, coach: 0, labelScans: false, barcode: false, reminders: 3 },
     });
     const proRequired = (feature: string) => ({ reason: "pro_required", feature });
@@ -193,7 +177,7 @@ describe("paywall", () => {
     expect((await agent.get("/api/reminders").expect(200)).body.max).toBe(3);
 
     // Buying Premium lifts every one of them.
-    await hook(paywalled, event(userId, "INITIAL_PURCHASE")).expect(200);
+    await hook(t, event(userId, "INITIAL_PURCHASE")).expect(200);
     expect((await agent.get("/api/usage").expect(200)).body).toMatchObject({
       plan: "PRO",
       limit: 10,
@@ -208,5 +192,48 @@ describe("paywall", () => {
       .send({ title: "Reminder 4", crons: ["0 9 * * *"] })
       .expect(201);
     expect((await agent.get("/api/reminders").expect(200)).body.max).toBe(50);
+  });
+});
+
+describe("test purchases (store billing not connected)", () => {
+  it("give Premium in one tap for 30 or 365 days, and can be ended", async () => {
+    const { agent } = await t.signIn();
+    await t.http().post("/api/billing/test-purchase").send({ period: "month" }).expect(401);
+    await agent.post("/api/billing/test-purchase").send({ period: "week" }).expect(400);
+
+    const month = await agent
+      .post("/api/billing/test-purchase")
+      .send({ period: "month" })
+      .expect(200);
+    expect(month.body).toMatchObject({
+      plan: "PRO",
+      store: "TEST",
+      willRenew: false,
+      testPurchases: true,
+      limits: { scans: 10, coach: 40, barcode: true, reminders: 50 },
+    });
+    const days = (iso: string) => Math.round((new Date(iso).getTime() - Date.now()) / DAY);
+    expect(days(month.body.proUntil)).toBe(30);
+
+    const year = await agent
+      .post("/api/billing/test-purchase")
+      .send({ period: "year" })
+      .expect(200);
+    expect(days(year.body.proUntil)).toBe(365);
+
+    const ended = await agent.delete("/api/billing/test-purchase").expect(200);
+    expect(ended.body).toMatchObject({ plan: "FREE", proUntil: null, store: null });
+  });
+
+  it("are refused once store billing is connected", async () => {
+    const { agent } = await t.signIn();
+    t.revenueCat.enabled = true;
+    try {
+      expect((await agent.get("/api/billing").expect(200)).body.testPurchases).toBe(false);
+      await agent.post("/api/billing/test-purchase").send({ period: "month" }).expect(404);
+      await agent.delete("/api/billing/test-purchase").expect(404);
+    } finally {
+      t.revenueCat.enabled = false;
+    }
   });
 });

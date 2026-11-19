@@ -72,7 +72,7 @@ export default function CameraScreen() {
   const opened = useRef<string | null>(null);
   // The camera keeps running under the product screen: only read barcodes while this screen shows.
   const focused = useIsFocused();
-  // Free plan with the paywall on: barcode and photo scanning open the Premium screen instead.
+  // Free plan: barcode and photo scanning open the Premium screen instead.
   const premium = usePremium();
   const barcodeLocked = premium.locked("barcode");
   const photoLocked = premium.locked("photo_scan");

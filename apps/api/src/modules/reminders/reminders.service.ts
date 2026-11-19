@@ -59,17 +59,16 @@ export class RemindersService {
   }
 
   /**
-   * 402 (Premium) when a free user already has their 3 reminders; 409 at Premium's fair-use cap
-   * (or everyone's cap while the paywall is off).
+   * 402 (Premium) when a free user already has their 3 reminders; 409 at Premium's fair-use cap.
    */
   async create(userId: string, input: ReminderInput) {
     const crons = checkedCrons(input.crons);
-    const [count, { reminders: max, plan, paywall }] = await Promise.all([
+    const [count, { reminders: max, plan }] = await Promise.all([
       this.prisma.reminder.count({ where: { userId } }),
       this.billing.limits(userId),
     ]);
     if (count >= max) {
-      if (paywall && plan === "FREE")
+      if (plan === "FREE")
         throw proRequired(
           "reminders",
           `Free includes ${max} reminders. FITR8 Premium gives you unlimited reminders.`,

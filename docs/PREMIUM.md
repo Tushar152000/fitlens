@@ -48,9 +48,21 @@ Cancel anytime; trial eligibility and renewal terms apply.
 - **First login:** the Premium screen shows once, right after onboarding ("Your plan is ready"), with
   "Continue with Free". Stores require it to be closable, with Restore purchases and the terms.
 - **Profile:** "Go Premium"; Premium users see their plan, renewal date and Manage subscription.
-- **Paywall switch** `PAYWALL_ENABLED` (API, off by default): off means everyone keeps today's limits
-  until Premium can be bought; on means the rules above apply. Rules and tests:
-  `packages/domain/src/billing` (`dailyLimits`, `isPro`, `accessFromEvent`).
+- **Always on:** the rules above apply to every user in every environment; there is no switch. Rules
+  and tests: `packages/domain/src/billing` (`dailyLimits`, `isPro`, `accessFromEvent`).
+
+## Buying
+
+- **Now (testing): one-tap test purchase.** While store billing isn't connected (no
+  `REVENUECAT_SECRET_KEY` on the API), "Get Premium" calls `POST /api/billing/test-purchase`
+  `{period}` and the user is Premium at once for 30 or 365 days, no money involved. The screen says
+  "Test purchase: no money is charged". Profile shows "End test Premium" (`DELETE` the same route,
+  back to Free). `GET /api/billing` returns `testPurchases: true`. This works in production too, so
+  **anyone with the app can get Premium free** until the step below.
+- **Before a public store release:** connect store billing (Setup below: store products, RevenueCat,
+  `REVENUECAT_ENABLED=true` with its secrets, app SDK keys in a new build). Test purchases then switch
+  off by themselves (404) and the app buys through the App Store / Google Play. Apple and Google
+  require their own billing for digital subscriptions, so this must happen before the app is public.
 
 ## Not built yet (to tackle one by one)
 
@@ -68,7 +80,7 @@ Cancel anytime; trial eligibility and renewal terms apply.
 
 ```
 App: Purchases.configure({ appUserID: <FITR8 user id> })  ← identifyPurchaser() after sign-in
-App: paywall → purchasePackage → POST /api/billing/refresh  (limits lift immediately)
+App: Premium screen → purchasePackage → POST /api/billing/refresh  (limits lift immediately)
 RevenueCat → POST /api/billing/revenuecat  (webhook; Authorization header = REVENUECAT_WEBHOOK_AUTH)
 API: re-reads the customer from RevenueCat (REVENUECAT_SECRET_KEY) → entitlements row
 API: /api/me.plan, /api/billing, /api/usage, coach + label checks read BillingService
@@ -81,9 +93,10 @@ API: /api/me.plan, /api/billing, /api/usage, coach + label checks read BillingSe
   `GET /v1/subscribers/{id}` (RevenueCat's advice); without it the event's own fields are applied,
   never over a newer state (`event_timestamp_ms` vs `syncedAt`). TRANSFER needs the key.
 - Sandbox purchases count (App Review buys in sandbox on the production app).
-- Routes: `GET /api/billing` (plan, renewal, limits), `POST /api/billing/refresh` (after purchase or
-  restore), `POST /api/billing/revenuecat` (public, header-authenticated). Label scans without Pro
-  return **402** `{ reason: "pro_required" }`; limits return 429 with `{ plan, paywall }`.
+- Routes: `GET /api/billing` (plan, renewal, limits, `testPurchases`), `POST /api/billing/refresh`
+  (after purchase or restore), `POST/DELETE /api/billing/test-purchase` (testing only),
+  `POST /api/billing/revenuecat` (public, header-authenticated). A Premium feature on the free plan
+  returns **402** `{ reason: "pro_required", feature }`; a used-up Premium limit returns 429.
 
 ## App
 
@@ -95,10 +108,10 @@ API: /api/me.plan, /api/billing, /api/usage, coach + label checks read BillingSe
   coach (Premium card on the empty chat; Send opens Premium and keeps the text), reminders (at the
   free 3: "Get unlimited reminders"), Profile plan card ("Try Premium free for 7 days").
 - First login: the plan screen's Start calls `premiumIntroAfterOnboarding()`; Today
-  (`usePremiumIntro`) opens Premium once per user (flag in secure storage), only with the paywall on.
+  (`usePremiumIntro`) opens Premium once per user (flag in secure storage), unless already Premium.
 - Premium screen: `apps/mobile/src/app/pro.tsx` (modal), design in docs/DESIGN.md "Premium screen".
-  Prices and trial from the store (RevenueCat); without an SDK key it shows the launch prices and
-  "coming soon". Restore purchases, Terms / Privacy and renewal terms (App Store 3.1.1 / 3.1.2).
+  Prices and trial from the store (RevenueCat); without store plans it shows the launch prices and,
+  while `testPurchases` is on, buys with the one-tap test purchase. Restore purchases, Terms / Privacy and renewal terms (App Store 3.1.1 / 3.1.2).
 - `react-native-purchases` is native: it needs a new EAS build (Expo Go runs it in preview mode,
   no real purchases). Analytics: `paywall_view` (feature, source) and `pro_purchase`.
 
@@ -118,9 +131,10 @@ API: /api/me.plan, /api/billing, /api/usage, coach + label checks read BillingSe
    Authorization header value = a long random string.
 4. **API** (Cloud Run console, secrets via Secret Manager): `REVENUECAT_WEBHOOK_AUTH` (that string),
    `REVENUECAT_SECRET_KEY` (RevenueCat → API keys → secret `sk_…`), optionally
-   `REVENUECAT_ENTITLEMENT` if not `pro`. Production refuses `PAYWALL_ENABLED=true` without both.
+   `REVENUECAT_ENTITLEMENT` if not `pro`; GitHub variable `REVENUECAT_ENABLED=true` mounts them.
 5. **App** (EAS environment variables, then a new build): `EXPO_PUBLIC_REVENUECAT_IOS_KEY`
    (`appl_…`) and `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` (`goog_…`); these public SDK keys are safe in
    the app.
 6. Test with a sandbox / licence-tester account: buy, cancel, restore; check `GET /api/billing`.
-7. When ready to charge: set `PAYWALL_ENABLED=true` on the API.
+7. Deploy: test purchases switch off and real purchases take over. Test-Premium users keep Premium
+   until their 30/365 days end.

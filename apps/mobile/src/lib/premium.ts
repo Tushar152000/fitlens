@@ -17,7 +17,7 @@ export type { PremiumFeature };
 
 /** Is this feature outside the user's plan? `count` = how many they already have (reminders). */
 export function isLocked(billing: BillingDto | undefined, feature: PremiumFeature, count = 0): boolean {
-  if (!billing || !billing.paywall || billing.plan === "PRO") return false;
+  if (!billing || billing.plan === "PRO") return false;
   const l = billing.limits;
   switch (feature) {
     case "photo_scan":
@@ -39,8 +39,6 @@ export function usePremium() {
   return {
     billing: billing.data,
     isPremium: billing.data?.plan === "PRO",
-    /** Premium can be bought (the server's paywall switch). Off: never show upgrade prompts. */
-    paywall: billing.data?.paywall ?? false,
     locked: (feature: PremiumFeature, count?: number) => isLocked(billing.data, feature, count),
   };
 }
@@ -100,7 +98,7 @@ async function markIntroShown(userId: string) {
 
 /**
  * On Today: right after onboarding, open the Premium screen once per user ("Your plan is ready"),
- * only when Premium can be bought and the user doesn't have it. "Continue with Free" closes it.
+ * unless they already have it. "Continue with Free" closes it.
  */
 export function usePremiumIntro(userId: string) {
   const billing = useQuery(billingQuery);
@@ -108,7 +106,7 @@ export function usePremiumIntro(userId: string) {
   useEffect(() => {
     if (!introPending || !data) return;
     introPending = false;
-    if (!data.paywall || data.plan === "PRO") return;
+    if (data.plan === "PRO") return;
     void (async () => {
       if (await introShown(userId)) return;
       await markIntroShown(userId);

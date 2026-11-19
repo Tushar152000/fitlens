@@ -262,7 +262,7 @@ Drawn: 5b, 6b, 6c, 8, 9b, 9c. Build these from the description:
 ## Backend follow-ups implied by the design
 
 - A not-food result (9b) must not count toward the daily scan limit.
-- Free tier = 3 photo scans a day (`AI_DAILY_LIMIT` defaults to 30 today). Typed meals and "usuals" never count.
+- Photo scans are Premium (10 a day, docs/PREMIUM.md). Typed meals and "usuals" never count.
 - Unrealistic goals (5b): `suggestedTargetDate` must use the pace after the 25% deficit cap (≈0.6 kg/week for the 82 kg example), not the 1%/week rate, and return both options (later date, or closer target by the original date).
 - "Your usuals" (7b) needs a favourites/frequent-meals endpoint (PRD FR-13, P1).
 - History (12) needs `GET /api/history?days=7|30` returning daily totals and meals.

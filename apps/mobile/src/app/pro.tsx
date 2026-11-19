@@ -159,7 +159,9 @@ export default function ProScreen() {
   const hero = isPremium
     ? { eyebrow: "FITR8 Premium", title: "You're on Premium", sub: "Everything is unlocked. Thanks for backing FITR8." }
     : HEROES[onboarding ? "onboarding" : (feature ?? "default")];
-  const trialDays = plan?.trialDays ?? (plans.data?.length ? null : LIST_PRICE.trialDays);
+  // No store plans and store billing not connected: buying is a one-tap test purchase, no money.
+  const testMode = !plan && billing.data?.testPurchases === true;
+  const trialDays = testMode ? null : (plan?.trialDays ?? (plans.data?.length ? null : LIST_PRICE.trialDays));
 
   // Yearly framed per month, and the saving in rupees: concrete numbers persuade more than percentages.
   const currency = yearly?.pkg.product.currencyCode ?? "INR";
@@ -185,11 +187,15 @@ export default function ProScreen() {
   }
 
   async function buy() {
-    if (!plan) return;
+    if (!plan && !testMode) return;
     setBusy("buy");
     setError(null);
     try {
-      if (await buyPlan(plan)) {
+      if (testMode) {
+        await api("/api/billing/test-purchase", { json: { period: picked } });
+        setDone(true);
+        await afterStore();
+      } else if (plan && (await buyPlan(plan))) {
         track("pro_purchase", { period: plan.period });
         setDone(true);
         await afterStore().catch(() => setSyncPending(true));
@@ -218,11 +224,13 @@ export default function ProScreen() {
   }
 
   const close = () => (router.canGoBack() ? router.back() : router.replace("/today"));
-  const cta = !plan
-    ? "Coming soon"
-    : trialDays
-      ? `Start ${trialDays}-day free trial`
-      : `Get Premium for ${chosenPrice}`;
+  const cta = testMode
+    ? `Get Premium · ${chosenPrice}`
+    : !plan
+      ? "Coming soon"
+      : trialDays
+        ? `Start ${trialDays}-day free trial`
+        : `Get Premium for ${chosenPrice}`;
 
   return (
     <Screen
@@ -240,9 +248,14 @@ export default function ProScreen() {
         ) : (
           <View style={{ gap: 10 }}>
             {error && <FieldError>{error}</FieldError>}
-            <Button onPress={buy} loading={busy === "buy"} disabled={!plan || busy !== null}>
+            <Button onPress={buy} loading={busy === "buy"} disabled={!(plan || testMode) || busy !== null}>
               {cta}
             </Button>
+            {testMode && (
+              <Text size={13} weight={600} color={c.ink2} center>
+                Test purchase: no money is charged while FITR8 is in testing.
+              </Text>
+            )}
             {plan && (
               <Text size={13} weight={600} color={c.ink2} center>
                 {trialDays ? `₹0 today · ${chosenPrice} after ${trialDays} days · ` : ""}Cancel anytime
@@ -327,7 +340,7 @@ export default function ProScreen() {
               Loading prices from {store}…
             </Text>
           )}
-          {!plans.data?.length && !(purchasesAvailable && plans.isPending) && (
+          {!plans.data?.length && !testMode && !(purchasesAvailable && plans.isPending) && (
             <Text size={13} color={c.ink3}>
               Premium is coming soon. These are the launch prices.
             </Text>

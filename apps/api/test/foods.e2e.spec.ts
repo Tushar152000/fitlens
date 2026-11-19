@@ -10,7 +10,7 @@ const json = (status: number, body: unknown) =>
 describe("foods", () => {
   let t: TestApp;
   beforeAll(async () => {
-    t = await createTestApp();
+    t = await createTestApp({ premium: true });
   });
   afterEach(() => vi.restoreAllMocks());
   afterAll(() => t.close());
@@ -357,6 +357,7 @@ describe("foods", () => {
     let all: TestApp;
     beforeAll(async () => {
       all = await createTestApp({
+        premium: true,
         env: {
           USDA_FDC_API_KEY: "usda-key",
           EDAMAM_APP_ID: "ed-id",

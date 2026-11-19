@@ -3,7 +3,7 @@ import { accessFromEvent, dailyLimits, isPro, planOf } from "./index.js";
 
 const now = new Date("2026-10-14T10:00:00Z");
 const ms = (iso: string) => new Date(iso).getTime();
-const cfg = { freeScans: 3, proScans: 10, proCoach: 40 };
+const cfg = { proScans: 10, proCoach: 40 };
 
 describe("isPro / planOf", () => {
   it("is Pro until the access date, or forever with a lifetime purchase", () => {
@@ -16,27 +16,22 @@ describe("isPro / planOf", () => {
 });
 
 describe("dailyLimits", () => {
-  const premium = { scans: 10, coach: 40, labelScans: true, barcode: true, reminders: 50 };
-  it("gives Premium every feature with fair-use limits, paywall on or off", () => {
-    expect(dailyLimits("PRO", true, cfg)).toEqual(premium);
-    expect(dailyLimits("PRO", false, cfg)).toEqual(premium);
+  it("gives Premium every feature with fair-use limits", () => {
+    expect(dailyLimits("PRO", cfg)).toEqual({
+      scans: 10,
+      coach: 40,
+      labelScans: true,
+      barcode: true,
+      reminders: 50,
+    });
   });
-  it("locks AI, barcode and extra reminders for free users once the paywall is on", () => {
-    expect(dailyLimits("FREE", true, cfg)).toEqual({
+  it("leaves AI, barcode and extra reminders to Premium on the free plan", () => {
+    expect(dailyLimits("FREE", cfg)).toEqual({
       scans: 0,
       coach: 0,
       labelScans: false,
       barcode: false,
       reminders: 3,
-    });
-  });
-  it("keeps today's free limits until the paywall is switched on", () => {
-    expect(dailyLimits("FREE", false, cfg)).toEqual({
-      scans: 3,
-      coach: 40,
-      labelScans: true,
-      barcode: true,
-      reminders: 20,
     });
   });
 });

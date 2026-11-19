@@ -20,6 +20,7 @@ import {
   sendReminderConfirmation,
   syncWaterReminders,
 } from "@/lib/reminders";
+import { confirmAction } from "@/lib/confirm";
 import { queryClient } from "@/lib/query";
 import { fonts, makeStyles, radius, useAppearance, useColors, type AppearancePreference } from "@/lib/theme";
 import type { PlanResponse } from "@/lib/types-plan";
@@ -397,10 +398,24 @@ function PlanCard({ usage }: { usage: UsageDto }) {
   const c = useColors();
   const styles = useStyles();
   const billing = useQuery({ ...billingQuery, enabled: usage.plan === "PRO" });
+  const [ending, setEnding] = useState(false);
+  const testPremium = billing.data?.store === "TEST";
+
+  /** A test purchase (store billing not connected yet): back to Free, to try the free plan again. */
+  async function endTest() {
+    if (!(await confirmAction("End test Premium?", "You'll go back to the free plan.", "End Premium"))) return;
+    setEnding(true);
+    try {
+      await api("/api/billing/test-purchase", { method: "DELETE" });
+      await queryClient.invalidateQueries();
+    } finally {
+      setEnding(false);
+    }
+  }
   const pips = Math.min(usage.limit, 10);
   const usedPips = Math.min(pips, Math.round((usage.used / usage.limit) * pips));
   const pro = usage.plan === "PRO";
-  // Paywall on, free plan: no photo scans at all, so show what Premium adds instead of a 0/0 meter.
+  // Free plan: no photo scans at all, so show what Premium adds instead of a 0/0 meter.
   const noScans = usage.limit === 0;
   const until = billing.data?.proUntil
     ? new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(
@@ -441,23 +456,24 @@ function PlanCard({ usage }: { usage: UsageDto }) {
                   : `Premium until ${until}; won't renew.`}
             </Text>
           )}
-          <Button variant="secondary" onPress={() => Linking.openURL(manageSubscriptionUrl)}>
-            Manage subscription
-          </Button>
+          {testPremium ? (
+            <Button variant="secondary" loading={ending} onPress={endTest}>
+              End test Premium
+            </Button>
+          ) : (
+            <Button variant="secondary" onPress={() => Linking.openURL(manageSubscriptionUrl)}>
+              Manage subscription
+            </Button>
+          )}
         </>
       ) : (
         <>
           <Text size={13} color={c.ink3}>
-            {usage.paywall
-              ? "Premium adds barcode and photo scanning, the AI Coach and unlimited reminders. Typing meals is always free."
-              : "Typing meals and relogging usuals are always free."}
+            Premium adds barcode and photo scanning, the AI Coach and unlimited reminders. Typing meals is always free.
           </Text>
-          {/* Paywall off: free users already have today's limits, so there is nothing to sell yet. */}
-          {usage.paywall && (
-            <Button icon={Crown} onPress={() => router.push("/pro")}>
-              Try Premium free for 7 days
-            </Button>
-          )}
+          <Button icon={Crown} onPress={() => router.push("/pro")}>
+            See FITR8 Premium
+          </Button>
         </>
       )}
     </View>

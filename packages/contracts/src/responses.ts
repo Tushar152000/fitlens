@@ -293,8 +293,6 @@ export interface UsageDto {
   left: number;
   resetsAt: string;
   plan: "FREE" | "PRO";
-  /** False until Pro can be bought: show no upgrade prompts. */
-  paywall: boolean;
 }
 
 /** One entry of GET /api/meals/usuals. */

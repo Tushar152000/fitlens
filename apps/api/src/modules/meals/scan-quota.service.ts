@@ -31,7 +31,7 @@ export class ScanQuotaService {
    * typed meals, "usuals", not-food results and our own failures never do.
    */
   async scanUsage(userId: string) {
-    const [{ since, resetsAt }, { plan, paywall, scans: limit }] = await Promise.all([
+    const [{ since, resetsAt }, { plan, scans: limit }] = await Promise.all([
       this.userDayStart(userId),
       this.billing.limits(userId),
     ]);
@@ -44,7 +44,6 @@ export class ScanQuotaService {
       left: Math.max(0, limit - used),
       resetsAt: resetsAt.toISOString(),
       plan,
-      paywall,
     };
   }
 
@@ -60,9 +59,7 @@ export class ScanQuotaService {
     if (usage.left <= 0) {
       throw new AppError(
         429,
-        usage.plan === "PRO"
-          ? `You've used today's ${usage.limit} photo scans. They reset at midnight.`
-          : `You've used today's ${usage.limit} free photo scans.`,
+        `You've used today's ${usage.limit} photo scans. They reset at midnight.`,
         usage,
       );
     }

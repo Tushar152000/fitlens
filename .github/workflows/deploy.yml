@@ -157,11 +157,10 @@ jobs:
           AI_PROVIDER: ${{ vars.AI_PROVIDER || 'openai' }}
           APPLE_CLIENT_ID: ${{ vars.APPLE_CLIENT_ID }}
           REVENUECAT: ${{ vars.REVENUECAT_ENABLED }}
-          PAYWALL: ${{ vars.PAYWALL_ENABLED || 'false' }}
         run: |
           envs="APP_ENV=production,APP_ROLE=api,DATABASE_POOL_MAX=5,AI_PROVIDER=$AI_PROVIDER"
           envs+=",PUBLIC_URL=${{ vars.PUBLIC_URL }},API_PUBLIC_URL=${{ vars.API_PUBLIC_URL }}"
-          envs+=",AUTH_COOKIE_DOMAIN=${{ vars.AUTH_COOKIE_DOMAIN }},PAYWALL_ENABLED=$PAYWALL"
+          envs+=",AUTH_COOKIE_DOMAIN=${{ vars.AUTH_COOKIE_DOMAIN }}"
           envs+=",S3_REGION=auto,S3_BUCKET=${{ vars.S3_BUCKET }},S3_FORCE_PATH_STYLE=true"
 
           secrets="DATABASE_URL=DATABASE_URL:latest,AUTH_SECRET=AUTH_SECRET:latest"

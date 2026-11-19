@@ -31,17 +31,14 @@ export const PREMIUM_FEATURES = [
 ] as const;
 export type PremiumFeature = (typeof PREMIUM_FEATURES)[number];
 
-/** Custom reminders: free plan, Premium fair-use cap, and everyone's cap while the paywall is off. */
+/** Custom reminders: the free plan, and Premium's fair-use cap. */
 export const FREE_REMINDERS = 3;
 export const PREMIUM_REMINDERS = 50;
-export const OPEN_REMINDERS = 20;
 
 export interface LimitConfig {
-  /** Photo scans a day for free users while the paywall is off (AI_DAILY_LIMIT). */
-  freeScans: number;
   /** Premium photo scans a day: fair use (AI_PRO_DAILY_LIMIT). */
   proScans: number;
-  /** Premium coach messages a day; also everyone's limit while the paywall is off (COACH_DAILY_LIMIT). */
+  /** Premium coach messages a day (COACH_DAILY_LIMIT). */
   proCoach: number;
 }
 
@@ -59,29 +56,23 @@ export interface DailyLimits {
 }
 
 /**
- * Limits for a plan (docs/PREMIUM.md "Rules"). Paywall on: free users get no AI photo scans, coach
- * or barcode, and 3 custom reminders. Paywall off (before Premium can be bought): everyone keeps
- * today's limits, so nobody loses a feature they can't yet pay for.
+ * Limits for a plan (docs/PREMIUM.md "Rules"): free users get no AI photo scans, coach or barcode,
+ * and 3 custom reminders; Premium gets all of them with fair-use limits.
  */
-export function dailyLimits(plan: Plan, paywall: boolean, cfg: LimitConfig): DailyLimits {
-  if (plan === "PRO")
-    return {
-      scans: cfg.proScans,
-      coach: cfg.proCoach,
-      labelScans: true,
-      barcode: true,
-      reminders: PREMIUM_REMINDERS,
-    };
-  return paywall
-    ? { scans: 0, coach: 0, labelScans: false, barcode: false, reminders: FREE_REMINDERS }
-    : {
-        scans: cfg.freeScans,
+export function dailyLimits(plan: Plan, cfg: LimitConfig): DailyLimits {
+  return plan === "PRO"
+    ? {
+        scans: cfg.proScans,
         coach: cfg.proCoach,
         labelScans: true,
         barcode: true,
-        reminders: OPEN_REMINDERS,
-      };
+        reminders: PREMIUM_REMINDERS,
+      }
+    : { scans: 0, coach: 0, labelScans: false, barcode: false, reminders: FREE_REMINDERS };
 }
+
+/** Days of Premium a test purchase gives (until store billing is connected). */
+export const TEST_PURCHASE_DAYS = { month: 30, year: 365 } as const;
 
 // ── RevenueCat events ──────────────────────────────────────────────────────
 

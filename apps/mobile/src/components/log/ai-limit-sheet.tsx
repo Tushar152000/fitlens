@@ -4,7 +4,6 @@ import { Crown, Keyboard } from "lucide-react-native";
 import { View } from "react-native";
 import { Sheet } from "@/components/sheet";
 import { Button, Card, Text } from "@/components/ui";
-import { purchasesAvailable } from "@/lib/purchases";
 import { useColors } from "@/lib/theme";
 
 export type ScanUsage = UsageDto;
@@ -54,8 +53,7 @@ export function AiLimitSheet({
         ))}
       </View>
       <Text color={c.ink2}>Scans reset at {resets}. Typing a meal is free and doesn&apos;t use a scan.</Text>
-      {/* Paywall off: Premium can't be bought, so don't advertise it. */}
-      {usage?.plan !== "PRO" && usage?.paywall && purchasesAvailable && (
+      {usage?.plan !== "PRO" && (
         <Card dark style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Crown size={20} color={c.brandGlow} />
@@ -68,7 +66,7 @@ export function AiLimitSheet({
           </Text>
         </Card>
       )}
-      {usage?.plan !== "PRO" && usage?.paywall && purchasesAvailable && (
+      {usage?.plan !== "PRO" && (
         <Button
           onPress={() => {
             onClose();
