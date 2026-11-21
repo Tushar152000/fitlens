@@ -17,7 +17,7 @@ This is the contract for every change, human or AI. When code and this file disa
 ```
 
 - **One backend.** `apps/api` is the only process that talks to the database, storage, queue or an LLM. Web and mobile are clients of the same HTTP API (`/api/*`).
-- **Web is a pure client.** It has no API routes, proxy or rewrites. The browser calls the API directly at `NEXT_PUBLIC_API_URL` (`https://api.fitr8.com`) with its session cookie; server components call it with the user's cookie forwarded (`apps/web/src/lib/server/api.ts`). The session cookie is set by the API for `.fitr8.com` (`AUTH_COOKIE_DOMAIN`), so both hosts see it. The web app holds no secrets and no business rules.
+- **Web is a pure client.** It has no API routes, proxy or rewrites (only Next's metadata files `sitemap.ts` / `robots.ts`, which read the public blog API). The browser calls the API directly at `NEXT_PUBLIC_API_URL` (`https://api.fitr8.com`) with its session cookie; server components call it with the user's cookie forwarded (`apps/web/src/lib/server/api.ts`). The session cookie is set by the API for `.fitr8.com` (`AUTH_COOKIE_DOMAIN`), so both hosts see it. The web app holds no secrets and no business rules.
 - **Two runtime roles, one codebase.** `dist/main.js` serves HTTP (`APP_ROLE=api`), `dist/worker.js` consumes queues (`APP_ROLE=worker`), `APP_ROLE=all` does both for local dev and small deployments. Scale them separately.
 
 ## 2. Repository layout
@@ -57,21 +57,23 @@ test/<context>.e2e.spec.ts  HTTP-level tests against the real app and a real tes
 
 ### 3.2 Bounded contexts (modules)
 
-| Module      | Owns tables                                                          | Routes                                                                            |
-| ----------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `auth`      | auth_identities, sessions, auth_codes, auth_events                   | `/auth/*`                                                                         |
-| `users`     | users                                                                | `/me`, `/me/active`, `/account`, `/export`, `/profile/reminders`, `/profile/name` |
-| `plan`      | profiles, goals, daily_targets                                       | `/onboarding`, `/welcome-back`, `/targets`, `/plan`, `/goal/option`               |
-| `meals`     | meal_logs, meal_items, saved_meals, saved_meal_items, ai_calls       | `/meals/*`, `/usage`, `/saved-meals/*`                                            |
-| `foods`     | foods, food_units, barcode_misses, label_scans                       | `/foods/*`                                                                        |
-| `water`     | water_logs                                                           | `/water/*`                                                                        |
-| `workouts`  | exercises, workout_plans, workout_logs                               | `/workouts/*`                                                                     |
-| `progress`  | body_metrics, checkins                                               | `/checkins`, `/progress`, `/history`, `/dashboard`                                |
-| `coach`     | coach_conversations, coach_messages, coach_memories, knowledge_notes | `/coach/*`                                                                        |
-| `reminders` | reminders (config only; the app schedules local notifications)       | `/reminders/*`                                                                    |
-| `billing`   | entitlements, billing_events                                         | `/billing`, `/billing/refresh`, `/billing/revenuecat` (webhook)                   |
-| `ai`        | — (model access)                                                     | —                                                                                 |
-| `health`    | —                                                                    | `/health`, `/health/live`                                                         |
+| Module      | Owns tables                                                                                                      | Routes                                                                                       |
+| ----------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `auth`      | auth_identities, sessions, auth_codes, auth_events                                                               | `/auth/*`                                                                                    |
+| `users`     | users                                                                                                            | `/me`, `/me/active`, `/account`, `/export`, `/profile/reminders`, `/profile/name`            |
+| `plan`      | profiles, goals, daily_targets                                                                                   | `/onboarding`, `/welcome-back`, `/targets`, `/plan`, `/goal/option`                          |
+| `meals`     | meal_logs, meal_items, saved_meals, saved_meal_items, ai_calls                                                   | `/meals/*`, `/usage`, `/saved-meals/*`                                                       |
+| `foods`     | foods, food_units, barcode_misses, label_scans                                                                   | `/foods/*`                                                                                   |
+| `water`     | water_logs                                                                                                       | `/water/*`                                                                                   |
+| `workouts`  | exercises, workout_plans, workout_logs                                                                           | `/workouts/*`                                                                                |
+| `progress`  | body_metrics, checkins                                                                                           | `/checkins`, `/progress`, `/history`, `/dashboard`                                           |
+| `coach`     | coach_conversations, coach_messages, coach_memories, knowledge_notes                                             | `/coach/*`                                                                                   |
+| `reminders` | reminders (config only; the app schedules local notifications)                                                   | `/reminders/*`                                                                               |
+| `billing`   | entitlements, billing_events                                                                                     | `/billing`, `/billing/refresh`, `/billing/revenuecat` (webhook)                              |
+| `admin`     | staff_members                                                                                                    | `/admin/me`, `/admin/staff/*` (docs/ADMIN.md; `StaffGuard` guards every `/admin/**` section) |
+| `blog`      | blog_authors, blog_posts, blog_categories, blog_tags, blog_post_tags, blog_revisions, blog_redirects, blog_media | `/blog/*` (public reads, RSS, images), `/admin/blog/*` (staff; docs/BLOG.md)                 |
+| `ai`        | — (model access)                                                                                                 | —                                                                                            |
+| `health`    | —                                                                                                                | `/health`, `/health/live`                                                                    |
 
 **Rule:** a module writes only its own tables. Reading another context's data goes through that module's exported service. This is what makes extraction into a separate service a mechanical change (see §6).
 

@@ -63,12 +63,31 @@ Paths relative to `apps/api/`. Facts from the code, not docs. Known bugs live in
 
 ## Storage (`infra/storage/storage.service.ts`)
 
+- Blog adds `blogMediaKey` (`blog/<uuid>.<ext>`, public via `/api/blog/media`), `getObject` (stream, null on NoSuchKey), `deleteObject`.
+
 S3/R2/MinIO client. Presigned PUT 300 s, binds ContentType only (no size limit). Presigned GET 600 s default (300 meal detail, 3600 dashboard). `getImage` buffers whole object then rejects > 10 MB. Bucket auto-created only when not deployed. Photos deleted only on account delete (`deleteUserPhotos`).
+
+## Admin (`modules/admin`, docs/ADMIN.md)
+
+- Owns `staff_members`. `StaffService.resolve` (`staff.service.ts:41`): by userId → claim invite by email → create ADMIN if email in `ADMIN_EMAILS` (`isFixedAdmin` `:34`: re-promoted, can't be demoted/removed). `me` (`:91`) → staff + `can.manageTeam` + `sections.blog` perms.
+- `StaffGuard` (`staff.guard.ts:20`, after AuthGuard) + `@Staff()` on every `/admin/**` controller; non-staff 403 "This account isn't on the FITR8 team…". Routes (`admin.controller.ts`): GET `/admin/me`, GET/POST `/admin/staff`, PATCH/DELETE `/admin/staff/:id` (manage-team = ADMIN; last other admin protected). Exports StaffService + StaffGuard (BlogModule imports AdminModule).
+- e2e `test/admin.e2e.spec.ts`.
+
+## Blog (`modules/blog`, docs/BLOG.md)
+
+- Public (`blog.controller.ts`, `@Public`, `Cache-Control: public, max-age=60`): GET `/blog/posts?page&category&tag&author&q`, `/blog/posts/:slug` (404 + `details.redirectTo` when moved), `/blog/categories[/:slug]`, `/blog/tags[/:slug]`, `/blog/authors/:slug`, `/blog/sitemap`, `/blog/rss.xml`, `/blog/media/:file` (streams `blog/<uuid>.<ext>`, 1-year immutable, CORP cross-origin; `blog-content.service.ts:227`).
+- Admin section (`blog-admin.controller.ts`, `@Controller("admin/blog")`, admin's `StaffGuard`, NoStore): `profile` GET/PUT (own `blog_authors` row), `authors` (all staff, for assigning), `stats`, `posts` CRUD + `:id/publish {publishAt?}` + `:id/unpublish` + `:id/revisions[/:rid][/restore]`, `categories`, `tags`, `redirects`, `media` (POST = row + presigned PUT).
+- Authors `blog-authors.service.ts`: `ensure(staffId)` (`:47`) makes the profile from the staff name on first write/assign (400 if not staff); `post.authorId` = staff id.
+- Roles: staff role (admin module) mapped by `@fitr8/domain/blog` `blogCan`; authors see only own posts (others 404), can't edit once not DRAFT, can't publish/feature/assign author.
+- `update` `blog-posts.service.ts:231`: `baseUpdatedAt` mismatch → 409; reserved/taken slug → 400/409; live slug change upserts redirect old→new (and re-points); HTML via `renderPostHtml` `blog-html.ts:113` (sanitize-html allowlist, h1→h2, heading ids, text/words/minutes); revision every `REVISION_EVERY_MS` (`:36`, 10 min) or `snapshot`, 50 kept. Scheduled = status SCHEDULED + future publishedAt; `visiblePost()` (`blog-dto.ts`) makes it live when due (no job).
+- Users read only via `UsersService.identity` (admin module). Removing staff cascades their `blog_authors` row; posts' author SetNull.
 
 ## Env (all in `src/config/env.ts`)
 
 Runtime `NODE_ENV APP_ENV APP_ROLE(all) PORT(4000) LOG_LEVEL PUBLIC_URL(web origin) API_PUBLIC_URL(default PUBLIC_URL) AUTH_COOKIE_DOMAIN CORS_ORIGINS` ("" = unset for the new two) · Data `DATABASE_URL(req) DATABASE_POOL_MAX(10) REDIS_URL` · Auth `AUTH_SECRET(req ≥32) AUTH_GOOGLE_ID/SECRET APPLE_CLIENT_ID/TEAM_ID/KEY_ID/PRIVATE_KEY AUTH_DEV_LOGIN SESSION_DAYS MOBILE_SESSION_DAYS SESSION_MAX_DAYS AUTH_RATE_LIMIT` · Storage `S3_*` · AI `AI_PROVIDER ANTHROPIC_API_KEY OPENAI_API_KEY AI_DAILY_LIMIT(3) COACH_DAILY_LIMIT(40) AI_PRO_DAILY_LIMIT(10)` · Billing `PAYWALL_ENABLED REVENUECAT_WEBHOOK_AUTH REVENUECAT_SECRET_KEY REVENUECAT_ENTITLEMENT(pro)` · `OFF_CONTACT`.
 Deployed refuses: dev login on, missing Google creds, partial Apple config, non-https `PUBLIC_URL`/`API_PUBLIC_URL`. Always refuses: web and API on different hosts without `AUTH_COOKIE_DOMAIN`, or a domain not covering both.
+
+Admin: `ADMIN_EMAILS` (comma list, lower-cased; `env.ts:135`).
 
 ## Layering reality
 

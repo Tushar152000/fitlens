@@ -71,6 +71,14 @@ export class UsersService {
     return user?.id ?? null;
   }
 
+  /** Email (lower-cased), name and photo: the blog uses them to match staff and fill author profiles. */
+  async identity(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, name: true, lastName: true, image: true },
+    });
+  }
+
   /** A new account. Throws Prisma P2002 if the email was taken meanwhile (the caller retries). */
   async create(input: NewUser): Promise<string> {
     const user = await this.prisma.user.create({

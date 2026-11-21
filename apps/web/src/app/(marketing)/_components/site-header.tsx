@@ -44,6 +44,12 @@ export function SiteHeader() {
         </Link>
 
         <div className="ml-auto flex items-center gap-2.5">
+          <Link
+            href="/blog"
+            className="flex h-11 items-center rounded-full px-4 text-[15px] font-semibold underline-offset-4 hover:underline"
+          >
+            Blog
+          </Link>
           {/* One way in: /login signs in with Google, then sends members to their plan and new
               people to onboarding. */}
           <Link

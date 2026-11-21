@@ -9,6 +9,7 @@ const rootEnv = resolve(process.cwd(), "../../.env"); // next dev runs in apps/w
 if (process.env.NODE_ENV !== "production" && existsSync(rootEnv)) {
   process.loadEnvFile(rootEnv);
   process.env.NEXT_PUBLIC_API_URL ||= process.env.API_PUBLIC_URL;
+  process.env.NEXT_PUBLIC_SITE_URL ||= process.env.PUBLIC_URL;
 }
 
 // Lets a phone reach the dev server through a Cloudflare quick tunnel (https://*.trycloudflare.com)

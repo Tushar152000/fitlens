@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CONTACT_EMAIL } from "./faq";
 
 const COMPANY_LINKS = [
+  { label: "Blog", href: "/blog" },
   { label: "Reviews", href: "/#stories" },
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Terms of Use", href: "/terms" },

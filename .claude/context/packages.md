@@ -13,15 +13,22 @@ Subpath exports (`package.json`): `./nutrition ./training ./dates ./format ./bar
 - **format.ts**, **barcode.ts** (GS1, UPC-E→A, `normalizeBarcode`), **label.ts** (`labelAddsUp`).
 - Tests: nutrition, preview, water, training, billing, barcode, label, reminders, person. Untested exports include `bmiCategory`, `ageFromBirthDate`, `sumMacros`, `parseDateOnly`, `ruledOutByInjury`, `roundToStep`, `estimateMinutes`, several format helpers (ARCHITECTURE's "100% tested" is false).
 
+- **staff.ts** (`@fitr8/domain/staff`): `STAFF_ROLES` ADMIN/EDITOR/AUTHOR, `STAFF_ROLE_LABELS`, `staffCan(role,"manage-team")`, `roleRank`. Tests `staff.test.ts`.
+- **blog.ts** (`@fitr8/domain/blog`): `slugify`, `isValidSlug`, `RESERVED_POST_SLUGS`, `readingStats` (220 wpm), `blogCan(StaffRole, action)`, `effectiveStatus` (scheduled → published when due), `seoChecks` (+ score). Tests `blog.test.ts`.
+
 ## @fitr8/contracts (`packages/contracts/src`, zod 4)
 
 - `requests.ts` (`MealItemInputSchema` shared by ConfirmMeal + SavedMeal; SavedMeal, LogSavedMeal, Reminder, ReminderUpdate, ReminderParse; meal bodies CreateMeal/Relog/QuickAdd/LogItems/LabelSave take optional `date`): Onboarding, UploadUrl, CreateMeal (PHOTO/TEXT/MANUAL), ConfirmMeal, Recheck, Checkin, ParseItems, Relog, GoalOption, Reminders, PreferredName (name + optional lastName/phone; phone transformed to E.164 with domain `normalizePhone`, `requests.ts:141`), WaterAdd, QuickAdd, LabelScan, LabelSave, Energy, WorkoutLog, LogItems.
 - `auth.ts` (GoogleStartQuery, MobileStartQuery, MobileToken, AppleSignIn, DevLogin; ProvidersDto, AuthTokenDto, SessionDto), `billing.ts` (RevenueCatWebhookSchema passthrough, BillingDto), `coach.ts` (CoachChatSchema, CoachStreamEvent), `ai.ts` (MealAnalysisSchema, LabelReadSchema, ReminderDraftSchema), `responses.ts` (all DTOs, `Jsonify`), `analytics.ts` (type-only `AnalyticsEvents` map shared by web + app GA; `export type *`).
 - Loose spots: `OnboardingSchema.timezone` any string (invalid IANA → 500); `ConfirmMealSchema.items` no max; `mealAnalysisJsonSchema`/`labelReadJsonSchema` unused. No tests in this package.
 
+- `admin.ts`: `StaffInviteSchema`, `StaffUpdateSchema`, `StaffMemberDto` (`fixed` = in ADMIN_EMAILS), `AdminMeDto` (staff, can, sections.blog).
+- `blog.ts`: blog request schemas (post update is all-optional, `baseUpdatedAt`, `snapshot`) and DTOs (`BlogAuthorProfileDto`, `BlogAuthorOptionDto`).
+
 ## @fitr8/db (`packages/db`)
 
 - Prisma 7, `prisma-client` generator, ESM, output `src/generated/prisma` (gitignored; run `pnpm db:generate` after schema changes). `src/index.ts` exports `createPrismaClient` (PrismaPg).
+- Admin + blog tables (migration `20261121192809_admin_blog`, additive): staff_members (userId unique nullable FK SetNull, email unique = invite, role StaffRole), blog_authors (PK staffId FK cascade), blog_posts (authorId → blog_authors.staffId SetNull), blog_categories, blog_tags, blog_post_tags, blog_revisions (staffId SetNull), blog_redirects, blog_media (uploadedById → staff SetNull).
 - Schema `prisma/schema.prisma` — tables: users (`lastActiveAt`, migration `20261117120000_user_last_active` backfills from sessions/meals/body metrics/water/workouts/profiles), auth_identities, sessions, auth_codes, auth_events, profiles, goals, daily_targets (append-only history), coach_memories, knowledge_notes (seeded from `prisma/data/knowledge/*.md` via `scripts/knowledge.ts` `parseNote`; migration `20261118184721_coach_memory_knowledge`), body_metrics (unique userId+date), foods (unique name, unique barcode, `verified`, `submittedById` no FK), barcode_misses, label_scans, food_units, meal_logs (status PENDING→ANALYZING→READY→CONFIRMED|FAILED), meal_items, exercises (unused by API), workout_plans (unique userId+weekStart+version), workout_logs (no unique), checkins (unused), ai_calls, water_logs, saved_meals + saved_meal_items (position-ordered, food FK SetNull), reminders (`crons String[]` + enabled + prompt), coach_conversations, coach_messages (append-only `content` JSON), entitlements, billing_events.
 - All user-owned tables cascade on user delete; ai_calls SET NULL. No soft deletes.
 - Migrations (13, latest `saved_meals_reminders`: 3 tables + AiCallType `REMINDER_PARSE`; before it `foreign_key_indexes`: indexes on auth_codes.userId, daily_targets.goalId, meal_items.foodId, workout_logs.planId). `pnpm db:drift` (needs `SHADOW_DATABASE_URL`) proves migrations == schema; CI runs it.

@@ -128,6 +128,20 @@ export const EnvSchema = z
     /** RevenueCat entitlement identifier that means FITR8 Pro. */
     REVENUECAT_ENTITLEMENT: z.string().default("pro"),
 
+    /**
+     * FITR8 admin (/admin): Google accounts (comma separated) that are always ADMIN staff. They add
+     * the rest of the team (editors, authors) in /admin/team.
+     */
+    ADMIN_EMAILS: z
+      .string()
+      .default("")
+      .transform((v) =>
+        v
+          .split(",")
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean),
+      ),
+
     OFF_CONTACT: optional,
     /**
      * Extra barcode sources, tried alongside Open Food Facts when a product isn't in our database.

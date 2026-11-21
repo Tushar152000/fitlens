@@ -37,7 +37,7 @@ On successful CI `workflow_run` on main (or manual, input `all`). WIF auth, no k
 
 ## Env templates
 
-`.env.example` covers API vars (except `REVENUECAT_ENTITLEMENT`) + web/test/ports. `.env.production.example` has the web/API URL trio + PAYWALL/RevenueCat; still omits COACH_FREE/AI_PRO limits, AI model overrides, AUTH_DEV_LOGIN (defaults are right). Undocumented: web `APP_STORE_URL`/`PLAY_STORE_URL`; mobile `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_REVENUECAT_*`.
+`.env.example` covers API vars (except `REVENUECAT_ENTITLEMENT`) + web/test/ports. `.env.production.example` has the web/API URL trio + PAYWALL/RevenueCat + `ADMIN_EMAILS`; still omits COACH_FREE/AI_PRO limits, AI model overrides, AUTH_DEV_LOGIN (defaults are right). Undocumented: web `APP_STORE_URL`/`PLAY_STORE_URL`/`NEXT_PUBLIC_SITE_URL` (docs/BLOG.md); mobile `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_REVENUECAT_*`.
 
 ## Turbo
 

@@ -115,26 +115,27 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  identities   AuthIdentity[]
-  sessions     Session[]
-  authCodes    AuthCode[]
-  authEvents   AuthEvent[]
-  profile      Profile?
-  goals        Goal[]
-  dailyTargets DailyTarget[]
-  bodyMetrics  BodyMetric[]
-  mealLogs     MealLog[]
-  workoutPlans WorkoutPlan[]
-  workoutLogs  WorkoutLog[]
-  checkins     Checkin[]
-  aiCalls      AiCall[]
-  labelScans   LabelScan[]
-  waterLogs    WaterLog[]
-  coachChats   CoachConversation[]
+  identities    AuthIdentity[]
+  sessions      Session[]
+  authCodes     AuthCode[]
+  authEvents    AuthEvent[]
+  profile       Profile?
+  goals         Goal[]
+  dailyTargets  DailyTarget[]
+  bodyMetrics   BodyMetric[]
+  mealLogs      MealLog[]
+  workoutPlans  WorkoutPlan[]
+  workoutLogs   WorkoutLog[]
+  checkins      Checkin[]
+  aiCalls       AiCall[]
+  labelScans    LabelScan[]
+  waterLogs     WaterLog[]
+  coachChats    CoachConversation[]
   coachMemories CoachMemory[]
-  entitlement  Entitlement?
-  savedMeals   SavedMeal[]
-  reminders    Reminder[]
+  entitlement   Entitlement?
+  savedMeals    SavedMeal[]
+  reminders     Reminder[]
+  staffMember   StaffMember?
 
   @@map("users")
 }
@@ -387,9 +388,9 @@ model BarcodeMiss {
   checkedAt DateTime @default(now())
 
   /// What a source knew without nutrition (e.g. UPCitemdb): prefills the label scan.
-  name      String?   @db.VarChar(200)
-  brand     String?   @db.VarChar(120)
-  imageUrl  String?   @db.VarChar(500)
+  name     String? @db.VarChar(200)
+  brand    String? @db.VarChar(120)
+  imageUrl String? @db.VarChar(500)
 
   @@map("barcode_misses")
 }
@@ -759,4 +760,208 @@ model BillingEvent {
 
   @@index([receivedAt])
   @@map("billing_events")
+}
+
+// ---------- Admin (modules/admin) ----------
+// The staff admin at /admin. Staff sign in with their normal Google account; a staff_members row
+// gives them a role across every admin section (blog first). Sections keep their own data.
+
+enum StaffRole {
+  /// Everything, including the team.
+  ADMIN
+  /// Runs content: publishes, edits everyone's work, manages taxonomies and settings of a section.
+  EDITOR
+  /// Contributes: writes their own drafts.
+  AUTHOR
+}
+
+/// Who can open /admin. `email` alone (no userId) is an invite; the first admin visit by a user with
+/// that email links userId.
+model StaffMember {
+  id        String    @id @default(cuid())
+  userId    String?   @unique
+  /// Lower-cased. Unique so an invite matches exactly one person.
+  email     String    @unique
+  name      String
+  role      StaffRole @default(AUTHOR)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  blogAuthor    BlogAuthor?
+  blogRevisions BlogRevision[]
+  blogUploads   BlogMedia[]
+
+  @@map("staff_members")
+}
+
+// ---------- Blog (modules/blog) ----------
+// The public blog at /blog and its admin section at /admin/blog. Who may do what comes from the
+// staff role (admin module); the blog owns only blog data, including public author profiles.
+
+enum BlogPostStatus {
+  DRAFT
+  /// Goes live by itself once publishedAt has passed (readers' queries check the time; no job).
+  SCHEDULED
+  PUBLISHED
+}
+
+/// A staff member's public author profile (/blog/author/<slug>), made the first time they write.
+model BlogAuthor {
+  staffId   String   @id
+  slug      String   @unique
+  name      String
+  bio       String?
+  avatarId  String?
+  website   String?
+  twitter   String?
+  linkedin  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staff  StaffMember @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  avatar BlogMedia?  @relation("BlogAuthorAvatar", fields: [avatarId], references: [id], onDelete: SetNull)
+  posts  BlogPost[]
+
+  @@index([avatarId])
+  @@map("blog_authors")
+}
+
+model BlogPost {
+  id              String         @id @default(cuid())
+  slug            String         @unique
+  title           String
+  excerpt         String?
+  /// Tiptap document (what the editor loads).
+  contentJson     Json
+  /// Sanitised HTML rendered on /blog (headings carry ids for the table of contents).
+  contentHtml     String
+  /// Plain text: word count, search, and the SEO checks.
+  contentText     String
+  /// [{ id, text, level }] of the h2/h3 headings.
+  toc             Json           @default("[]")
+  wordCount       Int            @default(0)
+  readingMinutes  Int            @default(0)
+  status          BlogPostStatus @default(DRAFT)
+  /// When it went (or goes) live. Kept when unpublished so a re-publish keeps the original date.
+  publishedAt     DateTime?
+  featured        Boolean        @default(false)
+  coverId         String?
+  coverAlt        String?
+  /// The author's staff id (blog_authors.staffId).
+  authorId        String?
+  categoryId      String?
+  metaTitle       String?
+  metaDescription String?
+  canonicalUrl    String?
+  noindex         Boolean        @default(false)
+  ogImageId       String?
+  focusKeyword    String?
+  /// [{ question, answer }]: rendered under the post and as FAQPage structured data.
+  faq             Json           @default("[]")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  author    BlogAuthor?    @relation(fields: [authorId], references: [staffId], onDelete: SetNull)
+  category  BlogCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  cover     BlogMedia?     @relation("BlogPostCover", fields: [coverId], references: [id], onDelete: SetNull)
+  ogImage   BlogMedia?     @relation("BlogPostOgImage", fields: [ogImageId], references: [id], onDelete: SetNull)
+  tags      BlogPostTag[]
+  revisions BlogRevision[]
+
+  @@index([status, publishedAt])
+  @@index([authorId])
+  @@index([categoryId])
+  @@index([coverId])
+  @@index([ogImageId])
+  @@map("blog_posts")
+}
+
+model BlogCategory {
+  id              String     @id @default(cuid())
+  slug            String     @unique
+  name            String     @unique
+  description     String?
+  metaTitle       String?
+  metaDescription String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  posts           BlogPost[]
+
+  @@map("blog_categories")
+}
+
+model BlogTag {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String        @unique
+  description String?
+  createdAt   DateTime      @default(now())
+  posts       BlogPostTag[]
+
+  @@map("blog_tags")
+}
+
+model BlogPostTag {
+  postId String
+  tagId  String
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    BlogTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@index([tagId])
+  @@map("blog_post_tags")
+}
+
+/// A snapshot of a post's words, taken on publish, on restore and at most every few minutes while
+/// editing. Newest 50 per post are kept.
+model BlogRevision {
+  id          String   @id @default(cuid())
+  postId      String
+  title       String
+  excerpt     String?
+  contentJson Json
+  contentHtml String
+  /// Why it was taken: "autosave", "publish", "schedule", "restore", "manual".
+  reason      String
+  staffId     String?
+  createdAt   DateTime @default(now())
+
+  post  BlogPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  staff StaffMember? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([postId, createdAt])
+  @@index([staffId])
+  @@map("blog_revisions")
+}
+
+/// /blog/<fromSlug> → toPath. Made automatically when a published post's slug changes, or by hand.
+model BlogRedirect {
+  id        String   @id @default(cuid())
+  fromSlug  String   @unique
+  /// A site path ("/blog/new-slug") or an https URL.
+  toPath    String
+  auto      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("blog_redirects")
+}
+
+/// An uploaded blog image. Public by design: served by GET /api/blog/media/<file>.
+model BlogMedia {
+  id           String   @id @default(cuid())
+  /// Storage key: blog/<uuid>.<ext>
+  key          String   @unique
+  contentType  String
+  alt          String?
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  uploadedBy StaffMember? @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  covers     BlogPost[]   @relation("BlogPostCover")
+  ogImages   BlogPost[]   @relation("BlogPostOgImage")
+  avatars    BlogAuthor[] @relation("BlogAuthorAvatar")
+
+  @@index([uploadedById])
+  @@map("blog_media")
 }
