@@ -14,10 +14,10 @@ export { ApiError };
  */
 export async function serverApi<T>(
   path: string,
-  init?: RequestInit & { json?: unknown },
+  init?: RequestInit & { json?: unknown; signInPath?: string },
 ): Promise<T> {
   const incoming = await headers();
-  const { json, ...rest } = init ?? {};
+  const { json, signInPath = "/login", ...rest } = init ?? {};
   const forwarded = new Headers(rest.headers);
   const cookie = incoming.get("cookie");
   if (cookie) forwarded.set("cookie", cookie);
@@ -40,7 +40,7 @@ export async function serverApi<T>(
   }
 
   // Outside any try/catch: redirect() works by throwing.
-  if (res.status === 401) redirect("/login");
+  if (res.status === 401) redirect(signInPath);
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as {
       error?: string;

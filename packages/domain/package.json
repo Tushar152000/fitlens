@@ -45,6 +45,14 @@
     "./person": {
       "types": "./dist/person.d.ts",
       "default": "./dist/person.js"
+    },
+    "./blog": {
+      "types": "./dist/blog.d.ts",
+      "default": "./dist/blog.js"
+    },
+    "./staff": {
+      "types": "./dist/staff.d.ts",
+      "default": "./dist/staff.js"
     }
   },
   "files": [

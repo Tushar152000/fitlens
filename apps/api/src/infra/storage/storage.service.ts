@@ -1,5 +1,6 @@
 import {
   CreateBucketCommand,
+  DeleteObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadBucketCommand,
@@ -79,6 +80,34 @@ export class StorageService implements OnApplicationBootstrap {
       token = page.IsTruncated ? page.NextContinuationToken : undefined;
     } while (token);
     return removed;
+  }
+
+  /** Public blog image key: blog/<uuid>.<ext>. The file name (after "blog/") is its public URL path. */
+  blogMediaKey(contentType: string): string {
+    const ext = contentType.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
+    return `blog/${randomUUID()}.${ext}`;
+  }
+
+  /** An object's bytes as a stream (blog images, served through the API). Null when it doesn't exist. */
+  async getObject(key: string) {
+    try {
+      const res = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+      if (!res.Body) return null;
+      return {
+        body: res.Body as NodeJS.ReadableStream,
+        contentType: res.ContentType?.split(";")[0] ?? "application/octet-stream",
+        contentLength: res.ContentLength,
+        etag: res.ETag,
+      };
+    } catch (err) {
+      const name = (err as { name?: string }).name;
+      if (name === "NoSuchKey" || name === "NotFound") return null;
+      throw err;
+    }
+  }
+
+  async deleteObject(key: string): Promise<void> {
+    await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
   /** The client PUTs the (compressed) image straight to storage with this URL. */

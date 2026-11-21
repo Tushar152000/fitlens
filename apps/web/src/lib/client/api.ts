@@ -4,8 +4,11 @@ import { apiUrl } from "@/lib/api-url";
 
 export { ApiError };
 
-export async function api<T>(url: string, init?: RequestInit & { json?: unknown }): Promise<T> {
-  const { json, ...rest } = init ?? {};
+export async function api<T>(
+  url: string,
+  init?: RequestInit & { json?: unknown; signInPath?: string },
+): Promise<T> {
+  const { json, signInPath = "/login", ...rest } = init ?? {};
   let res: Response;
   try {
     res = await fetch(url.startsWith("/") ? apiUrl(url) : url, {
@@ -19,7 +22,7 @@ export async function api<T>(url: string, init?: RequestInit & { json?: unknown 
     throw new ApiError(0, "Couldn't reach FITR8. Check your connection and try again.");
   }
   if (res.status === 401 && typeof window !== "undefined") {
-    window.location.assign(new URL("/login", window.location.origin).href);
+    window.location.assign(new URL(signInPath, window.location.origin).href);
   }
   if (!res.ok) {
     const body = await res.json().catch(() => null);

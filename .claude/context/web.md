@@ -22,6 +22,7 @@ Landing + legal + onboarding + read-only `/home`. Logging, coach, tabs live in t
 ## Routes
 
 - `/` `(marketing)/page.tsx` server; no auth check. `TargetCalculator` (client) uses `previewTarget` from `@fitr8/domain/nutrition`, stashes to sessionStorage → `/login`. `Hero`/`GetTheApp` read `storeLinks()` (`components/store-links.tsx`: `APP_STORE_URL`/`PLAY_STORE_URL`) — page may be statically prerendered, so runtime env might not apply (unverified).
+- Landing also has "From the blog" (`(marketing)/_components/from-the-blog.tsx`, 3 newest posts via `latestPosts()` with `revalidate: 300`, hidden when empty) and Blog links in `site-header.tsx` / `site-footer.tsx`.
 - `/privacy`, `/terms` static `LegalPage`. Contact `ask@fitr8.com` hardcoded.
 - One entry (2026-11-19): header "Log in / Sign up", every "Start for free" and the calculator go to `/login`. `/welcome`, `/welcome/name` → redirect `/login`; `/welcome/done` → `/home`. No signed-out onboarding (no `welcome` mode, `FinishSignup`, pending stash; `pending.ts` keeps only the calculator handoff).
 - `/login` ("Log in or start for free", members → plan, new → onboarding via `/home`): `next` must match `/^\/(?![/\\])/`, default `/home`; Google `<a href="/api/auth/google?returnTo=…">`; dev login if `providers.dev`. **No Apple button.** Shows `?error=` (≤200 chars).
@@ -29,6 +30,12 @@ Landing + legal + onboarding + read-only `/home`. Logging, coach, tabs live in t
 - `/home`: `requireOnboardedViewer`; parallel `serverApiOrNull` `/plan`, `/dashboard`, `/water`; TodayCard, PlanSummary, GetAppCard; Export `<a href="/api/export">`; SignOut + DangerZone imported from `(tabs)/profile/profile-controls.tsx`.
 - `/onboarding` (new|edit by `onboardedAt`), `/onboarding/plan` (plan or `TooFastPlan` → `POST /api/goal/option`), `/onboarding/app`.
 - `/dev/ui` 404 in production.
+
+## Blog (docs/BLOG.md)
+
+- Public `app/(marketing)/blog/`: index (`?page`), `[slug]` (generateMetadata: title/description/canonical/OG article/robots noindex; JSON-LD BlogPosting + BreadcrumbList + FAQPage; 308 via `permanentRedirect` on `details.redirectTo`), `category|tag|author/[slug]`. Data `lib/server/blog.ts` `blogGet` — `cache: "no-store"`, returns `{ok:false,status:0}` when the API is unreachable (build). Article body `components/blog/article.tsx` + `.blog-prose` (globals.css). `app/sitemap.ts` (force-dynamic) + `app/robots.ts` (disallow /admin and app routes). `lib/site-url.ts` `NEXT_PUBLIC_SITE_URL` (dev: `PUBLIC_URL` via next.config).
+- Admin (universal, docs/ADMIN.md) `app/admin/`: `login` (Google `returnTo=/admin`, dev login), `no-access`, `(panel)/` layout `requireStaff()` (`lib/admin/server.ts:35`: signed out → /admin/login, not staff → /admin/no-access). `(panel)/page.tsx` home (section cards), `team` (staff, `components/admin/team-manager.tsx`), `blog/` section: dashboard, posts, `posts/[id]` editor, `posts/[id]/preview`, categories, tags, media, redirects, profile. Menu `components/admin/admin-nav.tsx` `SECTIONS` (`:41`). Browser `adminApi` / `blogApi`, server `adminServerApi` / `blogServerApi` (`lib/admin/`). `serverApi`/`api` take `signInPath`.
+- Editor `components/admin/editor/post-editor.tsx`: opens `contentJson`, or `contentHtml` when the doc is empty (`hasBlocks`, posts created via the API); autosave 2 s, Ctrl/⌘S snapshot, 409 → stops autosaving; Tiptap 3.33 (`rich-editor.tsx`: StarterKit, Image, TableKit, Youtube nocookie, Placeholder); SEO panel uses domain `seoChecks` + `lib/admin/analyse.ts` (tested). Uploads `lib/admin/api.ts` `uploadBlogImage` (presigned PUT).
 
 ## Auth
 
